@@ -21,6 +21,18 @@ def _get_campay_token():
     return resp.json()["token"]
 
 
+def get_campay_payment_status(campay_reference):
+    """Query Campay for the current status of a payment. Returns status string e.g. SUCCESSFUL/FAILED/EXPIRED/PENDING."""
+    token = _get_campay_token()
+    resp = requests.get(
+        f"{settings.CAMPAY_URL}transaction/{campay_reference}/",
+        headers={"Authorization": f"Token {token}"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()["status"]
+
+
 def initiate_payment(user_id, document_id, amount, phone_number, operator):
     internal_reference = str(uuid.uuid4())
     transaction = Transaction.objects.create(

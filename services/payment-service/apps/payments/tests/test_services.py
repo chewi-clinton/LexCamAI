@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import uuid
 import pytest
+import requests
 import responses as resp_mock
 from unittest.mock import patch, MagicMock
 from apps.payments.models import Transaction
@@ -157,13 +158,35 @@ class TestHandleWebhook:
         assert result.status == Transaction.STATUS_PENDING
 
 
+CAMPAY_TXN_URL = "https://demo.campay.net/api/transaction/"
+
+
+@pytest.mark.django_db
+class TestGetCampayPaymentStatus:
+    @resp_mock.activate
+    def test_returns_status(self):
+        from apps.payments.services import get_campay_payment_status
+        resp_mock.add(resp_mock.POST, CAMPAY_TOKEN_URL, json={"token": "tok"}, status=200)
+        resp_mock.add(resp_mock.GET, f"{CAMPAY_TXN_URL}ref-abc/", json={"status": "SUCCESSFUL"}, status=200)
+        assert get_campay_payment_status("ref-abc") == "SUCCESSFUL"
+
+    @resp_mock.activate
+    def test_raises_on_error(self):
+        from apps.payments.services import get_campay_payment_status
+        resp_mock.add(resp_mock.POST, CAMPAY_TOKEN_URL, json={"token": "tok"}, status=200)
+        resp_mock.add(resp_mock.GET, f"{CAMPAY_TXN_URL}bad-ref/", json={}, status=404)
+        with pytest.raises(requests.HTTPError):
+            get_campay_payment_status("bad-ref")
+
+
 @pytest.mark.django_db
 class TestExpirePendingPaymentsCommand:
-    def test_expires_old_pending(self, db):
+    from datetime import timedelta
+    from django.utils import timezone
+
+    def _old_pending(self, db, campay_reference=None):
         from django.utils import timezone
         from datetime import timedelta
-        from django.core.management import call_command
-
         tx = Transaction.objects.create(
             user_id=uuid.uuid4(),
             document_id=uuid.uuid4(),
@@ -171,27 +194,20 @@ class TestExpirePendingPaymentsCommand:
             phone_number="677",
             operator="mtn",
             internal_reference=str(uuid.uuid4()),
+            campay_reference=campay_reference,
             status=Transaction.STATUS_PENDING,
         )
-        # Backdate created_at to simulate an old transaction
         Transaction.objects.filter(pk=tx.pk).update(
             created_at=timezone.now() - timedelta(minutes=20)
         )
-        call_command("expire_pending_payments")
-        tx.refresh_from_db()
-        assert tx.status == Transaction.STATUS_EXPIRED
+        return tx
 
     def test_does_not_expire_recent_pending(self, db):
         from django.core.management import call_command
-
         tx = Transaction.objects.create(
-            user_id=uuid.uuid4(),
-            document_id=uuid.uuid4(),
-            amount=5000,
-            phone_number="677",
-            operator="mtn",
-            internal_reference=str(uuid.uuid4()),
-            status=Transaction.STATUS_PENDING,
+            user_id=uuid.uuid4(), document_id=uuid.uuid4(),
+            amount=5000, phone_number="677", operator="mtn",
+            internal_reference=str(uuid.uuid4()), status=Transaction.STATUS_PENDING,
         )
         call_command("expire_pending_payments")
         tx.refresh_from_db()
@@ -201,15 +217,10 @@ class TestExpirePendingPaymentsCommand:
         from django.utils import timezone
         from datetime import timedelta
         from django.core.management import call_command
-
         tx = Transaction.objects.create(
-            user_id=uuid.uuid4(),
-            document_id=uuid.uuid4(),
-            amount=5000,
-            phone_number="677",
-            operator="mtn",
-            internal_reference=str(uuid.uuid4()),
-            status=Transaction.STATUS_CONFIRMED,
+            user_id=uuid.uuid4(), document_id=uuid.uuid4(),
+            amount=5000, phone_number="677", operator="mtn",
+            internal_reference=str(uuid.uuid4()), status=Transaction.STATUS_CONFIRMED,
         )
         Transaction.objects.filter(pk=tx.pk).update(
             created_at=timezone.now() - timedelta(minutes=20)
@@ -217,3 +228,66 @@ class TestExpirePendingPaymentsCommand:
         call_command("expire_pending_payments")
         tx.refresh_from_db()
         assert tx.status == Transaction.STATUS_CONFIRMED
+
+    def test_expires_old_tx_with_no_campay_reference(self, db):
+        from django.core.management import call_command
+        tx = self._old_pending(db, campay_reference=None)
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_EXPIRED
+
+    @resp_mock.activate
+    def test_confirms_when_campay_says_successful(self, db):
+        from django.core.management import call_command
+        from unittest.mock import patch, MagicMock
+        tx = self._old_pending(db, campay_reference="camp-rec-001")
+        resp_mock.add(resp_mock.POST, CAMPAY_TOKEN_URL, json={"token": "tok"}, status=200)
+        resp_mock.add(resp_mock.GET, f"{CAMPAY_TXN_URL}camp-rec-001/", json={"status": "SUCCESSFUL"}, status=200)
+        with patch("apps.payments.events.pika.BlockingConnection") as mock_pika:
+            mock_conn = MagicMock()
+            mock_pika.return_value = mock_conn
+            mock_conn.channel.return_value = MagicMock()
+            call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_CONFIRMED
+        assert tx.event_published is True
+
+    @resp_mock.activate
+    def test_expires_when_campay_says_expired(self, db):
+        from django.core.management import call_command
+        tx = self._old_pending(db, campay_reference="camp-rec-002")
+        resp_mock.add(resp_mock.POST, CAMPAY_TOKEN_URL, json={"token": "tok"}, status=200)
+        resp_mock.add(resp_mock.GET, f"{CAMPAY_TXN_URL}camp-rec-002/", json={"status": "EXPIRED"}, status=200)
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_EXPIRED
+
+    @resp_mock.activate
+    def test_fails_when_campay_says_failed(self, db):
+        from django.core.management import call_command
+        tx = self._old_pending(db, campay_reference="camp-rec-003")
+        resp_mock.add(resp_mock.POST, CAMPAY_TOKEN_URL, json={"token": "tok"}, status=200)
+        resp_mock.add(resp_mock.GET, f"{CAMPAY_TXN_URL}camp-rec-003/", json={"status": "FAILED"}, status=200)
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_FAILED
+
+    @resp_mock.activate
+    def test_skips_when_campay_api_down(self, db):
+        """If we cannot reach Campay, leave the transaction as-is — user may have paid."""
+        from django.core.management import call_command
+        tx = self._old_pending(db, campay_reference="camp-rec-004")
+        resp_mock.add(resp_mock.POST, CAMPAY_TOKEN_URL, body=Exception("connection refused"))
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_PENDING
+
+    @resp_mock.activate
+    def test_leaves_pending_when_campay_still_pending(self, db):
+        from django.core.management import call_command
+        tx = self._old_pending(db, campay_reference="camp-rec-005")
+        resp_mock.add(resp_mock.POST, CAMPAY_TOKEN_URL, json={"token": "tok"}, status=200)
+        resp_mock.add(resp_mock.GET, f"{CAMPAY_TXN_URL}camp-rec-005/", json={"status": "PENDING"}, status=200)
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_PENDING
