@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; color: #000; }
+  .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; }
+  .header h2 { font-size: 11pt; margin: 0; }
+  .sender { margin-bottom: 30px; }
+  .recipient { margin-bottom: 30px; }
+  .date { text-align: right; margin-bottom: 30px; }
+  .subject { font-weight: bold; text-decoration: underline; margin-bottom: 20px; }
+  .body p { line-height: 1.8; text-align: justify; }
+  .signature { margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>RÉPUBLIQUE DU CAMEROUN &nbsp;|&nbsp; REPUBLIC OF CAMEROON<br>
+  Paix – Travail – Patrie &nbsp;|&nbsp; Peace – Work – Fatherland</h2>
+</div>
+
+<div class="sender">
+  <strong>{{ form_data.employee_name }}</strong><br>
+  {{ form_data.city }}
+</div>
+
+<div class="recipient">
+  <strong>À l'attention de :</strong><br>
+  {{ form_data.employer_name }}
+</div>
+
+<div class="date">{{ form_data.city }}, le {{ form_data.date | default("__/__/____") }}</div>
+
+<div class="subject">Objet : Mise en Demeure — Paiement de Salaire Impayé</div>
+
+<div class="body">
+  <p>Monsieur / Madame,</p>
+
+  <p>
+    Par la présente, je soussigné(e) <strong>{{ form_data.employee_name }}</strong>,
+    vous mets en demeure de me verser dans un délai de <strong>15 jours</strong>
+    à compter de la réception de ce courrier, la somme de
+    <strong>{{ form_data.amount_owed }} FCFA</strong>
+    correspondant à mon salaire impayé pour la période de
+    <strong>{{ form_data.work_period }}</strong>.
+  </p>
+
+  <p>
+    À défaut de règlement dans ce délai, je me verrai dans l'obligation
+    de saisir les juridictions compétentes pour obtenir le recouvrement
+    de ma créance, majorée des intérêts légaux et des frais de procédure,
+    conformément aux dispositions du Code du Travail du Cameroun.
+  </p>
+
+  <p>Dans l'attente d'une réponse favorable, veuillez agréer,
+  Monsieur / Madame, l'expression de mes salutations distinguées.</p>
+</div>
+
+<div class="signature">
+  <p>{{ form_data.employee_name }}</p>
+  <p>____________________________<br>Signature</p>
+</div>
+
+</body>
+</html>

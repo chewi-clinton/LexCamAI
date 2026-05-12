@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; color: #000; }
+  .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; }
+  .header h2 { font-size: 11pt; margin: 0; }
+  .title { text-align: center; font-size: 16pt; font-weight: bold; margin: 30px 0; text-transform: uppercase; }
+  .body p { line-height: 1.8; text-align: justify; }
+  .facts { border: 1px solid #ccc; padding: 15px; margin: 20px 0; min-height: 100px; }
+  .signature { margin-top: 60px; }
+  .info-line { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>RÉPUBLIQUE DU CAMEROUN &nbsp;|&nbsp; REPUBLIC OF CAMEROON<br>
+  Paix – Travail – Patrie &nbsp;|&nbsp; Peace – Work – Fatherland</h2>
+</div>
+
+<div class="title">Déclaration sur l'Honneur</div>
+
+<div class="body">
+  <p>Je soussigné(e),</p>
+
+  <div class="info-line"><strong>Nom et Prénom :</strong> {{ form_data.declarant_name }}</div>
+  <div class="info-line"><strong>Numéro CNI :</strong> {{ form_data.national_id }}</div>
+  <div class="info-line"><strong>Fait à :</strong> {{ form_data.city }}</div>
+  <div class="info-line"><strong>Le :</strong> {{ form_data.declaration_date }}</div>
+
+  <p>Déclare sur l'honneur ce qui suit :</p>
+
+  <div class="facts">
+    {{ form_data.facts_description }}
+  </div>
+
+  <p>
+    Je certifie sur l'honneur l'exactitude des informations contenues
+    dans la présente déclaration et reconnais être passible de poursuites
+    en cas de fausse déclaration.
+  </p>
+</div>
+
+<div class="signature">
+  <p>Fait à {{ form_data.city }}, le {{ form_data.declaration_date }}</p>
+  <p>____________________________<br>
+  Signature du déclarant<br>
+  {{ form_data.declarant_name }}</p>
+</div>
+
+</body>
+</html>

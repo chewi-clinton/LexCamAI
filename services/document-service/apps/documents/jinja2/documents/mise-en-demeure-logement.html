@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; color: #000; }
+  .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; }
+  .header h2 { font-size: 11pt; margin: 0; }
+  .sender { margin-bottom: 30px; }
+  .recipient { margin-bottom: 30px; }
+  .date { text-align: right; margin-bottom: 30px; }
+  .subject { font-weight: bold; text-decoration: underline; margin-bottom: 20px; }
+  .body p { line-height: 1.8; text-align: justify; }
+  .signature { margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>RÉPUBLIQUE DU CAMEROUN &nbsp;|&nbsp; REPUBLIC OF CAMEROON<br>
+  Paix – Travail – Patrie &nbsp;|&nbsp; Peace – Work – Fatherland</h2>
+</div>
+
+<div class="sender">
+  <strong>{{ form_data.tenant_name }}</strong><br>
+  {{ form_data.property_address }}<br>
+  {{ form_data.city }}
+</div>
+
+<div class="recipient">
+  <strong>À l'attention de :</strong><br>
+  {{ form_data.landlord_name }}
+</div>
+
+<div class="date">{{ form_data.city }}, le {{ form_data.date | default("__/__/____") }}</div>
+
+<div class="subject">Objet : Mise en Demeure — Problème de Logement</div>
+
+<div class="body">
+  <p>Monsieur / Madame,</p>
+
+  <p>
+    Par la présente, je soussigné(e) <strong>{{ form_data.tenant_name }}</strong>,
+    locataire du bien situé à <strong>{{ form_data.property_address }}</strong>,
+    vous mets formellement en demeure de remédier dans un délai de
+    <strong>15 jours</strong> à compter de la réception de ce courrier
+    au(x) problème(s) suivant(s) :
+  </p>
+
+  <p style="margin-left: 20px; font-style: italic;">
+    {{ form_data.issue_description }}
+  </p>
+
+  <p>
+    Sans réponse satisfaisante dans ce délai, je me réserve le droit
+    de saisir les juridictions compétentes ou les autorités concernées,
+    conformément aux dispositions légales en vigueur au Cameroun.
+  </p>
+
+  <p>Veuillez agréer, Monsieur / Madame,
+  l'expression de mes salutations distinguées.</p>
+</div>
+
+<div class="signature">
+  <p>{{ form_data.tenant_name }}</p>
+  <p>____________________________<br>Signature</p>
+</div>
+
+</body>
+</html>

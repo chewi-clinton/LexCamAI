@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12pt; margin: 40px; color: #000; }
+  .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; }
+  .header h2 { font-size: 11pt; margin: 0; }
+  .sender { margin-bottom: 30px; }
+  .recipient { margin-bottom: 30px; }
+  .date { text-align: right; margin-bottom: 30px; }
+  .subject { font-weight: bold; text-decoration: underline; margin-bottom: 20px; }
+  .body p { line-height: 1.8; text-align: justify; }
+  .signature { margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>RÉPUBLIQUE DU CAMEROUN &nbsp;|&nbsp; REPUBLIC OF CAMEROON<br>
+  Paix – Travail – Patrie &nbsp;|&nbsp; Peace – Work – Fatherland</h2>
+</div>
+
+<div class="sender">
+  <strong>{{ form_data.sender_name }}</strong><br>
+  {{ form_data.city }}
+</div>
+
+<div class="recipient">
+  <strong>À l'attention de :</strong><br>
+  {{ form_data.recipient_name }}
+</div>
+
+<div class="date">{{ form_data.city }}, le {{ form_data.date | default("__/__/____") }}</div>
+
+<div class="subject">Objet : Lettre de Réclamation</div>
+
+<div class="body">
+  <p>Monsieur / Madame,</p>
+
+  <p>
+    Je soussigné(e) <strong>{{ form_data.sender_name }}</strong>,
+    viens par la présente vous adresser une réclamation formelle concernant :
+  </p>
+
+  <p style="margin-left: 20px; font-style: italic;">
+    {{ form_data.claim_description }}
+  </p>
+
+  {% if form_data.amount %}
+  <p>
+    Le montant de ma réclamation s'élève à <strong>{{ form_data.amount }} FCFA</strong>.
+  </p>
+  {% endif %}
+
+  <p>
+    Je vous saurais gré de bien vouloir traiter cette réclamation dans les
+    meilleurs délais et de me tenir informé(e) des mesures prises.
+    À défaut, je me réserve le droit d'engager toute procédure appropriée.
+  </p>
+
+  <p>Veuillez agréer, Monsieur / Madame,
+  l'expression de mes salutations distinguées.</p>
+</div>
+
+<div class="signature">
+  <p>{{ form_data.sender_name }}</p>
+  <p>____________________________<br>Signature</p>
+</div>
+
+</body>
+</html>
