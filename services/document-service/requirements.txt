@@ -1,0 +1,12 @@
+Django==4.2.16
+djangorestframework
+psycopg2-binary
+python-decouple
+drf-spectacular
+minio
+WeasyPrint
+Jinja2
+pytest
+pytest-django
+pytest-cov
+responses
