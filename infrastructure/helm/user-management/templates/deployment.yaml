@@ -28,13 +28,13 @@ spec:
           command: ["python", "manage.py", "runserver", "0.0.0.0:8001"]
           readinessProbe:
             httpGet:
-              path: /api/v1/health/
+              path: /api/v1/schema/
               port: {{ .Values.service.port }}
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/v1/health/
+              path: /api/v1/schema/
               port: {{ .Values.service.port }}
             initialDelaySeconds: 20
             periodSeconds: 30
