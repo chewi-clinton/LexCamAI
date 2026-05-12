@@ -55,4 +55,3 @@ coverage.xml
 
 # Helm
 charts/*.tgz
-docker-compose.dev.yml
