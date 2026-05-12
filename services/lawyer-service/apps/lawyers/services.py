@@ -1,4 +1,5 @@
 import logging
+import requests
 from django.core.cache import cache
 from django.conf import settings
 from minio import Minio
@@ -38,9 +39,23 @@ def get_lawyers(city=None, region=None, specialization=None, lawyer_type=None):
     return qs.distinct()
 
 
+def _update_user_role(user_id):
+    """Notify User Management to flip the user's role to 'lawyer' after profile creation."""
+    try:
+        requests.patch(
+            f"{settings.USER_MANAGEMENT_URL}/internal/users/{user_id}/role",
+            json={"role": "lawyer"},
+            headers={"X-Internal-Key": settings.INTERNAL_SERVICE_KEY},
+            timeout=5,
+        )
+    except requests.RequestException as exc:
+        logger.warning("Failed to update role for user %s: %s", user_id, exc)
+
+
 def register_lawyer(user_id, data):
     """
     Creates a new registered lawyer profile linked to a user account.
+    Calls User Management to set role=lawyer after profile creation.
     Raises ValueError if this user already has a lawyer profile.
     """
     if Lawyer.objects.filter(user_id=user_id).exists():
@@ -50,6 +65,7 @@ def register_lawyer(user_id, data):
     if specialization_names:
         specs = Specialization.objects.filter(name__in=specialization_names)
         lawyer.specializations.set(specs)
+    _update_user_role(user_id)
     return lawyer
 
 
