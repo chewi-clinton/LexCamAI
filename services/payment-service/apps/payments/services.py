@@ -78,6 +78,8 @@ def handle_webhook(campay_reference, campay_status, raw_payload):
         transaction.status = Transaction.STATUS_CONFIRMED
     elif campay_status == "FAILED":
         transaction.status = Transaction.STATUS_FAILED
+    elif campay_status == "EXPIRED":
+        transaction.status = Transaction.STATUS_EXPIRED
 
     transaction.webhook_payload = raw_payload
     transaction.save(update_fields=["status", "webhook_payload", "updated_at"])

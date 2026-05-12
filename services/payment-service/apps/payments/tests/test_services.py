@@ -140,9 +140,80 @@ class TestHandleWebhook:
         result = handle_webhook("nonexistent-ref", "SUCCESSFUL", {})
         assert result is None
 
+    def test_expired_marks_expired(self, pending_tx):
+        result = handle_webhook(
+            "camp-ref-handle-001", "EXPIRED",
+            {"reference": "camp-ref-handle-001", "status": "EXPIRED"},
+        )
+        assert result.status == Transaction.STATUS_EXPIRED
+        pending_tx.refresh_from_db()
+        assert pending_tx.status == Transaction.STATUS_EXPIRED
+
     def test_unknown_status_does_not_change_status(self, pending_tx):
         result = handle_webhook(
             "camp-ref-handle-001", "PENDING",
             {"reference": "camp-ref-handle-001", "status": "PENDING"},
         )
         assert result.status == Transaction.STATUS_PENDING
+
+
+@pytest.mark.django_db
+class TestExpirePendingPaymentsCommand:
+    def test_expires_old_pending(self, db):
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.core.management import call_command
+
+        tx = Transaction.objects.create(
+            user_id=uuid.uuid4(),
+            document_id=uuid.uuid4(),
+            amount=5000,
+            phone_number="677",
+            operator="mtn",
+            internal_reference=str(uuid.uuid4()),
+            status=Transaction.STATUS_PENDING,
+        )
+        # Backdate created_at to simulate an old transaction
+        Transaction.objects.filter(pk=tx.pk).update(
+            created_at=timezone.now() - timedelta(minutes=20)
+        )
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_EXPIRED
+
+    def test_does_not_expire_recent_pending(self, db):
+        from django.core.management import call_command
+
+        tx = Transaction.objects.create(
+            user_id=uuid.uuid4(),
+            document_id=uuid.uuid4(),
+            amount=5000,
+            phone_number="677",
+            operator="mtn",
+            internal_reference=str(uuid.uuid4()),
+            status=Transaction.STATUS_PENDING,
+        )
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_PENDING
+
+    def test_does_not_expire_confirmed(self, db):
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.core.management import call_command
+
+        tx = Transaction.objects.create(
+            user_id=uuid.uuid4(),
+            document_id=uuid.uuid4(),
+            amount=5000,
+            phone_number="677",
+            operator="mtn",
+            internal_reference=str(uuid.uuid4()),
+            status=Transaction.STATUS_CONFIRMED,
+        )
+        Transaction.objects.filter(pk=tx.pk).update(
+            created_at=timezone.now() - timedelta(minutes=20)
+        )
+        call_command("expire_pending_payments")
+        tx.refresh_from_db()
+        assert tx.status == Transaction.STATUS_CONFIRMED
