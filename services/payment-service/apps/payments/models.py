@@ -30,6 +30,7 @@ class Transaction(models.Model):
     campay_reference = models.CharField(max_length=255, null=True, blank=True)
     internal_reference = models.CharField(max_length=255, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    event_published = models.BooleanField(default=False)
     webhook_payload = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

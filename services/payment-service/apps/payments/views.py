@@ -60,8 +60,11 @@ class WebhookView(APIView):
         if transaction is None:
             return Response({"error": "Transaction not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if transaction.status == Transaction.STATUS_CONFIRMED:
-            publish_payment_confirmed(transaction)
+        if transaction.status == Transaction.STATUS_CONFIRMED and not transaction.event_published:
+            published = publish_payment_confirmed(transaction)
+            if published:
+                transaction.event_published = True
+                transaction.save(update_fields=["event_published"])
 
         return Response({"status": "ok"})
 

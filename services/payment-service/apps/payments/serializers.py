@@ -23,6 +23,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "campay_reference",
             "internal_reference",
             "status",
+            "event_published",
             "created_at",
             "updated_at",
         ]

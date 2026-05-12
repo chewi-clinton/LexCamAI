@@ -161,6 +161,42 @@ class TestWebhookView:
         assert resp.data["status"] == "ok"
         pending_tx.refresh_from_db()
         assert pending_tx.status == Transaction.STATUS_CONFIRMED
+        assert pending_tx.event_published is True
+
+    @patch("apps.payments.events.pika.BlockingConnection")
+    def test_duplicate_webhook_does_not_republish(self, mock_pika, client, pending_tx):
+        mock_conn = MagicMock()
+        mock_channel = MagicMock()
+        mock_pika.return_value = mock_conn
+        mock_conn.channel.return_value = mock_channel
+
+        payload = {"reference": "camp-ref-views-001", "status": "SUCCESSFUL"}
+        body = json.dumps(payload).encode()
+        sig = make_sig(body)
+        # First call — publishes
+        client.post("/api/v1/payments/webhook", data=body, content_type="application/json", HTTP_X_CAMPAY_SIGNATURE=sig)
+        assert mock_channel.basic_publish.call_count == 1
+
+        # Second call — already event_published=True, should NOT publish again
+        client.post("/api/v1/payments/webhook", data=body, content_type="application/json", HTTP_X_CAMPAY_SIGNATURE=sig)
+        assert mock_channel.basic_publish.call_count == 1
+
+    @patch("apps.payments.events.pika.BlockingConnection")
+    def test_publish_failure_leaves_event_published_false(self, mock_pika, client, pending_tx):
+        mock_pika.side_effect = Exception("RabbitMQ down")
+        payload = {"reference": "camp-ref-views-001", "status": "SUCCESSFUL"}
+        body = json.dumps(payload).encode()
+        sig = make_sig(body)
+        resp = client.post(
+            "/api/v1/payments/webhook",
+            data=body,
+            content_type="application/json",
+            HTTP_X_CAMPAY_SIGNATURE=sig,
+        )
+        assert resp.status_code == 200
+        pending_tx.refresh_from_db()
+        assert pending_tx.status == Transaction.STATUS_CONFIRMED
+        assert pending_tx.event_published is False
 
     def test_failed_webhook_marks_failed(self, client, pending_tx):
         payload = {"reference": "camp-ref-views-001", "status": "FAILED"}
@@ -292,3 +328,61 @@ class TestTransactionHistoryView:
     def test_unauthenticated_returns_403(self, client):
         resp = client.get("/api/v1/payments/history")
         assert resp.status_code in (401, 403)
+
+
+@pytest.mark.django_db
+class TestRetryPaymentEventsCommand:
+    def _make_confirmed_unpublished(self, db):
+        return Transaction.objects.create(
+            user_id=uuid.uuid4(),
+            document_id=uuid.uuid4(),
+            amount=5000,
+            phone_number="677000001",
+            operator="mtn",
+            internal_reference=str(uuid.uuid4()),
+            campay_reference=f"camp-retry-{uuid.uuid4()}",
+            status=Transaction.STATUS_CONFIRMED,
+            event_published=False,
+        )
+
+    @patch("apps.payments.events.pika.BlockingConnection")
+    def test_retry_publishes_and_sets_flag(self, mock_pika, db):
+        mock_conn = MagicMock()
+        mock_channel = MagicMock()
+        mock_pika.return_value = mock_conn
+        mock_conn.channel.return_value = mock_channel
+
+        tx = self._make_confirmed_unpublished(db)
+        from django.core.management import call_command
+        call_command("retry_payment_events")
+
+        tx.refresh_from_db()
+        assert tx.event_published is True
+        assert mock_channel.basic_publish.called
+
+    @patch("apps.payments.events.pika.BlockingConnection")
+    def test_retry_skips_already_published(self, mock_pika, db):
+        mock_pika.return_value = MagicMock()
+        tx = Transaction.objects.create(
+            user_id=uuid.uuid4(),
+            document_id=uuid.uuid4(),
+            amount=5000,
+            phone_number="677000001",
+            operator="mtn",
+            internal_reference=str(uuid.uuid4()),
+            status=Transaction.STATUS_CONFIRMED,
+            event_published=True,
+        )
+        from django.core.management import call_command
+        call_command("retry_payment_events")
+        # pika should never be called because there are no unpublished confirmed transactions
+        assert not mock_pika.called
+
+    @patch("apps.payments.events.pika.BlockingConnection")
+    def test_retry_leaves_flag_false_on_rabbitmq_down(self, mock_pika, db):
+        mock_pika.side_effect = Exception("RabbitMQ down")
+        tx = self._make_confirmed_unpublished(db)
+        from django.core.management import call_command
+        call_command("retry_payment_events")
+        tx.refresh_from_db()
+        assert tx.event_published is False

@@ -22,12 +22,14 @@ def _publish(routing_key, payload):
         )
         conn.close()
         logger.info("Published %s: %s", routing_key, payload)
+        return True
     except Exception as exc:
         logger.error("Failed to publish %s: %s", routing_key, exc)
+        return False
 
 
 def publish_payment_confirmed(transaction):
-    _publish("payment.confirmed", {
+    return _publish("payment.confirmed", {
         "transaction_id": str(transaction.id),
         "user_id": str(transaction.user_id),
         "document_id": str(transaction.document_id),

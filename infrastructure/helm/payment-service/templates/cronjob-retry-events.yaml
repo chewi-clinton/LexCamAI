@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "payment-service.name" . }}-retry-events
+  labels:
+    {{- include "payment-service.labels" . | nindent 4 }}
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: retry-events
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["python", "manage.py", "retry_payment_events"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "payment-service.name" . }}-config
+                - secretRef:
+                    name: {{ include "payment-service.name" . }}-secret

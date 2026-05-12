@@ -15,6 +15,7 @@ class TestTransactionModel:
             internal_reference=str(uuid.uuid4()),
         )
         assert tx.status == Transaction.STATUS_PENDING
+        assert tx.event_published is False
         assert tx.campay_reference is None
         assert tx.webhook_payload is None
 
