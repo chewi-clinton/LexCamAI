@@ -59,9 +59,31 @@ services:
     volumes:
       - minio_data:/data
 
+  embedding-service:
+    build:
+      context: ./services/embedding-service
+    container_name: lexcam-embedding-service
+    environment:
+      SERVICE_NAME: embedding-service
+      API_PREFIX: /api/v1
+      MODEL_NAME: intfloat/multilingual-e5-small
+      DEVICE: cpu
+      MAX_BATCH_SIZE: 64
+      MAX_SEQ_LENGTH: 512
+      NORMALIZE_EMBEDDINGS: "true"
+      LOG_LEVEL: INFO
+      REQUIRE_API_KEY: "false"
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT: "120/minute"
+    ports:
+      - "8001:8000"
+    volumes:
+      - embedding_cache:/cache
+
 volumes:
   postgres_data:
   qdrant_data:
   redis_data:
   rabbitmq_data:
   minio_data:
+  embedding_cache:
