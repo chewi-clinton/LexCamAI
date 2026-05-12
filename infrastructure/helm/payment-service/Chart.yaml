@@ -1,0 +1,6 @@
+apiVersion: v2
+name: payment-service
+description: LexCam Payment Service — Mobile Money payments via Campay
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

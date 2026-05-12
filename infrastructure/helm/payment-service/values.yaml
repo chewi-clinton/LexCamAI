@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/payment-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8007
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+# Non-sensitive config — goes into ConfigMap
+config:
+  DB_NAME: lexcam_payments
+  DB_HOST: postgres-svc
+  DB_PORT: "5432"
+  DB_USER: lexcam
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  USER_MANAGEMENT_URL: http://user-management-svc:8001
+  CAMPAY_URL: https://demo.campay.net/api/
+  CAMPAY_REDIRECT_URL: https://lexcam.cm/payment/callback
+  DJANGO_SETTINGS_MODULE: config.settings.production
+
+# Sensitive config — goes into Secret (set these in CI or via --set)
+secrets:
+  DB_PASSWORD: "lexcam_dev"
+  SECRET_KEY: "change-me-in-production"
+  INTERNAL_SERVICE_KEY: "dev-internal-key"
+  CAMPAY_USERNAME: "your-campay-username"
+  CAMPAY_PASSWORD: "your-campay-password"
+  CAMPAY_WEBHOOK_SECRET: "change-me"
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
