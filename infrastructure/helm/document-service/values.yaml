@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/document-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8006
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+# Non-sensitive config — goes into ConfigMap
+config:
+  DB_NAME: lexcam_documents
+  DB_HOST: postgres-svc
+  DB_PORT: "5432"
+  DB_USER: lexcam
+  USER_MANAGEMENT_URL: http://user-management-svc:8001
+  MINIO_ENDPOINT: minio-svc:9000
+  MINIO_DOCUMENTS_BUCKET: lexcam-documents
+  MINIO_USE_SSL: "False"
+  DJANGO_SETTINGS_MODULE: config.settings.production
+
+# Sensitive config — goes into Secret (set these in CI or via --set)
+secrets:
+  DB_PASSWORD: "lexcam_dev"
+  SECRET_KEY: "change-me-in-production"
+  INTERNAL_SERVICE_KEY: "dev-internal-key"
+  MINIO_ACCESS_KEY: "lexcam"
+  MINIO_SECRET_KEY: "lexcam_dev123"
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70

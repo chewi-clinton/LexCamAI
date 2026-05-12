@@ -1,0 +1,57 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/lawyer-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8002
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+# Non-sensitive config — goes into ConfigMap
+config:
+  DB_NAME: lexcam_lawyers
+  DB_HOST: postgres-svc
+  DB_PORT: "5432"
+  DB_USER: lexcam
+  REDIS_URL: redis://redis-svc:6379/0
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  USER_MANAGEMENT_URL: http://user-management-svc:8001
+  MINIO_ENDPOINT: minio-svc:9000
+  MINIO_DOCUMENTS_BUCKET: lexcam-documents
+  MINIO_USE_SSL: "False"
+  DJANGO_SETTINGS_MODULE: config.settings.production
+
+# Sensitive config — goes into Secret (set these in CI or via --set)
+secrets:
+  DB_PASSWORD: "lexcam_dev"
+  SECRET_KEY: "change-me-in-production"
+  INTERNAL_SERVICE_KEY: "dev-internal-key"
+  MINIO_ACCESS_KEY: "lexcam"
+  MINIO_SECRET_KEY: "lexcam_dev123"
+
+# Consumer deployment (matching.requested event listener)
+consumer:
+  enabled: true
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70

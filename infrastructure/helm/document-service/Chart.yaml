@@ -1,0 +1,6 @@
+apiVersion: v2
+name: document-service
+description: LexCam Document Service — legal document generation via Jinja2 + WeasyPrint
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
