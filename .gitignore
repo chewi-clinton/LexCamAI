@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+templates
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# FastAPI / uvicorn
+*.pyc
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage reports
+htmlcov/
+.coverage
+.pytest_cache/
+coverage.xml
+
+# Docker
+*.tar
+
+# Helm
+charts/*.tgz
+docker-compose.dev.yml
