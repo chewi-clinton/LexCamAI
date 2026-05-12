@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "document-service.name" . }}
+  labels:
+    {{- include "document-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "document-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "document-service.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: document-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "document-service.name" . }}-config
+            - secretRef:
+                name: {{ include "document-service.name" . }}-secret
+          command: ["python", "manage.py", "runserver", "0.0.0.0:8006"]
+          readinessProbe:
+            httpGet:
+              path: /api/v1/templates/
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/templates/
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

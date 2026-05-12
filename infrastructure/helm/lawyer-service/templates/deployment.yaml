@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lawyer-service.name" . }}
+  labels:
+    {{- include "lawyer-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "lawyer-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lawyer-service.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: lawyer-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "lawyer-service.name" . }}-config
+            - secretRef:
+                name: {{ include "lawyer-service.name" . }}-secret
+          command: ["python", "manage.py", "runserver", "0.0.0.0:8002"]
+          readinessProbe:
+            httpGet:
+              path: /api/v1/lawyers
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/lawyers
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

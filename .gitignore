@@ -12,6 +12,8 @@ dist/
 build/
 .eggs/
 templates
+!infrastructure/helm/**/templates/
+!infrastructure/helm/**/templates/*
 # Django
 *.log
 local_settings.py

@@ -1,0 +1,33 @@
+{{- if .Values.consumer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lawyer-service.name" . }}-consumer
+  labels:
+    {{- include "lawyer-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "lawyer-service.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: consumer
+  template:
+    metadata:
+      labels:
+        {{- include "lawyer-service.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: consumer
+    spec:
+      containers:
+        - name: consumer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "lawyer-service.name" . }}-config
+            - secretRef:
+                name: {{ include "lawyer-service.name" . }}-secret
+          command: ["python", "manage.py", "consume_events"]
+          resources:
+            {{- toYaml .Values.consumer.resources | nindent 12 }}
+{{- end }}
