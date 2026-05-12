@@ -1,0 +1,6 @@
+apiVersion: v2
+name: user-management
+description: LexCam User Management Service — auth, JWT, OTP, and user profiles
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

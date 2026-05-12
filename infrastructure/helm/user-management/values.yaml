@@ -1,0 +1,48 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/user-management
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8001
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+# Non-sensitive config — goes into ConfigMap
+config:
+  DB_NAME: lexcam_users
+  DB_HOST: postgres-svc
+  DB_PORT: "5432"
+  DB_USER: lexcam
+  REDIS_URL: redis://redis-svc:6379/0
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  DJANGO_SETTINGS_MODULE: config.settings.production
+  ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+  REFRESH_TOKEN_EXPIRE_DAYS: "30"
+  OTP_EXPIRE_MINUTES: "10"
+  EMAIL_HOST: smtp.gmail.com
+  EMAIL_PORT: "587"
+  EMAIL_USE_TLS: "True"
+
+# Sensitive config — goes into Secret (set these in CI or via --set)
+secrets:
+  DB_PASSWORD: "lexcam_dev"
+  SECRET_KEY: "change-me-in-production"
+  INTERNAL_SERVICE_KEY: "dev-internal-key"
+  EMAIL_HOST_USER: "lexcam@gmail.com"
+  EMAIL_HOST_PASSWORD: "your-app-password"
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
