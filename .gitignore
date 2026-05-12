@@ -55,3 +55,9 @@ coverage.xml
 
 # Helm
 charts/*.tgz
+
+# md files
+build-plan.md
+description.md
+services-desccription.md
+
