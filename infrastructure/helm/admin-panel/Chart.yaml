@@ -1,0 +1,6 @@
+apiVersion: v2
+name: admin-panel
+description: LexCam Admin Panel — internal dashboard for lawyer verification, stats, and scraper control
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

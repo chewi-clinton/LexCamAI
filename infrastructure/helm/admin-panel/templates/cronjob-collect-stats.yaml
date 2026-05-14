@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "admin-panel.name" . }}-collect-stats
+  labels:
+    {{- include "admin-panel.labels" . | nindent 4 }}
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: collect-stats
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["python", "manage.py", "collect_stats"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "admin-panel.name" . }}-config
+                - secretRef:
+                    name: {{ include "admin-panel.name" . }}-secret

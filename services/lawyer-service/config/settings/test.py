@@ -8,7 +8,7 @@ DATABASES = {
         "USER": "lexcam",
         "PASSWORD": "lexcam_dev",
         "HOST": "localhost",
-        "PORT": "5432",
+        "PORT": "5435",
     }
 }
 CACHES = {

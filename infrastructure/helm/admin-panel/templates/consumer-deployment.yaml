@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "admin-panel.name" . }}-consumer
+  labels:
+    {{- include "admin-panel.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "admin-panel.name" . }}-consumer
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "admin-panel.name" . }}-consumer
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: feedback-consumer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "manage.py", "consume_feedback_events"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "admin-panel.name" . }}-config
+            - secretRef:
+                name: {{ include "admin-panel.name" . }}-secret
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

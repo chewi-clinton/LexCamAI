@@ -3,7 +3,7 @@ from .base import *
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "lexcam_payments_test",
+        "NAME": "lexcam_admin_test",
         "USER": "lexcam",
         "PASSWORD": "lexcam_dev",
         "HOST": "localhost",
@@ -12,8 +12,6 @@ DATABASES = {
 }
 
 USER_MANAGEMENT_URL = "http://user-management-test"
-CAMPAY_URL = "https://demo.campay.net/api/"
-CAMPAY_USERNAME = "test_user"
-CAMPAY_PASSWORD = "test_pass"
-CAMPAY_WEBHOOK_SECRET = "test-webhook-secret"
-CAMPAY_REDIRECT_URL = "https://lexcam.cm/payment/callback"
+LAWYER_SERVICE_URL = "http://lawyer-service-test"
+DOCUMENT_SERVICE_URL = "http://document-service-test"
+PAYMENT_SERVICE_URL = "http://payment-service-test"
