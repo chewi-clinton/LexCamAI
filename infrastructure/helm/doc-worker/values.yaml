@@ -1,0 +1,25 @@
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/doc-worker
+  tag: latest
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+config:
+  DOCUMENT_SERVICE_URL: http://document-service-svc:8006
+  USER_MANAGEMENT_URL: http://user-management-svc:8001
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  MINIO_ENDPOINT: minio-svc:9000
+  MINIO_DOCUMENTS_BUCKET: lexcam-documents
+  MINIO_SECURE: "false"
+
+secrets:
+  INTERNAL_SERVICE_KEY: "dev-internal-key"
+  MINIO_ACCESS_KEY: "minioadmin"
+  MINIO_SECRET_KEY: "minioadmin"

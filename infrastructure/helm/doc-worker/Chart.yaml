@@ -1,0 +1,6 @@
+apiVersion: v2
+name: doc-worker
+description: LexCam Doc Worker — generates PDF documents on payment.confirmed events
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

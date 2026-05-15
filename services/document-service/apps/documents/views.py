@@ -106,6 +106,29 @@ class UserDocumentDownloadView(APIView):
 # ---------------------------------------------------------------------------
 
 
+class InternalDocumentDetailView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request, pk: str) -> Response:
+        key = request.headers.get("X-Internal-Key", "")
+        if key != settings.INTERNAL_SERVICE_KEY:
+            return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            doc = UserDocument.objects.select_related("template").get(id=pk)
+        except UserDocument.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "document_id": str(doc.id),
+            "user_id": str(doc.user_id),
+            "template_slug": doc.template.slug,
+            "form_data": doc.form_data,
+            "status": doc.status,
+        })
+
+
 class InternalMarkReadyView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]

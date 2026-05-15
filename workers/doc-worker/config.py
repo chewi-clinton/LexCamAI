@@ -1,0 +1,11 @@
+import os
+
+RABBITMQ_URL = os.environ["RABBITMQ_URL"]
+DOCUMENT_SERVICE_URL = os.environ["DOCUMENT_SERVICE_URL"]
+USER_MANAGEMENT_URL = os.environ["USER_MANAGEMENT_URL"]
+INTERNAL_SERVICE_KEY = os.environ["INTERNAL_SERVICE_KEY"]
+MINIO_ENDPOINT = os.environ["MINIO_ENDPOINT"]
+MINIO_ACCESS_KEY = os.environ["MINIO_ACCESS_KEY"]
+MINIO_SECRET_KEY = os.environ["MINIO_SECRET_KEY"]
+MINIO_DOCUMENTS_BUCKET = os.environ.get("MINIO_DOCUMENTS_BUCKET", "lexcam-documents")
+MINIO_SECURE = os.environ.get("MINIO_SECURE", "false").lower() == "true"

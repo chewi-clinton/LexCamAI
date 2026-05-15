@@ -1,0 +1,24 @@
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/notification-worker
+  tag: latest
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+config:
+  USER_MANAGEMENT_URL: http://user-management-svc:8001
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  SMTP_HOST: smtp.gmail.com
+  SMTP_PORT: "587"
+  FROM_EMAIL: noreply@lexcam.cm
+
+secrets:
+  INTERNAL_SERVICE_KEY: "dev-internal-key"
+  SMTP_USER: "lexcam@gmail.com"
+  SMTP_PASSWORD: "change-me-in-production"

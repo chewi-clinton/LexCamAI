@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "doc-worker.name" . }}
+  labels:
+    {{- include "doc-worker.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "doc-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "doc-worker.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: doc-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "worker.py"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "doc-worker.name" . }}-config
+            - secretRef:
+                name: {{ include "doc-worker.name" . }}-secret
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

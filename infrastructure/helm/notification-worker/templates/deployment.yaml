@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "notification-worker.name" . }}
+  labels:
+    {{- include "notification-worker.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "notification-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "notification-worker.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: notification-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "worker.py"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "notification-worker.name" . }}-config
+            - secretRef:
+                name: {{ include "notification-worker.name" . }}-secret
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
