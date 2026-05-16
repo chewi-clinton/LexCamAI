@@ -20,7 +20,7 @@ resources:
 # Non-sensitive config — goes into ConfigMap
 config:
   DB_NAME: lexcam_payments
-  DB_HOST: postgres-svc
+  DB_HOST: postgres-payments-svc
   DB_PORT: "5432"
   DB_USER: lexcam
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/

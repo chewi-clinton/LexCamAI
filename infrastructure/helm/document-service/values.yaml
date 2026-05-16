@@ -20,7 +20,7 @@ resources:
 # Non-sensitive config — goes into ConfigMap
 config:
   DB_NAME: lexcam_documents
-  DB_HOST: postgres-svc
+  DB_HOST: postgres-documents-svc
   DB_PORT: "5432"
   DB_USER: lexcam
   USER_MANAGEMENT_URL: http://user-management-svc:8001

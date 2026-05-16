@@ -20,7 +20,7 @@ resources:
 # Non-sensitive config — goes into ConfigMap
 config:
   DB_NAME: lexcam_lawyers
-  DB_HOST: postgres-svc
+  DB_HOST: postgres-lawyers-svc
   DB_PORT: "5432"
   DB_USER: lexcam
   REDIS_URL: redis://redis-svc:6379/0
