@@ -104,6 +104,22 @@ services:
       - redis
       - embedding-service
 
+  rag-service:
+    build:
+      context: ./services/rag-service
+    container_name: lexcam-rag-service
+    environment:
+      SERVICE_NAME: rag-service
+      API_PREFIX: /api/v1
+      KNOWLEDGE_BASE_URL: http://knowledge-base-service:8000
+      EMBEDDING_SERVICE_URL: http://embedding-service:8000
+      LOG_LEVEL: INFO
+    ports:
+      - "8004:8000"
+    depends_on:
+      - knowledge-base-service
+      - embedding-service
+
 volumes:
   postgres_data:
   qdrant_data:
