@@ -11,11 +11,7 @@ env/
 dist/
 build/
 .eggs/
-templates/
-!infrastructure/helm/**/templates/
-!infrastructure/helm/**/templates/*
-!workers/**/templates/
-!workers/**/templates/*
+/template/
 # Django
 *.log
 local_settings.py
