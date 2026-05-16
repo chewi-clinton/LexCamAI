@@ -14,6 +14,7 @@ build/
 templates
 !templates/
 !templates/*
+templates/*.md
 !infrastructure/helm/**/templates/
 !infrastructure/helm/**/templates/*
 !workers/**/templates/
