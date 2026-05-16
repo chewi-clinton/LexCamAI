@@ -113,6 +113,8 @@ services:
       API_PREFIX: /api/v1
       KNOWLEDGE_BASE_URL: http://knowledge-base-service:8000
       EMBEDDING_SERVICE_URL: http://embedding-service:8000
+      HF_API_KEY: ${HF_API_KEY}
+      HF_MODEL: ${HF_MODEL:-google/flan-t5-small}
       LOG_LEVEL: INFO
     ports:
       - "8004:8000"
