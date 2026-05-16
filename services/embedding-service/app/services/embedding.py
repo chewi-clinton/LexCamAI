@@ -1,23 +1,30 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import anyio
-from sentence_transformers import SentenceTransformer
+import numpy as np
+import onnxruntime as ort
+from transformers import AutoTokenizer
 
 from app.config import settings
+from pathlib import Path
 
 
 class EmbeddingModel:
-    def __init__(self) -> None:
-        self._model: SentenceTransformer | None = None
-        self._dimension: int | None = None
+    """ONNX-based embedding model runner.
 
-    @property
-    def model(self) -> SentenceTransformer:
-        if self._model is None:
-            raise RuntimeError("Embedding model is not loaded")
-        return self._model
+    Expects an ONNX model file at `/cache/model.onnx`. This class uses a
+    Hugging Face tokenizer (from `settings.model_name`) and runs the ONNX
+    session to obtain the last hidden state, applies mean-pooling and
+    optional L2-normalization to produce sentence embeddings.
+    """
+
+    def __init__(self) -> None:
+        self._tokenizer: Optional[AutoTokenizer] = None
+        self._session: Optional[ort.InferenceSession] = None
+        self._dimension: Optional[int] = None
 
     @property
     def dimension(self) -> int:
@@ -26,42 +33,72 @@ class EmbeddingModel:
         return self._dimension
 
     async def load(self) -> None:
-        def _load() -> SentenceTransformer:
-            model = SentenceTransformer(settings.model_name, device=settings.device)
-            model.max_seq_length = settings.max_seq_length
-            return model
+        def _load():
+            tokenizer = AutoTokenizer.from_pretrained(settings.model_name, use_fast=True)
 
-        self._model = await anyio.to_thread.run_sync(_load)
-        self._dimension = self._model.get_sentence_embedding_dimension()
+            model_path = "/cache/model.onnx"
+            if not Path(model_path).exists():
+                raise RuntimeError(
+                    "ONNX model not found at /cache/model.onnx.\n"
+                    "Provide the model as a release asset and let the Docker build download it via MODEL_URL."
+                )
+            session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+
+            # Attempt to infer hidden dimension from the first output shape
+            outputs = session.get_outputs()
+            hidden_size: Optional[int] = None
+            if outputs:
+                out_shape = outputs[0].shape  # e.g., (batch, seq_len, hidden)
+                if len(out_shape) >= 3 and out_shape[2] is not None:
+                    hidden_size = int(out_shape[2])
+
+            return tokenizer, session, hidden_size
+
+        self._tokenizer, self._session, self._dimension = await anyio.to_thread.run_sync(_load)
         logging.getLogger(__name__).info(
-            "Embedding model loaded: %s (%s, dim=%s)",
-            settings.model_name,
-            settings.device,
-            self._dimension,
+            "ONNX embedding model loaded: %s (dim=%s)", settings.model_name, self._dimension
         )
 
-    async def embed(
-        self,
-        texts: list[str],
-        input_type: str | None,
-        normalize: bool | None,
-    ) -> list[list[float]]:
+    async def embed(self, texts: list[str], input_type: str | None, normalize: bool | None) -> list[list[float]]:
         if input_type:
             prefix = f"{input_type}: "
-            texts = [f"{prefix}{text}" for text in texts]
+            texts = [f"{prefix}{t}" for t in texts]
 
-        normalize_embeddings = (
-            settings.normalize_embeddings if normalize is None else normalize
-        )
+        normalize_embeddings = settings.normalize_embeddings if normalize is None else normalize
 
         def _encode() -> list[list[float]]:
-            vectors = self.model.encode(
+            assert self._tokenizer is not None and self._session is not None
+
+            enc = self._tokenizer(
                 texts,
-                batch_size=min(len(texts), settings.max_batch_size),
-                convert_to_numpy=True,
-                normalize_embeddings=normalize_embeddings,
-                show_progress_bar=False,
+                padding=True,
+                truncation=True,
+                max_length=settings.max_seq_length,
+                return_tensors="np",
             )
-            return vectors.tolist()
+
+            # ONNX runtime expects numpy inputs
+            ort_inputs = {k: v for k, v in enc.items()}
+            outputs = self._session.run(None, ort_inputs)
+
+            # assume outputs[0] is last_hidden_state: (batch, seq_len, hidden)
+            last_hidden = outputs[0]
+            attention_mask = enc.get("attention_mask")
+            if attention_mask is None:
+                # fallback: average across tokens
+                embeddings = last_hidden.mean(axis=1)
+            else:
+                mask = attention_mask.astype(np.float32)[..., None]
+                summed = (last_hidden * mask).sum(axis=1)
+                counts = mask.sum(axis=1)
+                counts[counts == 0] = 1
+                embeddings = summed / counts
+
+            if normalize_embeddings:
+                norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+                norms[norms == 0] = 1
+                embeddings = embeddings / norms
+
+            return embeddings.tolist()
 
         return await anyio.to_thread.run_sync(_encode)

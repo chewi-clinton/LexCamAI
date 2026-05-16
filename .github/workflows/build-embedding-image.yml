@@ -1,0 +1,54 @@
+name: Build embedding image
+
+on:
+  push:
+    branches: [ main, Phins-branch ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lexcam-embedding-service
+      MODEL_NAME: intfloat/multilingual-e5-small
+      MODEL_URL: https://github.com/${{ github.repository }}/releases/download/${{ vars.EMBEDDING_MODEL_RELEASE_TAG }}/model.onnx
+      MODEL_SHA256: ${{ vars.EMBEDDING_MODEL_SHA256 }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag $IMAGE_NAME:${{ github.sha }} \
+            --build-arg MODEL_NAME=$MODEL_NAME \
+            --build-arg MODEL_URL=$MODEL_URL \
+            --build-arg MODEL_SHA256=$MODEL_SHA256 \
+            services/embedding-service
+
+      - name: Smoke test image
+        run: |
+          id=$(docker create --name tmp_test -p 8001:8000 $IMAGE_NAME:${{ github.sha }})
+          docker start $id
+          sleep 5
+          docker ps --filter "name=tmp_test" --format "{{.Names}} {{.Status}}"
+          docker exec tmp_test /bin/sh -c "curl -sS -f http://localhost:8000/api/v1/health || exit 1"
+          docker stop $id
+          docker rm $id
+
+      - name: Publish to GHCR
+        if: github.event_name == 'push' && secrets.GHCR_PAT
+        env:
+          CR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          echo $CR_PAT | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${{ github.sha }}
+          docker push $IMAGE_NAME:latest

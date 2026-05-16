@@ -53,6 +53,9 @@ coverage.xml
 # Docker
 *.tar
 
+# Downloaded or generated embedding artifacts
+services/embedding-service/model/*.onnx
+
 # Helm
 charts/*.tgz
 
