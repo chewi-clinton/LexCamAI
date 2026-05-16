@@ -62,6 +62,8 @@ services:
   embedding-service:
     build:
       context: ./services/embedding-service
+      args:
+        - MODEL_NAME=intfloat/multilingual-e5-small
     container_name: lexcam-embedding-service
     environment:
       SERVICE_NAME: embedding-service
@@ -79,6 +81,28 @@ services:
       - "8001:8000"
     volumes:
       - embedding_cache:/cache
+
+  knowledge-base-service:
+    build:
+      context: ./services/knowledge-base-service
+    container_name: lexcam-knowledge-base-service
+    environment:
+      SERVICE_NAME: knowledge-base-service
+      API_PREFIX: /api/v1
+      DATABASE_URL: postgresql+psycopg://lexcam:lexcam_dev@postgres:5432/lexcam_knowledge
+      QDRANT_URL: http://qdrant:6333
+      EMBEDDING_SERVICE_URL: http://embedding-service:8000
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+      PLAIN_SUMMARY_CACHE_TTL_SECONDS: 604800
+      MAX_SEARCH_RESULTS: 10
+    ports:
+      - "8003:8000"
+    depends_on:
+      - postgres
+      - qdrant
+      - redis
+      - embedding-service
 
 volumes:
   postgres_data:

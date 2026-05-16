@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 import time
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 from app.config import settings
 from app.limiting import rate_limit
@@ -29,7 +27,7 @@ async def health(request: Request) -> HealthResponse:
     dependencies=[Depends(verify_api_key)],
 )
 @rate_limit()
-async def embed(request: Request, payload: EmbeddingRequest) -> EmbeddingResponse:
+async def embed(request: Request, payload: EmbeddingRequest = Body(...)) -> EmbeddingResponse:
     if len(payload.texts) > settings.max_batch_size:
         raise HTTPException(
             status_code=413,
