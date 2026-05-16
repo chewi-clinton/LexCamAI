@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Your Document is Ready — LexCam</title></head>
+<body style="font-family:Arial,sans-serif;font-size:14px;color:#222;max-width:600px;margin:auto;padding:20px;">
+  <h2 style="color:#16a34a;">✓ Your document is ready</h2>
+  <p>Your legal document has been generated and is available for download.</p>
+
+  <div style="text-align:center;margin:30px 0;">
+    <a href="{{ file_url }}"
+       style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;
+              text-decoration:none;font-weight:bold;font-size:15px;">
+      Download Your Document (PDF)
+    </a>
+  </div>
+
+  <p style="color:#777;font-size:12px;">
+    Document reference: {{ document_id }}<br>
+    If the button above does not work, copy and paste this link into your browser:<br>
+    {{ file_url }}
+  </p>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+  <p style="font-size:12px;color:#777;">
+    LexCam — AI Legal Aid Platform for Cameroon<br>
+    This is an automated message. Please do not reply directly.
+  </p>
+</body>
+</html>

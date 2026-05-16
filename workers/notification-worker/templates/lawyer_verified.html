@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Lawyer Account Update — LexCam</title></head>
+<body style="font-family:Arial,sans-serif;font-size:14px;color:#222;max-width:600px;margin:auto;padding:20px;">
+  <h2 style="color:#1a56db;">Hello, {{ full_name }}</h2>
+
+  {% if approved %}
+  <p style="color:#16a34a;font-weight:bold;">✓ Your lawyer account has been verified.</p>
+  <p>
+    Congratulations! Your profile is now live on LexCam. Citizens can find you in the
+    lawyer directory and send you referral requests.
+  </p>
+  <p>Log in to set your availability, update your specializations, and manage your referrals.</p>
+  {% else %}
+  <p style="color:#dc2626;font-weight:bold;">Your account status: <strong>{{ status }}</strong></p>
+  <p>
+    Your lawyer account application could not be approved at this time.
+    Please review your submitted documents and contact us if you believe this is an error.
+  </p>
+  {% endif %}
+
+  <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+  <p style="font-size:12px;color:#777;">
+    LexCam — AI Legal Aid Platform for Cameroon<br>
+    This is an automated message. Please do not reply directly.
+  </p>
+</body>
+</html>

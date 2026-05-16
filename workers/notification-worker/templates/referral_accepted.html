@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Referral Accepted — LexCam</title></head>
+<body style="font-family:Arial,sans-serif;font-size:14px;color:#222;max-width:600px;margin:auto;padding:20px;">
+  <h2 style="color:#16a34a;">✓ Your referral request was accepted</h2>
+  <p>
+    <strong>{{ lawyer_name }}</strong> has accepted your referral request and is ready to
+    assist you with your legal matter.
+  </p>
+
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:16px;margin:20px 0;">
+    <p style="margin:0;font-weight:bold;">Lawyer Contact Details</p>
+    <p style="margin:8px 0 0;">
+      <strong>Name:</strong> {{ lawyer_name }}<br>
+      {% if lawyer_phone %}<strong>Phone:</strong> {{ lawyer_phone }}<br>{% endif %}
+    </p>
+  </div>
+
+  <p>
+    You can now contact {{ lawyer_name }} directly. All further communication happens outside
+    the LexCam platform.
+  </p>
+  <p style="color:#777;font-size:12px;">Reference: {{ referral_id }}</p>
+  <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+  <p style="font-size:12px;color:#777;">
+    LexCam — AI Legal Aid Platform for Cameroon<br>
+    This is an automated message. Please do not reply directly.
+  </p>
+</body>
+</html>
