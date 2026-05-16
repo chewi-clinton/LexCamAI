@@ -11,10 +11,7 @@ env/
 dist/
 build/
 .eggs/
-templates
-!templates/
-!templates/*
-templates/*.md
+templates/
 !infrastructure/helm/**/templates/
 !infrastructure/helm/**/templates/*
 !workers/**/templates/
