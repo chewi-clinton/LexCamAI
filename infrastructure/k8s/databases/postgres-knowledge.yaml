@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-knowledge-secret
+  namespace: lexcam
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: lexcam_dev
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-knowledge-pvc
+  namespace: lexcam
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-knowledge
+  namespace: lexcam
+spec:
+  serviceName: postgres-knowledge-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-knowledge
+  template:
+    metadata:
+      labels:
+        app: postgres-knowledge
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: lexcam_knowledge
+            - name: POSTGRES_USER
+              value: lexcam
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-knowledge-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "lexcam", "-d", "lexcam_knowledge"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-knowledge-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-knowledge-svc
+  namespace: lexcam
+spec:
+  selector:
+    app: postgres-knowledge
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

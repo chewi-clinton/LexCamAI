@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-documents-secret
+  namespace: lexcam
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: lexcam_dev
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-documents-pvc
+  namespace: lexcam
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-documents
+  namespace: lexcam
+spec:
+  serviceName: postgres-documents-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-documents
+  template:
+    metadata:
+      labels:
+        app: postgres-documents
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: lexcam_documents
+            - name: POSTGRES_USER
+              value: lexcam
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-documents-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "lexcam", "-d", "lexcam_documents"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-documents-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-documents-svc
+  namespace: lexcam
+spec:
+  selector:
+    app: postgres-documents
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

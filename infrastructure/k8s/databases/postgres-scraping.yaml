@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-scraping-secret
+  namespace: lexcam
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: lexcam_dev
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-scraping-pvc
+  namespace: lexcam
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-scraping
+  namespace: lexcam
+spec:
+  serviceName: postgres-scraping-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-scraping
+  template:
+    metadata:
+      labels:
+        app: postgres-scraping
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: lexcam_scraping
+            - name: POSTGRES_USER
+              value: lexcam
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-scraping-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "lexcam", "-d", "lexcam_scraping"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-scraping-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-scraping-svc
+  namespace: lexcam
+spec:
+  selector:
+    app: postgres-scraping
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

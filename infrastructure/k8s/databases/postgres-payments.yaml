@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-payments-secret
+  namespace: lexcam
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: lexcam_dev
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-payments-pvc
+  namespace: lexcam
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-payments
+  namespace: lexcam
+spec:
+  serviceName: postgres-payments-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-payments
+  template:
+    metadata:
+      labels:
+        app: postgres-payments
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: lexcam_payments
+            - name: POSTGRES_USER
+              value: lexcam
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-payments-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "lexcam", "-d", "lexcam_payments"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-payments-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-payments-svc
+  namespace: lexcam
+spec:
+  selector:
+    app: postgres-payments
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

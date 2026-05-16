@@ -1,0 +1,152 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-secret
+  namespace: lexcam
+type: Opaque
+stringData:
+  RABBITMQ_DEFAULT_USER: lexcam
+  RABBITMQ_DEFAULT_PASS: lexcam_dev
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-pvc
+  namespace: lexcam
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: lexcam
+data:
+  # Sets up the Dead Letter Exchange and main exchanges on first boot
+  definitions.json: |
+    {
+      "vhosts": [{ "name": "/" }],
+      "exchanges": [
+        {
+          "name": "lexcam.events",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false
+        },
+        {
+          "name": "lexcam.dlx",
+          "vhost": "/",
+          "type": "fanout",
+          "durable": true,
+          "auto_delete": false
+        }
+      ],
+      "queues": [
+        {
+          "name": "lexcam.dead-letters",
+          "vhost": "/",
+          "durable": true,
+          "arguments": {}
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lexcam.dlx",
+          "vhost": "/",
+          "destination": "lexcam.dead-letters",
+          "destination_type": "queue",
+          "routing_key": ""
+        }
+      ]
+    }
+  rabbitmq.conf: |
+    loopback_users.guest = false
+    management.load_definitions = /etc/rabbitmq/definitions.json
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: lexcam
+spec:
+  serviceName: rabbitmq-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13-management-alpine
+          ports:
+            - containerPort: 5672
+              name: amqp
+            - containerPort: 15672
+              name: management
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_DEFAULT_USER
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_DEFAULT_PASS
+            - name: RABBITMQ_CONFIG_FILE
+              value: /etc/rabbitmq/rabbitmq.conf
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+            - name: config
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+            - name: config
+              mountPath: /etc/rabbitmq/definitions.json
+              subPath: definitions.json
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: rabbitmq-pvc
+        - name: config
+          configMap:
+            name: rabbitmq-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-svc
+  namespace: lexcam
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+  type: ClusterIP
