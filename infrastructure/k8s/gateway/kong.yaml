@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  namespace: lexcam
+data:
+  kong.yml: |
+    _format_version: "3.0"
+    _transform: true
+
+    services:
+      - name: user-management
+        url: http://user-management-svc:8001
+        routes:
+          - name: auth-routes
+            paths:
+              - /api/v1/auth
+            strip_path: false
+          - name: users-routes
+            paths:
+              - /api/v1/users
+            strip_path: false
+
+      - name: lawyer-service
+        url: http://lawyer-service-svc:8002
+        routes:
+          - name: lawyers-routes
+            paths:
+              - /api/v1/lawyers
+            strip_path: false
+
+      - name: notification-service
+        url: http://notification-service-svc:8003
+        routes:
+          - name: notifications-routes
+            paths:
+              - /api/v1/notifications
+            strip_path: false
+
+      - name: feedback-service
+        url: http://feedback-service-svc:8004
+        routes:
+          - name: feedback-routes
+            paths:
+              - /api/v1/feedback
+            strip_path: false
+
+      - name: scraper-service
+        url: http://scraper-service-svc:8005
+        routes:
+          - name: scraper-routes
+            paths:
+              - /api/v1/scraper
+            strip_path: false
+
+      - name: document-service
+        url: http://document-service-svc:8006
+        routes:
+          - name: documents-routes
+            paths:
+              - /api/v1/documents
+            strip_path: false
+
+      - name: payment-service
+        url: http://payment-service-svc:8007
+        routes:
+          - name: payments-routes
+            paths:
+              - /api/v1/payments
+            strip_path: false
+
+      - name: knowledge-base-service
+        url: http://knowledge-base-service-svc:8008
+        routes:
+          - name: knowledge-routes
+            paths:
+              - /api/v1/knowledge
+            strip_path: false
+
+      - name: rag-service
+        url: http://rag-service-svc:8009
+        routes:
+          - name: rag-routes
+            paths:
+              - /api/v1/rag
+            strip_path: false
+
+      - name: admin-panel
+        url: http://admin-panel-svc:8010
+        routes:
+          - name: admin-routes
+            paths:
+              - /admin
+            strip_path: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong
+  namespace: lexcam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong
+    spec:
+      containers:
+        - name: kong
+          image: kong:3.6
+          ports:
+            - containerPort: 8000
+              name: proxy
+            - containerPort: 8001
+              name: admin
+          env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_DECLARATIVE_CONFIG
+              value: /kong/declarative/kong.yml
+            - name: KONG_PROXY_LISTEN
+              value: "0.0.0.0:8000"
+            - name: KONG_ADMIN_LISTEN
+              value: "0.0.0.0:8001"
+            - name: KONG_PROXY_ACCESS_LOG
+              value: /dev/stdout
+            - name: KONG_PROXY_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: /dev/stdout
+            - name: KONG_ADMIN_ERROR_LOG
+              value: /dev/stderr
+          volumeMounts:
+            - name: kong-config
+              mountPath: /kong/declarative
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: kong-config
+          configMap:
+            name: kong-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-proxy-svc
+  namespace: lexcam
+spec:
+  selector:
+    app: kong
+  ports:
+    - name: proxy
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-admin-svc
+  namespace: lexcam
+spec:
+  selector:
+    app: kong
+  ports:
+    - name: admin
+      port: 8001
+      targetPort: 8001
+  type: ClusterIP

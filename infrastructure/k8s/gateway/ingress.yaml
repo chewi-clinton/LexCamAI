@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lexcam-ingress
+  namespace: lexcam
+  annotations:
+    # Traefik is the default ingress controller in K3s
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kong-proxy-svc
+                port:
+                  number: 80
