@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, Phins-branch ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        ports: ['5432:5432']
+        env:
+          POSTGRES_USER: lexcam
+          POSTGRES_PASSWORD: lexcam_dev
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd="pg_isready -U lexcam" --health-interval=10s --health-timeout=5s --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Create service databases
+        env:
+          PGPASSWORD: lexcam_dev
+        run: |
+          psql -h localhost -U lexcam -d postgres -c "CREATE DATABASE lexcam_feedback;" || true
+          psql -h localhost -U lexcam -d postgres -c "CREATE DATABASE lexcam_notif;" || true
+          psql -h localhost -U lexcam -d postgres -c "CREATE DATABASE lexcam_scraping;" || true
+
+      - name: Install dependencies, run migrations and tests (feedback)
+        working-directory: services/feedback-service
+        env:
+          DATABASE_URL: postgresql://lexcam:lexcam_dev@localhost:5432/lexcam_feedback
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          alembic -c alembic.ini upgrade head
+          pytest -q tests
+
+      - name: Install dependencies, run migrations and tests (notification)
+        working-directory: services/notification-service
+        env:
+          DATABASE_URL: postgresql://lexcam:lexcam_dev@localhost:5432/lexcam_notif
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          alembic -c alembic.ini upgrade head
+          pytest -q tests
+
+      - name: Install dependencies, run migrations and tests (scraper)
+        working-directory: services/scraper-service
+        env:
+          DATABASE_URL: postgresql://lexcam:lexcam_dev@localhost:5432/lexcam_scraping
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          alembic -c alembic.ini upgrade head
+          pytest -q tests
+
+      - name: Build Docker images
+        run: |
+          docker build -t lexcam-feedback-service:ci services/feedback-service
+          docker build -t lexcam-notification-service:ci services/notification-service
+          docker build -t lexcam-scraper-service:ci services/scraper-service

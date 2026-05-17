@@ -122,6 +122,103 @@ services:
       - knowledge-base-service
       - embedding-service
 
+  feedback-service:
+    build:
+      context: ./services/feedback-service
+    image: lexcam-feedback-service
+    container_name: lexcam-feedback-service
+    environment:
+      SERVICE_NAME: feedback-service
+      API_PREFIX: /v1
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_feedback
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
+      CELERY_RESULT_BACKEND: rpc://
+      LOG_LEVEL: INFO
+    ports:
+      - "8010:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+    image: lexcam-notification-service
+    container_name: lexcam-notification-service
+    environment:
+      SERVICE_NAME: notification-service
+      API_PREFIX: /v1
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_notif
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
+      CELERY_RESULT_BACKEND: rpc://
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 587
+      SMTP_USER: smtp_user
+      SMTP_PASS: smtp_pass
+      LOG_LEVEL: INFO
+    ports:
+      - "8011:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  scraper-service:
+    build:
+      context: ./services/scraper-service
+    image: lexcam-scraper-service
+    container_name: lexcam-scraper-service
+    environment:
+      SERVICE_NAME: scraper-service
+      API_PREFIX: /v1
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
+      CELERY_RESULT_BACKEND: rpc://
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      LOG_LEVEL: INFO
+    ports:
+      - "8012:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  feedback-worker:
+    image: lexcam-feedback-service
+    container_name: lexcam-feedback-worker
+    depends_on:
+      - feedback-service
+      - redis
+    command: celery -A app.tasks.celery_app worker -l info -Q default
+
+  notification-worker:
+    image: lexcam-notification-service
+    container_name: lexcam-notification-worker
+    depends_on:
+      - notification-service
+      - redis
+    command: celery -A app.tasks.celery_app worker -l info -Q default
+
+  notification-consumer:
+    build:
+      context: ./services/notification-service
+    container_name: lexcam-notification-consumer
+    command: python -u -m app.events_consumer
+    depends_on:
+      - rabbitmq
+      - notification-service
+
+  scraper-worker:
+    image: lexcam-scraper-service
+    container_name: lexcam-scraper-worker
+    depends_on:
+      - scraper-service
+      - redis
+    command: celery -A app.tasks.celery_app worker -l info -Q default
+
 volumes:
   postgres_data:
   qdrant_data:

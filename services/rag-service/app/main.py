@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import os
 import httpx
 from typing import List, Any, Dict
+from contextlib import asynccontextmanager
 
 from .llm import generate_answer_from_documents
 from .llm_adapter import generate, stream_generate
@@ -33,16 +34,20 @@ class QueryResponse(BaseModel):
     provenance: List[Dict[str, Any]]
 
 
-app = FastAPI(title="rag-service")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure DB tables exist (local dev default: sqlite)
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="rag-service", lifespan=lifespan)
 
 KB_URL = os.getenv("KNOWLEDGE_BASE_URL", "http://knowledge-base-service:8000")
 EMBED_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://embedding-service:8000")
 
 
-@app.on_event("startup")
-def startup_event():
-    # Ensure DB tables exist (local dev default: sqlite)
-    Base.metadata.create_all(bind=engine)
+
 
 
 @app.get("/api/v1/health")
