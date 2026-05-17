@@ -2,8 +2,33 @@ import os
 import pytest
 import respx
 from httpx import Response
+import sys
+from pathlib import Path
 
-from rag_service.app.llm import generate_answer_from_documents
+# Ensure the service package directory is on sys.path so `import app` works
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+import importlib.util
+
+# Load the `llm.py` module directly to avoid package import issues
+this_file = Path(__file__).resolve()
+llm_path = None
+for parent in this_file.parents:
+    candidate = parent / 'app'
+    if candidate.exists():
+        llm_path = candidate / 'llm.py'
+        break
+if llm_path is None:
+    raise FileNotFoundError('Could not locate app/llm.py from test location')
+spec = importlib.util.spec_from_file_location('app.llm', str(llm_path))
+app_dir = str((llm_path.parent).resolve())
+import types
+if 'app' not in sys.modules:
+    app_pkg = types.ModuleType('app')
+    app_pkg.__path__ = [app_dir]
+    sys.modules['app'] = app_pkg
+llm = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(llm)
+generate_answer_from_documents = llm.generate_answer_from_documents
 
 
 @respx.mock
