@@ -64,3 +64,6 @@ build-plan.md
 description.md
 services-desccription.md
 
+# Local safe backups (onnx model artifacts)
+_safe_backups/
+
