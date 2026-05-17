@@ -67,3 +67,7 @@ services-desccription.md
 # Local safe backups (onnx model artifacts)
 _safe_backups/
 
+# Temporarily ignore CI/workflow files (untracked intentionally)
+.github/workflows/ci.yml
+.github/workflows/build-embedding-image.yml
+
