@@ -11,8 +11,8 @@ def _get_connection():
 def publish_event(routing_key: str, payload: dict):
     conn = _get_connection()
     ch = conn.channel()
-    ch.exchange_declare(exchange="events", exchange_type="topic", durable=True)
+    ch.exchange_declare(exchange="lexcam.events", exchange_type="topic", durable=True)
     # Make published messages persistent so they survive broker restarts.
     props = pika.BasicProperties(delivery_mode=2)
-    ch.basic_publish(exchange="events", routing_key=routing_key, body=json.dumps(payload), properties=props)
+    ch.basic_publish(exchange="lexcam.events", routing_key=routing_key, body=json.dumps(payload), properties=props)
     conn.close()
