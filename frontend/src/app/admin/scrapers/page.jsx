@@ -1,0 +1,202 @@
+'use client';
+import {
+  Plus, Play, ChevronRight, CheckCircle2, XCircle,
+} from 'lucide-react';
+
+export default function ScraperManagement() {
+  const activeSources = [
+    {
+      title: 'National Bar Registry',
+      url: 'https://api.barreau.cm/public/lawyers',
+      status: 'Active',
+      statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      lastRun: 'Today, 08:30 AM',
+      result: 'Success (1,245 profiles)',
+      resultColor: 'text-emerald-700',
+      type: 'bar',
+    },
+    {
+      title: 'Douala Legal Roster',
+      url: 'https://douala.courts.cm/directory',
+      status: 'Active',
+      statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      lastRun: 'Yesterday, 11:45 PM',
+      result: 'Success (412 profiles)',
+      resultColor: 'text-emerald-700',
+      type: 'court',
+    },
+    {
+      title: 'Yaoundé Firm Listings',
+      url: 'https://yaounde.legal/firms/export',
+      status: 'Paused',
+      statusColor: 'bg-gray-100 text-gray-600 border-gray-200',
+      lastRun: 'Oct 12, 2024',
+      result: 'Timeout Error',
+      resultColor: 'text-red-600',
+      type: 'firm',
+    },
+  ];
+
+  const runLogs = [
+    {
+      source: 'National Bar Registry',
+      started: 'Today, 08:30 AM',
+      duration: '4m 12s',
+      totalScraped: '1,245',
+      newCount: '+12',
+      duplicates: '1,233',
+      errors: '0',
+      success: true,
+    },
+    {
+      source: 'Douala Legal Roster',
+      started: 'Yesterday, 11:45 PM',
+      duration: '1m 45s',
+      totalScraped: '412',
+      newCount: '+3',
+      duplicates: '409',
+      errors: '0',
+      success: true,
+    },
+    {
+      source: 'Yaoundé Firm Listings',
+      started: 'Oct 12, 14:00 PM',
+      duration: '0m 15s',
+      totalScraped: '0',
+      newCount: '0',
+      duplicates: '0',
+      errors: '1',
+      success: false,
+    },
+  ];
+
+  return (
+    <div className="p-8 space-y-8">
+
+      {/* Page Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Scraper Management</h2>
+          <p className="text-muted text-sm mt-1">Monitor, configure, and execute data collection sources.</p>
+        </div>
+        <button className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm">
+          <Plus size={16} /> Add Source
+        </button>
+      </div>
+
+      {/* Active Sources */}
+      <div className="space-y-4">
+        <h3 className="text-base font-serif font-bold text-gray-900 tracking-tight">Active Sources</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {activeSources.map((source, idx) => (
+            <div key={idx} className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center border border-gray-100 shadow-sm">
+                    {source.type === 'bar' && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M4 6l8-4 8 4v4H4z" />
+                      </svg>
+                    )}
+                    {source.type === 'court' && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="m14 13-5 5M6 16l-4 4M10.5 4.5l8 8M15 3l6 6" />
+                      </svg>
+                    )}
+                    {source.type === 'firm' && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${source.statusColor}`}>
+                    • {source.status}
+                  </span>
+                </div>
+
+                <h4 className="font-serif text-lg font-bold text-gray-900">{source.title}</h4>
+                <p className="text-xs text-gray-400 font-mono mt-1 truncate">{source.url}</p>
+
+                <div className="mt-5 space-y-2 border-t border-gray-50 pt-4 text-xs font-semibold text-gray-400">
+                  <div className="flex justify-between">
+                    <span>Last Run</span>
+                    <span className="text-gray-700">{source.lastRun}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Result</span>
+                    <span className={source.resultColor}>{source.result}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-6 border-t border-gray-50 pt-4">
+                <button className="w-full bg-[#FAFAFA] border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs py-2 rounded-lg transition-colors shadow-sm">
+                  Edit
+                </button>
+                {source.status === 'Paused' ? (
+                  <button className="w-full bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                    <Play size={12} fill="currentColor" /> Resume
+                  </button>
+                ) : (
+                  <button className="w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
+                    <Play size={12} fill="currentColor" /> Run
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Run Logs */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-baseline">
+          <h3 className="text-base font-serif font-bold text-gray-900 tracking-tight">Run Logs</h3>
+          <button className="text-xs font-bold text-accent-dark hover:underline flex items-center gap-0.5">
+            View All <ChevronRight size={14} />
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs font-semibold text-gray-600">
+              <thead>
+                <tr className="border-b border-gray-100 text-gray-400 bg-[#FAFAFA] tracking-wider">
+                  <th className="py-4 px-6 font-semibold">Source</th>
+                  <th className="py-4 px-6 font-semibold">Started</th>
+                  <th className="py-4 px-6 font-semibold">Duration</th>
+                  <th className="py-4 px-6 font-semibold text-center">Total Scraped</th>
+                  <th className="py-4 px-6 text-center font-semibold">New</th>
+                  <th className="py-4 px-6 text-center font-semibold">Duplicates</th>
+                  <th className="py-4 px-6 text-center font-semibold">Errors</th>
+                  <th className="py-4 px-6 text-right font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
+                {runLogs.map((log, index) => (
+                  <tr key={index} className="hover:bg-gray-50/40 transition-colors">
+                    <td className="py-4 px-6 font-serif text-sm font-bold text-gray-900">{log.source}</td>
+                    <td className="py-4 px-6 text-gray-400 font-normal">{log.started}</td>
+                    <td className="py-4 px-6 font-normal text-gray-500">{log.duration}</td>
+                    <td className="py-4 px-6 text-center font-bold text-gray-900">{log.totalScraped}</td>
+                    <td className={`py-4 px-6 text-center font-bold ${log.newCount !== '0' ? 'text-emerald-700' : 'text-gray-400'}`}>{log.newCount}</td>
+                    <td className="py-4 px-6 text-center text-gray-400 font-normal">{log.duplicates}</td>
+                    <td className={`py-4 px-6 text-center font-bold ${log.errors !== '0' ? 'text-red-600' : 'text-gray-400'}`}>{log.errors}</td>
+                    <td className="py-4 px-6 text-right">
+                      {log.success
+                        ? <CheckCircle2 size={16} className="text-emerald-600 inline" />
+                        : <XCircle size={16} className="text-red-500 inline" />
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
