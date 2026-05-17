@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: lexcam/embedding-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+env:
+  SERVICE_NAME: embedding-service
+  API_PREFIX: /api/v1
+  MODEL_NAME: intfloat/multilingual-e5-small
+  DEVICE: cpu
+  MAX_BATCH_SIZE: "64"
+  MAX_SEQ_LENGTH: "512"
+  NORMALIZE_EMBEDDINGS: "true"
+  LOG_LEVEL: INFO
+  REQUIRE_API_KEY: "true"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT: 120/minute
+
+secret:
+  API_KEY: change-me
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 75
+
+podAnnotations: {}
+
+nameOverride: ""
+fullnameOverride: ""

@@ -1,5 +1,7 @@
 -- LexCam PostgreSQL initialization
--- Runs automatically on first container start
+-- Runs automatically on first container start.
+-- Design choice: database-per-service on a single Postgres instance
+-- (separate logical databases like lexcam_users, lexcam_rag_sessions).
 
 CREATE DATABASE lexcam_users;
 CREATE DATABASE lexcam_lawyers;

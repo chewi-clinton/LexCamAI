@@ -1,0 +1,301 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from qdrant_client.http import models as rest
+from sqlalchemy import desc, func, select
+from sqlalchemy.orm import Session, joinedload
+
+from app.config import settings
+from app.db import SessionLocal
+from app.models import LawArticle, LawDocument
+from app.schemas import (
+    ArticleResponse,
+    LawArticleSummary,
+    LawDocumentSchema,
+    RetrieveItem,
+    RetrieveRequest,
+    RetrieveResponse,
+    SearchRequest,
+    SearchResultItem,
+)
+from app.services.embedding import EmbeddingServiceClient
+from redis.asyncio import Redis
+
+router = APIRouter()
+
+
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_qdrant(request: Request):
+    return request.app.state.qdrant
+
+
+def get_embedding_client(request: Request) -> EmbeddingServiceClient:
+    return request.app.state.embedding_client
+
+
+def get_redis(request: Request) -> Redis:
+    return request.app.state.redis
+
+
+@router.get("/health")
+async def health(request: Request, db: Session = Depends(get_db)) -> Any:
+    try:
+        db.execute(select(1)).scalar_one()
+        qdrant_client = get_qdrant(request)
+        qdrant_client.get_collection(settings.qdrant_collection)
+        # check embedding service health
+        embedding_client = get_embedding_client(request)
+        try:
+            emb_health = await embedding_client.health()
+        except Exception:
+            emb_health = {"status": "unreachable"}
+        # check redis
+        redis_client = get_redis(request)
+        try:
+            await redis_client.ping()
+            redis_ok = True
+        except Exception:
+            redis_ok = False
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    return {
+        "status": "ok",
+        "database": "ok",
+        "qdrant_collection": settings.qdrant_collection,
+        "embedding_service": emb_health,
+        "redis": "ok" if redis_ok else "unreachable",
+    }
+
+
+def _build_limit(limit: int | None) -> int:
+    if limit is None or limit <= 0:
+        return settings.max_search_results
+    return min(limit, settings.max_search_results)
+
+
+@router.post("/search")
+async def search(
+    payload: SearchRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    qdrant_client=Depends(get_qdrant),
+    embedding_client: EmbeddingServiceClient = Depends(get_embedding_client),
+) -> list[SearchResultItem]:
+    if not payload.query.strip():
+        raise HTTPException(status_code=400, detail="query is required")
+
+    limit = _build_limit(payload.limit)
+    vector_results: dict[UUID, dict[str, Any]] = {}
+    qdrant_filter = None
+    if payload.domain:
+        qdrant_filter = rest.Filter(
+            must=[
+                rest.FieldCondition(
+                    key="domain",
+                    match=rest.MatchValue(value=payload.domain),
+                )
+            ]
+        )
+
+    embedding = await embedding_client.embed(payload.query)
+    qdrant_hits = qdrant_client.search(
+        collection_name=settings.qdrant_collection,
+        query_vector=embedding,
+        limit=limit,
+        with_payload=True,
+        query_filter=qdrant_filter,
+    )
+
+    for rank, hit in enumerate(qdrant_hits, start=1):
+        payload_data = hit.payload or {}
+        article_id = payload_data.get("article_id")
+        if not article_id or article_id in vector_results:
+            continue
+
+        vector_results[article_id] = {
+            "article_id": UUID(str(article_id)),
+            "law_name": payload_data.get("law_name", ""),
+            "article_number": payload_data.get("article_number", ""),
+            "title": payload_data.get("title"),
+            "domain": payload_data.get("domain", ""),
+            "language": payload_data.get("language", ""),
+            "text_preview": payload_data.get("text_preview", ""),
+            "score": 1.0 / (60 + rank),
+        }
+
+    query_expression = func.plainto_tsquery("simple", payload.query)
+    statement = (
+        select(LawArticle, func.ts_rank_cd(LawArticle.search_vector, query_expression).label("rank"))
+        .options(joinedload(LawArticle.document))
+        .where(LawArticle.search_vector.op("@@")(query_expression))
+    )
+    if payload.domain:
+        statement = statement.where(LawArticle.domain == payload.domain)
+    if payload.language:
+        statement = statement.where(LawArticle.language == payload.language)
+    statement = statement.order_by(desc("rank")).limit(limit)
+
+    keyword_rows = db.execute(statement).all()
+    keyword_results: dict[UUID, dict[str, Any]] = {}
+    for index, (article, rank) in enumerate(keyword_rows, start=1):
+        if article.id in keyword_results:
+            continue
+
+        keyword_results[article.id] = {
+            "article_id": article.id,
+            "law_name": article.document.name if article.document else "",
+            "article_number": article.article_number,
+            "title": article.title,
+            "domain": article.domain,
+            "language": article.language,
+            "text_preview": article.full_text[:200],
+            "score": 1.0 / (60 + index),
+        }
+
+    merged: dict[UUID, dict[str, Any]] = {}
+    for article_id, entry in vector_results.items():
+        merged[article_id] = entry.copy()
+
+    for article_id, entry in keyword_results.items():
+        if article_id in merged:
+            merged[article_id]["score"] += entry["score"]
+        else:
+            merged[article_id] = entry.copy()
+
+    ordered = sorted(merged.values(), key=lambda item: item["score"], reverse=True)
+    return [SearchResultItem(**item) for item in ordered[:limit]]
+
+
+@router.get("/articles/{article_id}")
+async def get_article(
+    article_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    redis_client: Redis = Depends(get_redis),
+) -> ArticleResponse:
+    cache_key = f"article:{article_id}"
+    cached = await redis_client.get(cache_key)
+    if cached:
+        return ArticleResponse.model_validate_json(cached)
+
+    article = db.get(LawArticle, article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    if not article.document:
+        db.refresh(article, attribute_names=["document"])
+
+    response = ArticleResponse(
+        id=article.id,
+        document_id=article.document_id,
+        document_code=article.document.code if article.document else None,
+        document_name=article.document.name if article.document else None,
+        article_number=article.article_number,
+        chapter=article.chapter,
+        title=article.title,
+        full_text=article.full_text,
+        plain_summary=article.plain_summary,
+        domain=article.domain,
+        language=article.language,
+        qdrant_id=article.qdrant_id,
+    )
+    await redis_client.set(
+        cache_key,
+        response.model_dump_json(),
+        ex=settings.plain_summary_cache_ttl_seconds,
+    )
+    return response
+
+
+@router.get("/articles")
+def list_articles(
+    law_code: str | None = None,
+    domain: str | None = None,
+    language: str | None = None,
+    db: Session = Depends(get_db),
+) -> list[LawArticleSummary]:
+    statement = select(LawArticle).options(joinedload(LawArticle.document))
+    if law_code:
+        statement = statement.join(LawArticle.document).where(LawDocument.code == law_code)
+    if domain:
+        statement = statement.where(LawArticle.domain == domain)
+    if language:
+        statement = statement.where(LawArticle.language == language)
+
+    articles = db.scalars(statement).all()
+    return [
+        LawArticleSummary(
+            id=article.id,
+            document_id=article.document_id,
+            document_code=article.document.code if article.document else None,
+            document_name=article.document.name if article.document else None,
+            article_number=article.article_number,
+            title=article.title,
+            domain=article.domain,
+            language=article.language,
+        )
+        for article in articles
+    ]
+
+
+@router.get("/laws")
+def list_laws(db: Session = Depends(get_db)) -> list[LawDocumentSchema]:
+    documents = db.scalars(select(LawDocument)).all()
+    return [LawDocumentSchema.model_validate(document) for document in documents]
+
+
+@router.post("/internal/retrieve")
+def internal_retrieve(
+    payload: RetrieveRequest,
+    request: Request,
+    qdrant_client=Depends(get_qdrant),
+) -> RetrieveResponse:
+    limit = _build_limit(payload.top_k)
+    qdrant_filter = None
+    if payload.domain_filter:
+        conditions = [
+            rest.FieldCondition(key="domain", match=rest.MatchValue(value=value))
+            for value in payload.domain_filter
+        ]
+        qdrant_filter = rest.Filter(min_should=rest.MinShould(conditions=conditions, min_count=1))
+
+    hits = qdrant_client.search(
+        collection_name=settings.qdrant_collection,
+        query_vector=payload.query_vector,
+        limit=limit,
+        with_payload=True,
+        query_filter=qdrant_filter,
+    )
+
+    results = []
+    for hit in hits:
+        payload_data = hit.payload or {}
+        article_id_value = payload_data.get("article_id")
+        if not article_id_value:
+            continue
+
+        results.append(
+            RetrieveItem(
+                article_id=UUID(str(article_id_value)),
+                law_name=payload_data.get("law_name", ""),
+                article_number=payload_data.get("article_number", ""),
+                domain=payload_data.get("domain", ""),
+                language=payload_data.get("language", ""),
+                text_preview=payload_data.get("text_preview", ""),
+                score=hit.score or 0.0,
+            )
+        )
+
+    return RetrieveResponse(results=results)

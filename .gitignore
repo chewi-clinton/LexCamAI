@@ -53,5 +53,21 @@ coverage.xml
 # Docker
 *.tar
 
+# Downloaded or generated embedding artifacts
+services/embedding-service/model/*.onnx
+
 # Helm
 charts/*.tgz
+
+# md files
+build-plan.md
+description.md
+services-desccription.md
+
+# Local safe backups (onnx model artifacts)
+_safe_backups/
+
+# Temporarily ignore CI/workflow files (untracked intentionally)
+.github/workflows/ci.yml
+.github/workflows/build-embedding-image.yml
+

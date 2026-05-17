@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: embedding-service-config
+data:
+  SERVICE_NAME: embedding-service
+  API_PREFIX: /api/v1
+  MODEL_NAME: intfloat/multilingual-e5-small
+  DEVICE: cpu
+  MAX_BATCH_SIZE: "64"
+  MAX_SEQ_LENGTH: "512"
+  NORMALIZE_EMBEDDINGS: "true"
+  LOG_LEVEL: INFO
+  REQUIRE_API_KEY: "true"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT: 120/minute
