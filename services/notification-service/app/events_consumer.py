@@ -46,8 +46,12 @@ def on_message(ch, method, properties, body):
 def start_consumer():
     conn = _get_connection()
     ch = conn.channel()
+    # Declare main exchange and a DLX exchange for failed messages.
     ch.exchange_declare(exchange="events", exchange_type="topic", durable=True)
-    q = ch.queue_declare(queue="notification_events", durable=True)
+    ch.exchange_declare(exchange="lexcam.dlx", exchange_type="fanout", durable=True)
+    # Declare queue with dead-letter exchange so failed messages route to DLX.
+    args = {"x-dead-letter-exchange": "lexcam.dlx"}
+    q = ch.queue_declare(queue="notification_events", durable=True, arguments=args)
     ch.queue_bind(queue="notification_events", exchange="events", routing_key="feedback.flagged")
     ch.queue_bind(queue="notification_events", exchange="events", routing_key="lawyers.scraped")
     # Use explicit acknowledgements to ensure messages are not lost

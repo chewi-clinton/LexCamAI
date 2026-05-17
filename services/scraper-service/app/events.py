@@ -12,5 +12,7 @@ def publish_event(routing_key: str, payload: dict):
     conn = _get_connection()
     ch = conn.channel()
     ch.exchange_declare(exchange="events", exchange_type="topic", durable=True)
-    ch.basic_publish(exchange="events", routing_key=routing_key, body=json.dumps(payload))
+    # Publish persistent messages so events survive broker restarts.
+    props = pika.BasicProperties(delivery_mode=2)
+    ch.basic_publish(exchange="events", routing_key=routing_key, body=json.dumps(payload), properties=props)
     conn.close()
