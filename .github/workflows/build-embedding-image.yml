@@ -17,6 +17,15 @@ jobs:
       MODEL_SHA256: ${{ vars.EMBEDDING_MODEL_SHA256 }}
 
     steps:
+      - name: Debug workflow environment
+        run: |
+          echo "GITHUB_REPOSITORY=$GITHUB_REPOSITORY"
+          echo "GITHUB_REPOSITORY_OWNER=$GITHUB_REPOSITORY_OWNER"
+          echo "IMAGE_NAME=$IMAGE_NAME"
+          echo "MODEL_NAME=$MODEL_NAME"
+          echo "MODEL_URL=$MODEL_URL"
+          echo "MODEL_SHA256=$MODEL_SHA256"
+
       - name: Checkout
         uses: actions/checkout@v4
 
