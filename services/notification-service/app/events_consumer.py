@@ -4,7 +4,6 @@ import os
 from .config import settings
 from .db import Session, engine
 from .models import Notification
-from .tasks import send_notification_async
 
 
 def _get_connection():
@@ -31,7 +30,17 @@ def on_message(ch, method, properties, body):
         session.add(notif)
         session.commit()
         session.refresh(notif)
-        send_notification_async.delay(notif.id)
+    # Acknowledge message after successful DB write. Delivery of the
+    # notification (SMTP, push, etc.) is handled by dedicated worker(s)
+    # implemented by the team. Do NOT perform delivery here.
+    try:
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+    except Exception:
+        # If ack fails, attempt to nack without requeue so DLX can capture it
+        try:
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        except Exception:
+            pass
 
 
 def start_consumer():
@@ -41,7 +50,8 @@ def start_consumer():
     q = ch.queue_declare(queue="notification_events", durable=True)
     ch.queue_bind(queue="notification_events", exchange="events", routing_key="feedback.flagged")
     ch.queue_bind(queue="notification_events", exchange="events", routing_key="lawyers.scraped")
-    ch.basic_consume(queue="notification_events", on_message_callback=on_message, auto_ack=True)
+    # Use explicit acknowledgements to ensure messages are not lost
+    ch.basic_consume(queue="notification_events", on_message_callback=on_message, auto_ack=False)
     print("[notification-consumer] Waiting for events...")
     ch.start_consuming()
 

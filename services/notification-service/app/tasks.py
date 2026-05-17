@@ -59,21 +59,30 @@ def send_notification_async(self, notification_id: int):
             with Session(engine) as session:
                 d = session.get(DeliveryLog, dlog.id)
                 d.status = "sent"
-                d.sent_at = datetime.utcnow()
-                session.add(d)
-                session.commit()
-            return {"sent": True}
-        except Exception as e:
-            with Session(engine) as session:
-                d = session.get(DeliveryLog, dlog.id)
-                d.status = "failed"
-                d.error = str(e)
-                session.add(d)
-                session.commit()
-            raise
+                from celery import Celery
+                from celery.utils.log import get_task_logger
+                from .config import settings
 
-    return asyncio.get_event_loop().run_until_complete(_send())
+                logger = get_task_logger(__name__)
+
+                celery_app = Celery(
+                    settings.SERVICE_NAME,
+                    broker=settings.CELERY_BROKER_URL,
+                    backend=settings.CELERY_RESULT_BACKEND,
+                )
 
 
-def get_celery_app():
-    return celery_app
+                @celery_app.task(bind=True)
+                def placeholder_send_notification(self, notification_id: int):
+                    """Placeholder task: delivery implementation is out-of-scope for assistant.
+
+                    The actual delivery (SMTP, push, etc.) should be implemented by the
+                    team in a dedicated worker. This placeholder ensures Celery app
+                    configuration exists without performing network delivery here.
+                    """
+                    logger.warning("placeholder_send_notification called for %s", notification_id)
+                    raise NotImplementedError("Notification delivery is implemented by a separate worker")
+
+
+                def get_celery_app():
+                    return celery_app
