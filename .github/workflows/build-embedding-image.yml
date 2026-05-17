@@ -54,11 +54,15 @@ jobs:
           docker rm $id
 
       - name: Publish to GHCR
-        if: github.event_name == 'push' && secrets.GHCR_PAT
+        if: github.event_name == 'push'
         env:
           CR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
-          echo $CR_PAT | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          if [ -z "$CR_PAT" ]; then
+            echo "GHCR_PAT not set; skipping publish"
+            exit 0
+          fi
+          echo "$CR_PAT" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
           docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${{ github.sha }}
           docker push $IMAGE_NAME:latest
