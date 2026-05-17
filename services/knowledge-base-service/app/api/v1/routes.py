@@ -54,6 +54,19 @@ async def health(request: Request, db: Session = Depends(get_db)) -> Any:
         db.execute(select(1)).scalar_one()
         qdrant_client = get_qdrant(request)
         qdrant_client.get_collection(settings.qdrant_collection)
+        # check embedding service health
+        embedding_client = get_embedding_client(request)
+        try:
+            emb_health = await embedding_client.health()
+        except Exception:
+            emb_health = {"status": "unreachable"}
+        # check redis
+        redis_client = get_redis(request)
+        try:
+            await redis_client.ping()
+            redis_ok = True
+        except Exception:
+            redis_ok = False
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
@@ -61,6 +74,8 @@ async def health(request: Request, db: Session = Depends(get_db)) -> Any:
         "status": "ok",
         "database": "ok",
         "qdrant_collection": settings.qdrant_collection,
+        "embedding_service": emb_health,
+        "redis": "ok" if redis_ok else "unreachable",
     }
 
 

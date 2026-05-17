@@ -36,13 +36,13 @@ class EmbeddingModel:
         def _load():
             tokenizer = AutoTokenizer.from_pretrained(settings.model_name, use_fast=True)
 
-            model_path = "/cache/model.onnx"
-            if not Path(model_path).exists():
+            model_path = self._resolve_model_path()
+            if not model_path.exists():
                 raise RuntimeError(
-                    "ONNX model not found at /cache/model.onnx.\n"
-                    "Provide the model as a release asset and let the Docker build download it via MODEL_URL."
+                    f"ONNX model not found at {model_path}.\n"
+                    "Provide MODEL_PATH or let the Docker build download it via MODEL_URL."
                 )
-            session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+            session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
 
             # Attempt to infer hidden dimension from the first output shape
             outputs = session.get_outputs()
@@ -58,6 +58,16 @@ class EmbeddingModel:
         logging.getLogger(__name__).info(
             "ONNX embedding model loaded: %s (dim=%s)", settings.model_name, self._dimension
         )
+
+    def _resolve_model_path(self) -> Path:
+        if settings.model_path:
+            return Path(settings.model_path)
+
+        repo_backup = Path(__file__).resolve().parents[4].joinpath("_safe_backups", "model.onnx")
+        if repo_backup.exists():
+            return repo_backup
+
+        return Path("/cache/model.onnx")
 
     async def embed(self, texts: list[str], input_type: str | None, normalize: bool | None) -> list[list[float]]:
         if input_type:

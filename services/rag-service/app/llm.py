@@ -4,9 +4,6 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from typing import List, Dict
 
 HF_API_URL = "https://api-inference.huggingface.co/models"
-HF_API_KEY = os.getenv("HF_API_KEY")
-HF_MODEL = os.getenv("HF_MODEL", "google/flan-t5-small")
-FALLBACK_MODEL = os.getenv("HF_FALLBACK_MODEL", "gpt2")
 
 
 class LLMError(Exception):
@@ -16,7 +13,11 @@ class LLMError(Exception):
 @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10),
        retry=retry_if_exception_type((httpx.HTTPError, LLMError)))
 def generate_answer_from_documents(query: str, documents: List[Dict[str, str]], max_tokens: int = 256) -> str:
-    if not HF_API_KEY:
+    hf_api_key = os.getenv("HF_API_KEY")
+    hf_model = os.getenv("HF_MODEL", "google/flan-t5-small")
+    fallback_model = os.getenv("HF_FALLBACK_MODEL", "gpt2")
+
+    if not hf_api_key:
         raise LLMError("HF_API_KEY not set")
 
     # Build prompt with provenance instructions
@@ -29,8 +30,8 @@ def generate_answer_from_documents(query: str, documents: List[Dict[str, str]], 
     prompt_parts.append("Provide a concise answer and at the end list the document ids used as sources.")
     prompt = "\n\n".join(prompt_parts)
 
-    headers = {"Authorization": f"Bearer {HF_API_KEY}", "Accept": "application/json"}
-    url = f"{HF_API_URL}/{HF_MODEL}"
+    headers = {"Authorization": f"Bearer {hf_api_key}", "Accept": "application/json"}
+    url = f"{HF_API_URL}/{hf_model}"
     payload = {"inputs": prompt, "parameters": {"max_new_tokens": max_tokens, "return_full_text": False}}
 
     with httpx.Client(timeout=30.0) as client:
@@ -44,9 +45,9 @@ def generate_answer_from_documents(query: str, documents: List[Dict[str, str]], 
                 # Build simple concatenation of top snippets as a safe fallback
                 snippets = [d.get("snippet") or d.get("content") or "" for d in documents]
                 synthesized = "\n\n".join(snippets[:3]) or "No relevant documents found."
-                return f"(fallback synthesis) {synthesized}\n\nNote: HF model {HF_MODEL} unavailable."
-            if e.response.status_code == 404 and FALLBACK_MODEL and FALLBACK_MODEL != HF_MODEL:
-                url_fb = f"{HF_API_URL}/{FALLBACK_MODEL}"
+                return f"(fallback synthesis) {synthesized}\n\nNote: HF model {hf_model} unavailable."
+            if e.response.status_code == 404 and fallback_model and fallback_model != hf_model:
+                url_fb = f"{HF_API_URL}/{fallback_model}"
                 resp_fb = client.post(url_fb, json=payload, headers=headers)
                 try:
                     resp_fb.raise_for_status()

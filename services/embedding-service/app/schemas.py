@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class EmbeddingRequest(BaseModel):
-    texts: list[str] = Field(..., min_items=1, description="Texts to embed")
+    texts: list[str] = Field(..., min_length=1, description="Texts to embed")
     input_type: Literal["query", "passage"] | None = Field(
         default=None,
         description="Optional E5 prefix to apply",

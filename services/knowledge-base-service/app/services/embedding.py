@@ -21,3 +21,11 @@ class EmbeddingServiceClient:
         if not embeddings or not isinstance(embeddings, list):
             raise RuntimeError("Invalid embedding response from Embedding Service")
         return embeddings[0]
+
+    async def health(self) -> dict:
+        try:
+            resp = await self._client.get(f"{settings.embedding_service_url}{settings.api_prefix}/health")
+            resp.raise_for_status()
+            return resp.json()
+        except Exception:
+            return {"status": "unreachable"}

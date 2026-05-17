@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     service_name: str = Field("embedding-service", alias="SERVICE_NAME")
     api_prefix: str = Field("/api/v1", alias="API_PREFIX")
     model_name: str = Field("intfloat/multilingual-e5-small", alias="MODEL_NAME")
+    model_path: str | None = Field(None, alias="MODEL_PATH")
     device: str = Field("cpu", alias="DEVICE")
     max_batch_size: int = Field(64, alias="MAX_BATCH_SIZE")
     max_seq_length: int = Field(512, alias="MAX_SEQ_LENGTH")
