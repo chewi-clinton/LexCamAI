@@ -1,31 +1,35 @@
+'use client';
+import { useState } from 'react';
 import { Search, BookOpen, Bot } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function LawExplorer() {
-  const categories = [
-    { name: 'All Laws', active: true },
-    { name: 'Labour Law', active: false },
-    { name: 'Housing', active: false },
-    { name: 'Family', active: false },
-    { name: 'Criminal', active: false },
-    { name: 'Commercial', active: false },
-  ];
+  const { lang } = useLanguage();
+  const T = t[lang].lawExplorerPage;
+
+  const categoryKeys = ['catAll', 'catLabour', 'catHousing', 'catFamily', 'catCriminal', 'catCommercial'];
+  const [activeCategory, setActiveCategory] = useState('catAll');
 
   const articles = [
     {
+      id: 1,
       category: 'Labour Code',
       reference: 'Art. 74',
       title: 'Termination of Employment',
       description: 'Explains the legal procedures for ending an employment contract, including required notice periods, severance pay calculation...',
     },
     {
+      id: 2,
       category: 'Family Law',
       reference: 'Art. 212',
       title: 'Child Custody Rights',
       description: 'Outlines the primary considerations for awarding child custody in the event of divorce or separation, prioritizing the...',
     },
     {
+      id: 3,
       category: 'Housing',
       reference: "Decree '08",
       title: 'Tenant Eviction Process',
@@ -43,10 +47,10 @@ export default function LawExplorer() {
           {/* Header Block */}
           <div className="text-center max-w-2xl mx-auto mb-12">
             <h2 className="font-serif text-4xl font-bold text-primary mb-4">
-              Explore Cameroon Law
+              {T.title}
             </h2>
             <p className="text-muted text-base leading-relaxed">
-              Find plain-language summaries of legal codes, rights, and procedures.
+              {T.subtitle}
             </p>
           </div>
 
@@ -57,12 +61,12 @@ export default function LawExplorer() {
                 <Search className="text-gray-400 flex-shrink-0" size={20} />
                 <input
                   type="text"
-                  placeholder="Search laws, rights, or keywords..."
+                  placeholder={T.searchPlaceholder}
                   className="w-full bg-transparent outline-none text-gray-800 placeholder:text-gray-400 text-sm md:text-base"
                 />
               </div>
               <button className="bg-primary hover:bg-primary-light transition-colors text-white font-medium rounded-full px-8 py-3 text-sm md:text-base shadow-sm">
-                Search
+                {T.searchBtn}
               </button>
             </div>
           </div>
@@ -70,19 +74,20 @@ export default function LawExplorer() {
           {/* Categories */}
           <div className="mb-8">
             <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-4">
-              Categories
+              {T.categoriesLabel}
             </h3>
             <div className="flex flex-wrap gap-3">
-              {categories.map((cat, index) => (
+              {categoryKeys.map((key) => (
                 <button
-                  key={index}
+                  key={key}
+                  onClick={() => setActiveCategory(key)}
                   className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
-                    cat.active
+                    activeCategory === key
                       ? 'bg-primary text-white shadow-sm'
                       : 'bg-surface border border-gray-200 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  {cat.name}
+                  {T[key]}
                 </button>
               ))}
             </div>
@@ -114,14 +119,14 @@ export default function LawExplorer() {
                 </div>
 
                 <div className="space-y-3 mt-auto">
-                  <button className="w-full border border-gray-200/80 bg-gray-50/50 text-gray-800 hover:bg-gray-100/70 transition-colors py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-bold">
+                  <a href={`/laws/${art.id}`} className="w-full border border-gray-200/80 bg-gray-50/50 text-gray-800 hover:bg-gray-100/70 transition-colors py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-bold">
                     <BookOpen size={16} />
-                    Read full text
-                  </button>
-                  <button className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-sm">
+                    {T.readFull}
+                  </a>
+                  <a href="/chat" className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-sm">
                     <Bot size={16} />
-                    Ask AI about this
-                  </button>
+                    {T.askAI}
+                  </a>
                 </div>
               </div>
             ))}
