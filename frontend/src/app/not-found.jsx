@@ -23,7 +23,7 @@ export default function NotFound() {
 
         {/* Message */}
         <p className="text-gray-500 text-sm font-medium leading-relaxed max-w-xs mb-8">
-          This page doesn't exist or has been moved.
+          This page doesn&apos;t exist or has been moved.
         </p>
 
         {/* Actions */}

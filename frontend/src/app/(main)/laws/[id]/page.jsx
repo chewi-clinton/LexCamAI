@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ChevronRight,
   Lightbulb,
@@ -11,8 +11,14 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function LaborCodeArticleView() {
+  const { lang } = useLanguage();
+  const T = t[lang].laws;
+  const [saved, setSaved] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#F7F4EF] font-sans flex flex-col">
       <Header activePage="law-explorer" />
@@ -55,9 +61,9 @@ export default function LaborCodeArticleView() {
                   <Lightbulb size={18} />
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-serif text-lg font-bold text-primary">Plain Language Summary</h4>
+                  <h4 className="font-serif text-lg font-bold text-primary">{T.plainSummaryLabel}</h4>
                   <p className="text-sm text-gray-700 leading-relaxed font-medium">
-                    If you are fired after working for a company for more than two years, you are usually entitled to receive severance pay. This money helps support you while you look for a new job. The exact amount depends on how long you worked there and your salary. You do not get severance pay if you quit voluntarily or if you were fired for "gross misconduct" (a very serious mistake).
+                    If you are fired after working for a company for more than two years, you are usually entitled to receive severance pay. This money helps support you while you look for a new job. The exact amount depends on how long you worked there and your salary. You do not get severance pay if you quit voluntarily or if you were fired for &ldquo;gross misconduct&rdquo; (a very serious mistake).
                   </p>
                 </div>
               </div>
@@ -65,7 +71,7 @@ export default function LaborCodeArticleView() {
               {/* Official Legislative Text Documentation Block */}
               <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm p-6 md:p-8 space-y-6">
                 <h3 className="font-serif text-xl font-bold text-gray-900 border-b border-gray-100 pb-3">
-                  Official Text
+                  {T.officialText}
                 </h3>
                 <div className="text-sm text-gray-800 leading-relaxed font-medium space-y-6">
                   <p>
@@ -92,9 +98,9 @@ export default function LaborCodeArticleView() {
                     <MessageSquareShare size={16} />
                   </div>
                   <div>
-                    <h3 className="font-serif text-base font-bold text-gray-900">Ask the AI</h3>
+                    <h3 className="font-serif text-base font-bold text-gray-900">{T.askAITitle}</h3>
                     <p className="text-xs text-gray-400 font-medium mt-1 leading-relaxed">
-                      Have specific questions about how this article applies to your situation? Consult our AI legal assistant.
+                      {T.askAIDesc}
                     </p>
                   </div>
                 </div>
@@ -102,7 +108,7 @@ export default function LaborCodeArticleView() {
                   href="/chat"
                   className="w-full bg-primary hover:bg-primary-dark text-white font-bold text-xs py-3 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
-                  Consult AI <ArrowRight size={14} />
+                  {T.consultAI} <ArrowRight size={14} />
                 </a>
               </div>
 
@@ -113,9 +119,9 @@ export default function LaborCodeArticleView() {
                     <FileText size={16} />
                   </div>
                   <div>
-                    <h3 className="font-serif text-base font-bold text-gray-900">Related Documents</h3>
+                    <h3 className="font-serif text-base font-bold text-gray-900">{T.relatedDocs}</h3>
                     <p className="text-xs text-gray-400 font-medium mt-1 leading-relaxed">
-                      Need to draft a formal request for severance pay or a termination notice? Generate a compliant template.
+                      {T.relatedDocsDesc}
                     </p>
                   </div>
                 </div>
@@ -123,18 +129,25 @@ export default function LaborCodeArticleView() {
                   href="/documents"
                   className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
-                  Generate Template
+                  {T.generateTemplate}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ml-0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </a>
               </div>
 
               {/* Action Widget 3: Bookmarking & Distribution Controls */}
               <div className="grid grid-cols-2 gap-3 select-none">
-                <button className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg p-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-colors">
-                  <Bookmark size={14} className="text-gray-400" /> Save
+                <button
+                  onClick={() => setSaved(!saved)}
+                  className={`border rounded-lg p-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-colors ${saved ? 'bg-primary/5 border-primary text-primary' : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'}`}
+                >
+                  <Bookmark size={14} className={saved ? 'fill-primary text-primary' : 'text-gray-400'} />
+                  {saved ? T.saved : T.save}
                 </button>
-                <button className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg p-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-colors">
-                  <Share2 size={14} className="text-gray-400" /> Share
+                <button
+                  onClick={() => { if (navigator.share) { navigator.share({ title: 'Article 34', url: window.location.href }); } else { navigator.clipboard.writeText(window.location.href); } }}
+                  className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg p-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-colors"
+                >
+                  <Share2 size={14} className="text-gray-400" /> {T.share}
                 </button>
               </div>
 

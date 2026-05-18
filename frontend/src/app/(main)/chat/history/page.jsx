@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Search,
   SlidersHorizontal,
@@ -14,8 +14,15 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function ConversationHistory() {
+  const { lang } = useLanguage();
+  const T = t[lang].chatHistory;
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(5);
+
   const cards = [
     {
       category: 'Labor Law',
@@ -75,10 +82,10 @@ export default function ConversationHistory() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">
-                Conversation History
+                {T.title}
               </h2>
               <p className="text-gray-500 text-sm mt-1">
-                Review your past consultations with the LexCam AI Assistant.
+                {T.subtitle}
               </p>
             </div>
 
@@ -87,19 +94,22 @@ export default function ConversationHistory() {
                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search conversations..."
+                  placeholder={T.searchPlaceholder}
                   className="w-full bg-white border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 shadow-sm"
                 />
               </div>
-              <button className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-sm px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-colors">
-                <SlidersHorizontal size={16} className="text-gray-500" /> Filter
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                className={`border font-bold text-sm px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-colors ${filterOpen ? 'bg-primary/5 border-primary text-primary' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'}`}
+              >
+                <SlidersHorizontal size={16} className={filterOpen ? 'text-primary' : 'text-gray-500'} /> {T.filter}
               </button>
             </div>
           </div>
 
           {/* Dashboard Grid Container */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cards.map((card, idx) => {
+            {cards.slice(0, visibleCount).map((card, idx) => {
               const Icon = card.icon;
               return (
                 <a key={idx} href="/chat" className="bg-white border border-gray-200/70 rounded-2xl shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-pointer">
@@ -127,7 +137,7 @@ export default function ConversationHistory() {
                   <div className="border-t border-gray-50 pt-4 mt-6 flex items-center justify-between text-xs font-bold text-gray-400">
                     <div className="flex items-center gap-1.5 text-gray-500">
                       <MessageSquare size={14} className="text-gray-400" />
-                      <span>{card.messages} Messages</span>
+                      <span>{card.messages} {T.messages}</span>
                     </div>
                     <div className="w-7 h-7 rounded-full bg-gray-50 text-gray-400 group-hover:bg-primary/5 group-hover:text-primary flex items-center justify-center transition-all">
                       <ArrowRight size={14} />
@@ -139,11 +149,16 @@ export default function ConversationHistory() {
           </div>
 
           {/* Load More */}
-          <div className="pt-8 flex justify-center">
-            <button className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-6 rounded-full flex items-center gap-2 shadow-sm transition-colors">
-              Load Older Conversations <ChevronDown size={14} className="text-gray-400" />
-            </button>
-          </div>
+          {visibleCount < cards.length && (
+            <div className="pt-8 flex justify-center">
+              <button
+                onClick={() => setVisibleCount(visibleCount + 5)}
+                className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-6 rounded-full flex items-center gap-2 shadow-sm transition-colors"
+              >
+                {T.loadMore} <ChevronDown size={14} className="text-gray-400" />
+              </button>
+            </div>
+          )}
 
         </div>
       </div>

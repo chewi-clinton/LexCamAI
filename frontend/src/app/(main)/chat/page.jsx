@@ -1,3 +1,4 @@
+'use client';
 import {
   Plus,
   MessageSquare,
@@ -8,8 +9,13 @@ import {
   Send
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function AIAssistant() {
+  const { lang, setLang } = useLanguage();
+  const T = t[lang].chat;
+
   return (
     <div className="h-screen flex flex-col font-sans bg-background overflow-hidden">
       <Header activePage="chat" />
@@ -20,49 +26,49 @@ export default function AIAssistant() {
         {/* Sidebar */}
         <aside className="w-72 border-r border-gray-200/60 bg-surface/50 hidden lg:flex flex-col flex-shrink-0">
           <div className="p-4">
-            <button className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-medium">
+            <a href="/chat" className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-medium">
               <Plus size={18} />
-              New Consult
-            </button>
+              {T.newConsult}
+            </a>
           </div>
 
-          <div className="px-4 py-2">
+          <div className="px-4 py-2 flex-1 overflow-y-auto">
             <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
-              Recent Consultations
+              {T.recentConsultations}
             </h3>
             <div className="space-y-1">
-              <button className="w-full text-left bg-gray-100 text-primary p-3 rounded-xl flex gap-3 transition-colors">
+              <a href="/chat" className="w-full text-left bg-gray-100 text-primary p-3 rounded-xl flex gap-3 transition-colors">
                 <MessageSquare size={18} className="mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-gray-900 truncate">Termination Without Cause</p>
                   <p className="text-xs text-gray-500 mt-0.5">Today</p>
                 </div>
-              </button>
+              </a>
 
-              <button className="w-full text-left hover:bg-gray-100/50 text-muted hover:text-primary p-3 rounded-xl flex gap-3 transition-colors">
+              <a href="/chat" className="w-full text-left hover:bg-gray-100/50 text-muted hover:text-primary p-3 rounded-xl flex gap-3 transition-colors">
                 <MessageSquare size={18} className="mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-gray-700 truncate">Starting a Tech Business</p>
                   <p className="text-xs text-gray-400 mt-0.5">Yesterday</p>
                 </div>
-              </button>
+              </a>
 
-              <button className="w-full text-left hover:bg-gray-100/50 text-muted hover:text-primary p-3 rounded-xl flex gap-3 transition-colors">
+              <a href="/chat" className="w-full text-left hover:bg-gray-100/50 text-muted hover:text-primary p-3 rounded-xl flex gap-3 transition-colors">
                 <MessageSquare size={18} className="mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-gray-700 truncate">Land Dispute Registration</p>
                   <p className="text-xs text-gray-400 mt-0.5">Oct 12</p>
                 </div>
-              </button>
+              </a>
             </div>
           </div>
         </aside>
 
         {/* Chat Area */}
-        <main className="flex-1 flex flex-col relative bg-[#F7F6F3]">
+        <main className="flex-1 flex flex-col relative bg-[#F7F6F3] min-h-0">
 
           {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-40">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-40 min-h-0">
             <div className="max-w-4xl mx-auto space-y-8">
 
               {/* Bot Welcome Message */}
@@ -127,13 +133,13 @@ export default function AIAssistant() {
                     <div className="flex gap-3 items-start">
                       <FileText className="text-primary mt-1" size={20} />
                       <div>
-                        <h4 className="font-bold text-primary text-sm">Want to send a formal letter?</h4>
-                        <p className="text-sm text-primary/80 mt-1">Draft a letter requesting your employment certificate and severance.</p>
+                        <h4 className="font-bold text-primary text-sm">{T.wantToSendLetter}</h4>
+                        <p className="text-sm text-primary/80 mt-1">{T.draftLetter}</p>
                       </div>
                     </div>
-                    <button className="bg-primary hover:bg-primary-light transition-colors text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">
-                      Generate Document
-                    </button>
+                    <a href="/documents" className="bg-primary hover:bg-primary-light transition-colors text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">
+                      {T.generateDocument}
+                    </a>
                   </div>
                 </div>
               </div>
@@ -146,7 +152,7 @@ export default function AIAssistant() {
             <div className="max-w-3xl mx-auto">
               <div className="bg-surface shadow-lg border border-gray-200/60 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-primary/20 transition-shadow">
                 <textarea
-                  placeholder="Describe your legal situation clearly..."
+                  placeholder={T.placeholder}
                   className="w-full resize-none outline-none p-3 text-gray-800 placeholder:text-gray-400 min-h-[60px] max-h-[150px] bg-transparent"
                   rows={2}
                 />
@@ -157,8 +163,8 @@ export default function AIAssistant() {
                     </button>
                     <div className="h-4 w-px bg-gray-200" />
                     <div className="flex gap-1 text-xs font-bold text-gray-400">
-                      <button className="text-gray-800 px-1">EN</button>
-                      <button className="px-1 hover:text-gray-600 transition-colors">FR</button>
+                      <button onClick={() => setLang('en')} className={`px-1 transition-colors ${lang === 'en' ? 'text-gray-800' : 'hover:text-gray-600'}`}>EN</button>
+                      <button onClick={() => setLang('fr')} className={`px-1 transition-colors ${lang === 'fr' ? 'text-gray-800' : 'hover:text-gray-600'}`}>FR</button>
                     </div>
                   </div>
                   <button className="bg-primary hover:bg-primary-light transition-colors text-white p-2.5 rounded-full shadow-sm flex items-center justify-center">
@@ -167,7 +173,7 @@ export default function AIAssistant() {
                 </div>
               </div>
               <p className="text-center text-xs text-gray-400 mt-4 font-medium">
-                LexCam AI provides legal information, not professional legal advice. Consult a lawyer for complex matters.
+                {T.disclaimer}
               </p>
             </div>
           </div>
