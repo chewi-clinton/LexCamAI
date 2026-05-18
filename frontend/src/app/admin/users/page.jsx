@@ -2,8 +2,12 @@
 import {
   ChevronDown, Calendar, Filter, Eye, UserX, CheckCircle2,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function UserManagementAdmin() {
+  const { lang } = useLanguage();
+  const T = t[lang].admin;
   const usersData = [
     {
       name: 'Amadou Ly',
@@ -51,18 +55,18 @@ export default function UserManagementAdmin() {
     <div className="p-8 space-y-6">
 
       <div>
-        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">User Management</h2>
-        <p className="text-muted text-sm mt-1">Manage all registered users, monitor their activity, and handle GDPR compliance tasks.</p>
+        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">{T.userManagement}</h2>
+        <p className="text-muted text-sm mt-1">{T.userManagementDesc}</p>
       </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold text-gray-500">
           {[
-            { label: 'City', placeholder: 'All Cities' },
-            { label: 'Language', placeholder: 'All' },
-            { label: 'Status', placeholder: 'Any Status' },
-            { label: 'Email Verified', placeholder: 'Any' },
+            { label: T.cityLabel, placeholder: T.allCities },
+            { label: T.languageLabel, placeholder: T.allOption },
+            { label: T.statusLabel, placeholder: T.anyStatus },
+            { label: T.emailVerified, placeholder: T.anyOption },
           ].map(({ label, placeholder }) => (
             <div key={label}>
               <label className="block mb-1.5 font-bold">{label}</label>
@@ -76,14 +80,14 @@ export default function UserManagementAdmin() {
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-4 pt-2">
           <div className="flex-1 text-xs font-semibold text-gray-500">
-            <label className="block mb-1.5 font-bold">Date Range</label>
+            <label className="block mb-1.5 font-bold">{T.dateRange}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between max-w-xl">
               <span className="text-gray-400 font-normal">mm/dd/yyyy</span>
               <Calendar size={14} className="text-gray-400" />
             </div>
           </div>
           <button className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors">
-            <Filter size={14} className="text-gray-400" /> Apply
+            <Filter size={14} className="text-gray-400" /> {T.apply}
           </button>
         </div>
       </div>
@@ -115,22 +119,22 @@ export default function UserManagementAdmin() {
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-4 border-t border-gray-50 text-xs">
                 <div>
-                  <span className="block text-[10px] text-gray-400 font-bold">City</span>
+                  <span className="block text-[10px] text-gray-400 font-bold">{T.cityLabel}</span>
                   <span className="text-gray-700 font-medium mt-0.5 flex items-center gap-1">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
                     {user.city}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-gray-400 font-bold">Language</span>
+                  <span className="block text-[10px] text-gray-400 font-bold">{T.languageLabel}</span>
                   <span className="text-gray-700 font-medium mt-0.5 block uppercase">{user.language}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-gray-400 font-bold">Joined Date</span>
+                  <span className="block text-[10px] text-gray-400 font-bold">{T.joinedDate}</span>
                   <span className="text-gray-500 font-normal mt-0.5 block">{user.joinedDate}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-gray-400 font-bold">Documents</span>
+                  <span className="block text-[10px] text-gray-400 font-bold">{T.documents}</span>
                   <span className="text-amber-700 font-bold mt-0.5 block">{user.documents}</span>
                 </div>
               </div>
@@ -142,7 +146,7 @@ export default function UserManagementAdmin() {
                   <input type="checkbox" defaultChecked={user.access} className="sr-only peer" />
                   <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                 </label>
-                <span className="text-xs font-bold text-gray-500">Access</span>
+                <span className="text-xs font-bold text-gray-500">{T.access}</span>
               </div>
               <div className="flex items-center gap-1.5 text-gray-400">
                 <button className="p-1.5 hover:bg-gray-50 hover:text-gray-700 rounded-lg transition-colors"><Eye size={16} /></button>
@@ -155,13 +159,13 @@ export default function UserManagementAdmin() {
 
       {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-gray-400 pt-4 border-t border-gray-200/60">
-        <span>Showing 1 to 3 of 42 entries</span>
+        <span>{T.showing} 1 to 3 of 42 entries</span>
         <div className="flex items-center gap-1 select-none font-bold text-gray-600">
-          <button className="px-3 py-1.5 border border-gray-200 bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50 text-xs font-bold">Prev</button>
+          <button className="px-3 py-1.5 border border-gray-200 bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50 text-xs font-bold">{T.prev}</button>
           <button className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-sm text-xs">1</button>
           <button className="w-8 h-8 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg flex items-center justify-center transition-colors text-xs">2</button>
           <button className="w-8 h-8 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg flex items-center justify-center transition-colors text-xs">3</button>
-          <button className="px-3 py-1.5 border border-gray-200 bg-white rounded-lg hover:bg-gray-50 text-xs font-bold">Next</button>
+          <button className="px-3 py-1.5 border border-gray-200 bg-white rounded-lg hover:bg-gray-50 text-xs font-bold">{T.next}</button>
         </div>
       </div>
 

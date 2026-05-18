@@ -4,8 +4,12 @@ import {
   ChevronDown, X, Eye, Pencil, Ban, Check, Trash2, RotateCcw,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function AdminLawyerDirectory() {
+  const { lang } = useLanguage();
+  const T = t[lang].admin;
   const tableData = [
     {
       name: 'Me. Ndoumbe Marcel',
@@ -71,38 +75,38 @@ export default function AdminLawyerDirectory() {
 
       {/* Page header */}
       <div className="flex items-center justify-between">
-        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Lawyer Directory</h2>
+        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">{T.lawyerDirectory}</h2>
         <button className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-sm px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
-          <Plus size={16} /> Add Lawyer
+          <Plus size={16} /> {T.addLawyer}
         </button>
       </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4 pb-1">
-          <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">Filter Records</span>
+          <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">{T.filterRecords}</span>
           <button className="text-xs font-bold text-muted hover:text-gray-600 flex items-center gap-1">
-            <SlidersHorizontal size={12} /> Clear All
+            <SlidersHorizontal size={12} /> {T.clearAll}
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold text-gray-500">
           <div>
-            <label className="block mb-1.5 font-bold">Status</label>
+            <label className="block mb-1.5 font-bold">{T.status}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">All Statuses</span>
+              <span className="text-gray-800">{T.allStatuses}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </div>
           </div>
           <div>
-            <label className="block mb-1.5 font-bold">City</label>
+            <label className="block mb-1.5 font-bold">{T.cityLabel}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">All Cities</span>
+              <span className="text-gray-800">{T.allCities}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </div>
           </div>
           <div>
-            <label className="block mb-1.5 font-bold">Practice Domain (Multi)</label>
+            <label className="block mb-1.5 font-bold">{T.practiceDomain}</label>
             <div className="bg-white border border-gray-200 rounded-lg p-1.5 flex flex-wrap items-center gap-1.5 min-h-[38px]">
               <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded flex items-center gap-1 text-[10px] border border-gray-200/40 font-medium">
                 Corporate Law <X size={10} className="mt-0.5 cursor-pointer text-gray-400" />
@@ -110,13 +114,13 @@ export default function AdminLawyerDirectory() {
               <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded flex items-center gap-1 text-[10px] border border-gray-200/40 font-medium">
                 Family Law <X size={10} className="mt-0.5 cursor-pointer text-gray-400" />
               </span>
-              <span className="text-gray-400 font-normal pl-0.5">Add domain...</span>
+              <span className="text-gray-400 font-normal pl-0.5">{T.addDomain}</span>
             </div>
           </div>
           <div>
-            <label className="block mb-1.5 font-bold">Origin Type</label>
+            <label className="block mb-1.5 font-bold">{T.originType}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">All Types</span>
+              <span className="text-gray-800">{T.allTypes}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </div>
           </div>
@@ -127,7 +131,7 @@ export default function AdminLawyerDirectory() {
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden">
 
         <div className="px-6 py-4 bg-[#FAFAFA] border-b border-gray-100 flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500">Showing 1-15 of 248 records</span>
+          <span className="text-xs font-bold text-gray-500">{T.showing} 1-15 of 248 records</span>
           <div className="flex items-center gap-2">
             <button className="p-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-gray-500">
               <Download size={14} />
@@ -143,13 +147,13 @@ export default function AdminLawyerDirectory() {
             <thead>
               <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-white">
                 <th className="py-4 px-6 w-12"><input type="checkbox" className="rounded border-gray-300 accent-primary" /></th>
-                <th className="py-4 px-4">Lawyer Name</th>
-                <th className="py-4 px-6">Contact Info</th>
-                <th className="py-4 px-6">Location</th>
-                <th className="py-4 px-4">Type</th>
-                <th className="py-4 px-4">Status</th>
-                <th className="py-4 px-4">Date Joined</th>
-                <th className="py-4 px-6 text-right">Actions</th>
+                <th className="py-4 px-4">{T.lawyerName}</th>
+                <th className="py-4 px-6">{T.contactInfo}</th>
+                <th className="py-4 px-6">{T.location}</th>
+                <th className="py-4 px-4">{T.type}</th>
+                <th className="py-4 px-4">{T.status}</th>
+                <th className="py-4 px-4">{T.dateJoined}</th>
+                <th className="py-4 px-6 text-right">{T.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
@@ -229,7 +233,7 @@ export default function AdminLawyerDirectory() {
         {/* Pagination */}
         <div className="bg-[#FAFAFA] border-t border-gray-100 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2 font-semibold text-gray-500">
-            <span>Rows per page:</span>
+            <span>{T.rowsPerPage}</span>
             <div className="bg-white border border-gray-200 rounded px-2 py-1 flex items-center gap-2 cursor-pointer text-gray-800">
               <span>15</span> <ChevronDown size={12} />
             </div>

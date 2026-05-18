@@ -2,8 +2,12 @@
 import {
   ChevronDown, Calendar, SlidersHorizontal, FolderOpen, MoreVertical,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function LawyerVerificationQueue() {
+  const { lang } = useLanguage();
+  const T = t[lang].admin;
   const applicants = [
     {
       name: 'Me. Valerie Nanga',
@@ -32,9 +36,9 @@ export default function LawyerVerificationQueue() {
 
       {/* Page title */}
       <div className="flex items-center gap-3">
-        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Lawyer Verification Queue</h2>
+        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">{T.verifyQueueTitle}</h2>
         <span className="bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-100/60 uppercase flex items-center gap-1">
-          <span className="text-sm leading-none">•</span> 3 Pending
+          <span className="text-sm leading-none">•</span> 3 {T.pendingLabel}
         </span>
       </div>
 
@@ -42,21 +46,21 @@ export default function LawyerVerificationQueue() {
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5 flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-gray-500 flex-1">
           <div className="w-48">
-            <label className="block mb-1.5 font-bold">Status</label>
+            <label className="block mb-1.5 font-bold">{T.status}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">Pending Approval</span>
+              <span className="text-gray-800">{T.pendingApproval}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </div>
           </div>
           <div className="w-48">
-            <label className="block mb-1.5 font-bold">City</label>
+            <label className="block mb-1.5 font-bold">{T.cityLabel}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">All Cities</span>
+              <span className="text-gray-800">{T.allCities}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </div>
           </div>
           <div className="w-56">
-            <label className="block mb-1.5 font-bold">Date Applied</label>
+            <label className="block mb-1.5 font-bold">{T.dateApplied}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between">
               <span className="text-gray-400 font-normal">mm/dd/yyyy</span>
               <Calendar size={14} className="text-gray-400" />
@@ -64,7 +68,7 @@ export default function LawyerVerificationQueue() {
           </div>
         </div>
         <button className="text-xs font-bold text-gray-700 flex items-center gap-1.5 border border-gray-200 rounded-lg px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors shadow-sm">
-          <SlidersHorizontal size={12} /> More Filters
+          <SlidersHorizontal size={12} /> {T.moreFilters}
         </button>
       </div>
 
@@ -110,14 +114,14 @@ export default function LawyerVerificationQueue() {
 
             <div className="px-5 py-3.5 bg-white flex items-center justify-between gap-4">
               <button className="inline-flex items-center gap-2 text-xs font-bold text-accent-dark hover:underline">
-                <FolderOpen size={14} /> View {applicant.filesCount} Files
+                <FolderOpen size={14} /> {T.view} {applicant.filesCount} Files
               </button>
               <div className="flex items-center gap-2">
                 <button className="border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs px-4 py-2 rounded-lg shadow-sm transition-colors bg-white">
-                  Reject
+                  {T.reject}
                 </button>
                 <button className="bg-primary hover:bg-primary-dark text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm transition-colors">
-                  Approve
+                  {T.approve}
                 </button>
                 <div className="h-4 w-px bg-gray-200 mx-1" />
                 <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg transition-colors">

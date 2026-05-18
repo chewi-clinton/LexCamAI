@@ -2,8 +2,12 @@
 import {
   ChevronDown, Calendar, Filter, Download, Printer, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function AuditLogAdmin() {
+  const { lang } = useLanguage();
+  const T = t[lang].admin;
   const auditLogs = [
     {
       timestamp: 'Oct 24, 2023 14:32:10',
@@ -61,38 +65,38 @@ export default function AuditLogAdmin() {
     <div className="p-8 space-y-6">
 
       <div>
-        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Security Audit Log</h2>
-        <p className="text-muted text-sm mt-1">Track system configurations, user alterations, permissions modifications, and critical background procedures.</p>
+        <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">{T.auditLogTitle}</h2>
+        <p className="text-muted text-sm mt-1">{T.auditLogDesc}</p>
       </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-semibold text-gray-500">
           <div>
-            <label className="block mb-1.5 font-bold">Admin/Actor Type</label>
+            <label className="block mb-1.5 font-bold">{T.adminActorType}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">All Operators</span>
+              <span className="text-gray-800">{T.allOperators}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </div>
           </div>
           <div>
-            <label className="block mb-1.5 font-bold">Action Category</label>
+            <label className="block mb-1.5 font-bold">{T.actionCategory}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">All Action Groups</span>
+              <span className="text-gray-800">{T.allActionGroups}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </div>
           </div>
           <div>
-            <label className="block mb-1.5 font-bold">Date Scope</label>
+            <label className="block mb-1.5 font-bold">{T.dateScope}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between">
-              <span className="text-gray-400 font-normal">Select timeframe...</span>
+              <span className="text-gray-400 font-normal">{T.selectTimeframe}</span>
               <Calendar size={14} className="text-gray-400" />
             </div>
           </div>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">
           <button className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs py-2.5 px-5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors">
-            <Filter size={14} className="text-gray-400" /> Filter Log
+            <Filter size={14} className="text-gray-400" /> {T.filterLog}
           </button>
         </div>
       </div>
@@ -101,7 +105,7 @@ export default function AuditLogAdmin() {
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden">
 
         <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between">
-          <span className="text-xs font-semibold text-gray-500">Showing 1-5 of 1,420 security updates</span>
+          <span className="text-xs font-semibold text-gray-500">{T.showing} 1-5 of 1,420 security updates</span>
           <div className="flex items-center gap-2">
             <button className="p-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-gray-500">
               <Download size={14} />
@@ -116,11 +120,11 @@ export default function AuditLogAdmin() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-[#FAFAFA]">
-                <th className="py-4 px-6 font-semibold w-[22%]">Timestamp</th>
-                <th className="py-4 px-6 font-semibold w-[20%]">Admin/Actor</th>
-                <th className="py-4 px-4 font-semibold w-[18%]">Action</th>
-                <th className="py-4 px-6 font-semibold w-[25%]">Target Object</th>
-                <th className="py-4 px-6 font-semibold text-right w-[15%]">IP Address</th>
+                <th className="py-4 px-6 font-semibold w-[22%]">{T.timestamp}</th>
+                <th className="py-4 px-6 font-semibold w-[20%]">{T.adminActor}</th>
+                <th className="py-4 px-4 font-semibold w-[18%]">{T.action}</th>
+                <th className="py-4 px-6 font-semibold w-[25%]">{T.targetObject}</th>
+                <th className="py-4 px-6 font-semibold text-right w-[15%]">{T.ipAddress}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">

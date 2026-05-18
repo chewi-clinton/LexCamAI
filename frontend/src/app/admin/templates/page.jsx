@@ -3,8 +3,12 @@ import {
   Plus, Filter, ArrowUpDown, Eye, Pencil,
   Briefcase, Layers, Home, FileSignature,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function DocumentTemplatesAdmin() {
+  const { lang } = useLanguage();
+  const T = t[lang].admin;
   const templates = [
     {
       name: 'Non-Disclosure Agreement (Standard)',
@@ -58,11 +62,11 @@ export default function DocumentTemplatesAdmin() {
       {/* Page Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Document Templates</h2>
-          <p className="text-muted text-sm mt-1">Manage digital legal products, update prices, and control availability.</p>
+          <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">{T.templatesTitle}</h2>
+          <p className="text-muted text-sm mt-1">{T.templatesDesc}</p>
         </div>
         <button className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm">
-          <Plus size={16} /> Upload New Template
+          <Plus size={16} /> {T.uploadTemplate}
         </button>
       </div>
 
@@ -72,25 +76,25 @@ export default function DocumentTemplatesAdmin() {
         <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button className="border border-gray-200 text-gray-700 font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-gray-50 transition-colors">
-              <Filter size={14} className="text-gray-400" /> Filter
+              <Filter size={14} className="text-gray-400" /> {T.filter}
             </button>
             <button className="border border-gray-200 text-gray-700 font-bold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-gray-50 transition-colors">
-              <ArrowUpDown size={14} className="text-gray-400" /> Sort
+              <ArrowUpDown size={14} className="text-gray-400" /> {T.sort}
             </button>
           </div>
-          <span className="text-xs font-semibold text-gray-400">Showing 4 of 24 templates</span>
+          <span className="text-xs font-semibold text-gray-400">{T.showing} 4 of 24 templates</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-white">
-                <th className="py-4 px-6 w-[40%]">Template Name</th>
-                <th className="py-4 px-6">Internal Slug</th>
-                <th className="py-4 px-4">Status</th>
-                <th className="py-4 px-6">Price (XAF)</th>
-                <th className="py-4 px-6">Last Updated</th>
-                <th className="py-4 px-6 text-right">Actions</th>
+                <th className="py-4 px-6 w-[40%]">{T.templateName}</th>
+                <th className="py-4 px-6">{T.internalSlug}</th>
+                <th className="py-4 px-4">{T.status}</th>
+                <th className="py-4 px-6">{T.price}</th>
+                <th className="py-4 px-6">{T.lastUpdated}</th>
+                <th className="py-4 px-6 text-right">{T.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">

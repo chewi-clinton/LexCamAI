@@ -2,8 +2,13 @@
 import {
   Plus, Play, ChevronRight, CheckCircle2, XCircle,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function ScraperManagement() {
+  const { lang } = useLanguage();
+  const T = t[lang].admin;
+
   const activeSources = [
     {
       title: 'National Bar Registry',
@@ -76,17 +81,17 @@ export default function ScraperManagement() {
       {/* Page Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Scraper Management</h2>
-          <p className="text-muted text-sm mt-1">Monitor, configure, and execute data collection sources.</p>
+          <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">{T.scraperMgmtTitle}</h2>
+          <p className="text-muted text-sm mt-1">{T.scraperMgmtDesc}</p>
         </div>
         <button className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm">
-          <Plus size={16} /> Add Source
+          <Plus size={16} /> {T.addSource}
         </button>
       </div>
 
       {/* Active Sources */}
       <div className="space-y-4">
-        <h3 className="text-base font-serif font-bold text-gray-900 tracking-tight">Active Sources</h3>
+        <h3 className="text-base font-serif font-bold text-gray-900 tracking-tight">{T.activeSources}</h3>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {activeSources.map((source, idx) => (
             <div key={idx} className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-6 flex flex-col justify-between">
@@ -120,11 +125,11 @@ export default function ScraperManagement() {
 
                 <div className="mt-5 space-y-2 border-t border-gray-50 pt-4 text-xs font-semibold text-gray-400">
                   <div className="flex justify-between">
-                    <span>Last Run</span>
+                    <span>{T.lastRun}</span>
                     <span className="text-gray-700">{source.lastRun}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Result</span>
+                    <span>{T.result}</span>
                     <span className={source.resultColor}>{source.result}</span>
                   </div>
                 </div>
@@ -132,15 +137,15 @@ export default function ScraperManagement() {
 
               <div className="grid grid-cols-2 gap-3 mt-6 border-t border-gray-50 pt-4">
                 <button className="w-full bg-[#FAFAFA] border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs py-2 rounded-lg transition-colors shadow-sm">
-                  Edit
+                  {T.edit}
                 </button>
                 {source.status === 'Paused' ? (
                   <button className="w-full bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                    <Play size={12} fill="currentColor" /> Resume
+                    <Play size={12} fill="currentColor" /> {T.resume}
                   </button>
                 ) : (
                   <button className="w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
-                    <Play size={12} fill="currentColor" /> Run
+                    <Play size={12} fill="currentColor" /> {T.run}
                   </button>
                 )}
               </div>
@@ -152,9 +157,9 @@ export default function ScraperManagement() {
       {/* Run Logs */}
       <div className="space-y-4">
         <div className="flex justify-between items-baseline">
-          <h3 className="text-base font-serif font-bold text-gray-900 tracking-tight">Run Logs</h3>
+          <h3 className="text-base font-serif font-bold text-gray-900 tracking-tight">{T.runLogs}</h3>
           <button className="text-xs font-bold text-accent-dark hover:underline flex items-center gap-0.5">
-            View All <ChevronRight size={14} />
+            {T.viewAll} <ChevronRight size={14} />
           </button>
         </div>
 
@@ -163,14 +168,14 @@ export default function ScraperManagement() {
             <table className="w-full text-left border-collapse text-xs font-semibold text-gray-600">
               <thead>
                 <tr className="border-b border-gray-100 text-gray-400 bg-[#FAFAFA] tracking-wider">
-                  <th className="py-4 px-6 font-semibold">Source</th>
-                  <th className="py-4 px-6 font-semibold">Started</th>
-                  <th className="py-4 px-6 font-semibold">Duration</th>
-                  <th className="py-4 px-6 font-semibold text-center">Total Scraped</th>
-                  <th className="py-4 px-6 text-center font-semibold">New</th>
-                  <th className="py-4 px-6 text-center font-semibold">Duplicates</th>
-                  <th className="py-4 px-6 text-center font-semibold">Errors</th>
-                  <th className="py-4 px-6 text-right font-semibold">Status</th>
+                  <th className="py-4 px-6 font-semibold">{T.source}</th>
+                  <th className="py-4 px-6 font-semibold">{T.started}</th>
+                  <th className="py-4 px-6 font-semibold">{T.duration}</th>
+                  <th className="py-4 px-6 font-semibold text-center">{T.totalScraped}</th>
+                  <th className="py-4 px-6 text-center font-semibold">{T.newLabel}</th>
+                  <th className="py-4 px-6 text-center font-semibold">{T.duplicates}</th>
+                  <th className="py-4 px-6 text-center font-semibold">{T.errors}</th>
+                  <th className="py-4 px-6 text-right font-semibold">{T.status}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 font-medium text-gray-800">

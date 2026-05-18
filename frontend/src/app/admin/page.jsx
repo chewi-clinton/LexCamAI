@@ -3,13 +3,18 @@ import {
   Users, ShieldCheck, FileText, Wallet,
   ArrowUpRight, AlertTriangle, MoreVertical, Bot,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function AdminDashboard() {
+  const { lang } = useLanguage();
+  const T = t[lang].admin;
+
   const metricCards = [
-    { label: 'Total Users',    value: '12,450', change: '+12% this month',   icon: Users },
-    { label: 'Verified Lawyers', value: '342',  change: '+5 new',            icon: ShieldCheck },
-    { label: 'Docs Generated', value: '8,921',  change: 'This Month',        icon: FileText },
-    { label: 'Revenue (XAF)',  value: '4.2M',   change: '+8% vs last month', icon: Wallet },
+    { label: T.totalUsers,       value: '12,450', change: '+12% this month',   icon: Users },
+    { label: T.verifiedLawyers,  value: '342',    change: '+5 new',            icon: ShieldCheck },
+    { label: T.docsGenerated,    value: '8,921',  change: 'This Month',        icon: FileText },
+    { label: T.revenue,          value: '4.2M',   change: '+8% vs last month', icon: Wallet },
   ];
 
   const barChartHeights = [67, 120, 95, 172, 133, 200, 158];
@@ -40,24 +45,24 @@ export default function AdminDashboard() {
         {/* Pending Verifications Alert */}
         <div className="bg-red-50 border border-red-200/60 rounded-xl p-5 lg:col-span-1 flex flex-col justify-between shadow-sm">
           <div className="flex justify-between items-start text-red-800">
-            <span className="text-xs font-bold leading-tight max-w-[70px]">Pending Verification</span>
+            <span className="text-xs font-bold leading-tight max-w-[70px]">{T.pendingVerification}</span>
             <AlertTriangle size={16} className="text-red-500" />
           </div>
           <div className="mt-4">
             <p className="text-3xl font-bold text-red-900">3</p>
-            <a href="/admin/verify-lawyer" className="text-[10px] font-bold text-red-600 underline hover:text-red-800 mt-1 block">Review now</a>
+            <a href="/admin/verify-lawyer" className="text-[10px] font-bold text-red-600 underline hover:text-red-800 mt-1 block">{T.reviewNow}</a>
           </div>
         </div>
 
         {/* Flagged AI Alert */}
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-5 lg:col-span-1 flex flex-col justify-between shadow-sm">
           <div className="flex justify-between items-start text-amber-800">
-            <span className="text-xs font-bold leading-tight max-w-[70px]">Flagged AI</span>
+            <span className="text-xs font-bold leading-tight max-w-[70px]">{T.flaggedAI}</span>
             <Bot size={16} className="text-accent" />
           </div>
           <div className="mt-4">
             <p className="text-3xl font-bold text-amber-900">12</p>
-            <a href="/admin/ai-monitoring" className="text-[10px] font-bold text-amber-700 underline hover:text-amber-900 mt-1 block">Check logs</a>
+            <a href="/admin/ai-monitoring" className="text-[10px] font-bold text-amber-700 underline hover:text-amber-900 mt-1 block">{T.checkLogs}</a>
           </div>
         </div>
       </div>
@@ -68,7 +73,7 @@ export default function AdminDashboard() {
         {/* Bar Chart */}
         <div className="bg-white rounded-xl border border-gray-200/60 p-6 lg:col-span-2 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="font-serif text-lg font-bold text-primary">Documents Generated (30 Days)</h3>
+            <h3 className="font-serif text-lg font-bold text-primary">{T.docsChartTitle}</h3>
             <button className="text-gray-400 hover:text-gray-600 transition-colors"><MoreVertical size={16} /></button>
           </div>
 
@@ -102,7 +107,7 @@ export default function AdminDashboard() {
 
           {/* Payment Methods */}
           <div className="bg-white rounded-xl border border-gray-200/60 p-6 shadow-sm">
-            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">Payment Methods</h3>
+            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">{T.paymentMethods}</h3>
             <div className="flex items-center justify-between gap-4">
               <div className="w-24 h-24 rounded-full border-[10px] border-accent border-l-primary rotate-45 flex items-center justify-center flex-shrink-0 relative select-none">
                 <span className="text-xs font-bold text-gray-900 -rotate-45">100%</span>
@@ -122,7 +127,7 @@ export default function AdminDashboard() {
 
           {/* New Registrations Sparkline */}
           <div className="bg-white rounded-xl border border-gray-200/60 p-5 shadow-sm">
-            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">New Registrations</h3>
+            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">{T.newRegistrations}</h3>
             <div className="h-16 flex items-end justify-between gap-1.5 px-2 select-none">
               <div className="bg-gray-100 w-full h-[20%] rounded-sm" />
               <div className="bg-gray-100 w-full h-[40%] rounded-sm" />
@@ -138,17 +143,17 @@ export default function AdminDashboard() {
       {/* Activity Log */}
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-6">
         <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-3">
-          <h3 className="font-serif text-lg font-bold text-primary">Recent Admin Activity</h3>
-          <button className="text-xs font-bold text-primary hover:underline">View All Logs</button>
+          <h3 className="font-serif text-lg font-bold text-primary">{T.recentActivity}</h3>
+          <a href="/admin/audit-log" className="text-xs font-bold text-primary hover:underline">{T.viewAllLogs}</a>
         </div>
 
         <table className="w-full text-left text-xs text-gray-600 font-medium">
           <thead>
             <tr className="text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100">
-              <th className="pb-3 font-semibold">Timestamp</th>
-              <th className="pb-3 font-semibold">Admin</th>
-              <th className="pb-3 font-semibold">Action</th>
-              <th className="pb-3 font-semibold">Target</th>
+              <th className="pb-3 font-semibold">{T.timestamp}</th>
+              <th className="pb-3 font-semibold">{T.admin}</th>
+              <th className="pb-3 font-semibold">{T.action}</th>
+              <th className="pb-3 font-semibold">{T.target}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 text-gray-800">
@@ -161,7 +166,7 @@ export default function AdminDashboard() {
                 </div>
               </td>
               <td className="py-3.5">
-                <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px] border border-emerald-100">Approved</span>
+                <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded text-[10px] border border-emerald-100">{T.approved}</span>
               </td>
               <td className="py-3.5 text-gray-500 font-semibold">Lawyer Profile: Jean D.</td>
             </tr>
