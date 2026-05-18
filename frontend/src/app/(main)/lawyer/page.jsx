@@ -1,10 +1,19 @@
+'use client';
+import { useState } from 'react';
 import { Search, MapPin, Briefcase, CheckCircle2, Clock, ChevronDown } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function LawyerDirectory() {
+  const { lang } = useLanguage();
+  const T = t[lang].lawyer;
+  const [view, setView] = useState('grid');
+
   const lawyers = [
     {
+      id: 1,
       name: 'Maitre Paul Biya',
       location: 'Yaoundé',
       specialties: ['Corporate', 'Tax Law'],
@@ -12,6 +21,7 @@ export default function LawyerDirectory() {
       status: 'Verified',
     },
     {
+      id: 2,
       name: 'Maitre Anne Etoga',
       location: 'Douala',
       specialties: ['Family Law', 'Civil Rights'],
@@ -19,6 +29,7 @@ export default function LawyerDirectory() {
       status: 'Verified',
     },
     {
+      id: 3,
       name: 'Maitre Jean Ndi',
       location: 'Bamenda',
       specialties: ['Labour Law', 'Contracts'],
@@ -38,19 +49,19 @@ export default function LawyerDirectory() {
           <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-10">
             <div>
               <h2 className="font-serif text-4xl font-bold text-primary mb-2">
-                Find a Lawyer
+                {T.title}
               </h2>
               <p className="text-muted text-sm md:text-base">
-                Connect with verified legal professionals across Cameroon.
+                {T.subtitle}
               </p>
             </div>
 
             <div className="bg-gray-200/60 p-1 rounded-lg flex items-center self-start text-sm font-medium border border-gray-300/30">
-              <button className="bg-surface text-gray-900 px-4 py-1.5 rounded-md shadow-sm">
-                Grid
+              <button onClick={() => setView('grid')} className={`px-4 py-1.5 rounded-md transition-all ${view === 'grid' ? 'bg-surface text-gray-900 shadow-sm' : 'text-muted hover:text-gray-900'}`}>
+                {T.grid}
               </button>
-              <button className="text-muted hover:text-gray-900 px-4 py-1.5 transition-colors">
-                Map
+              <button onClick={() => setView('map')} className={`px-4 py-1.5 rounded-md transition-all ${view === 'map' ? 'bg-surface text-gray-900 shadow-sm' : 'text-muted hover:text-gray-900'}`}>
+                {T.map}
               </button>
             </div>
           </div>
@@ -63,7 +74,7 @@ export default function LawyerDirectory() {
                 <Search className="text-gray-400 flex-shrink-0" size={20} />
                 <input
                   type="text"
-                  placeholder="Search by name or keyword..."
+                  placeholder={T.searchPlaceholder}
                   className="w-full bg-transparent outline-none text-gray-800 placeholder:text-gray-400 text-sm md:text-base"
                 />
               </div>
@@ -71,7 +82,7 @@ export default function LawyerDirectory() {
               <div className="flex items-center justify-between px-3 py-2 lg:py-0 border-b lg:border-b-0 lg:border-r border-gray-100 cursor-pointer text-gray-700 hover:text-gray-900 min-w-[160px]">
                 <div className="flex items-center gap-2 text-sm md:text-base">
                   <MapPin size={18} className="text-gray-400" />
-                  <span>All Cities</span>
+                  <span>{T.allCities}</span>
                 </div>
                 <ChevronDown size={16} className="text-gray-400" />
               </div>
@@ -79,13 +90,13 @@ export default function LawyerDirectory() {
               <div className="flex items-center justify-between px-3 py-2 lg:py-0 cursor-pointer text-gray-700 hover:text-gray-900 min-w-[180px]">
                 <div className="flex items-center gap-2 text-sm md:text-base">
                   <Briefcase size={18} className="text-gray-400" />
-                  <span>All Domains</span>
+                  <span>{T.allDomains}</span>
                 </div>
                 <ChevronDown size={16} className="text-gray-400" />
               </div>
 
               <button className="bg-primary hover:bg-primary-light transition-colors text-white font-medium rounded-xl lg:rounded-full px-8 py-3.5 text-sm md:text-base shadow-sm">
-                Search
+                {T.search}
               </button>
 
             </div>
@@ -98,6 +109,7 @@ export default function LawyerDirectory() {
                 key={index}
                 className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 md:p-8 flex flex-col justify-between hover:shadow-md transition-shadow"
               >
+
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 border border-gray-100 shadow-inner" />
@@ -129,25 +141,30 @@ export default function LawyerDirectory() {
                   {lawyer.status === 'Verified' ? (
                     <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-bold">
                       <CheckCircle2 size={16} className="fill-emerald-800 text-white" />
-                      <span>Verified</span>
+                      <span>{T.verified}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5 text-gray-500 text-xs font-bold">
                       <Clock size={16} />
-                      <span>Pending</span>
+                      <span>{T.pending}</span>
                     </div>
                   )}
 
-                  <button
-                    disabled={lawyer.status !== 'Verified'}
-                    className={`px-5 py-2.5 rounded-lg border font-bold text-sm transition-colors ${
-                      lawyer.status === 'Verified'
-                        ? 'border-primary text-primary hover:bg-primary/5 cursor-pointer'
-                        : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    Contact
-                  </button>
+                  {lawyer.status === 'Verified' ? (
+                    <a
+                      href={`/lawyer/${lawyer.id}`}
+                      className="px-5 py-2.5 rounded-lg border font-bold text-sm transition-colors border-primary text-primary hover:bg-primary/5"
+                    >
+                      {T.contact}
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      className="px-5 py-2.5 rounded-lg border font-bold text-sm border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                    >
+                      {T.contact}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

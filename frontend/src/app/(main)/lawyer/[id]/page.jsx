@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 const practiceAreas = [
   'Corporate Law', 'Commercial Litigation', 'OHADA Law',
@@ -22,6 +24,9 @@ const education = [
 ];
 
 export default function LawyerProfileView() {
+  const { lang } = useLanguage();
+  const T = t[lang].lawyerView;
+
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col">
 
@@ -32,7 +37,7 @@ export default function LawyerProfileView() {
         {/* Breadcrumb */}
         <div className="max-w-6xl mx-auto px-4 pt-8">
           <a href="/lawyer" className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors">
-            <ArrowLeft size={14} /> Back to Lawyers
+            <ArrowLeft size={14} /> {T.backToLawyers}
           </a>
         </div>
 
@@ -74,18 +79,18 @@ export default function LawyerProfileView() {
               </div>
 
               <div className="flex flex-col sm:w-auto w-full gap-2.5 flex-shrink-0 self-stretch sm:self-auto justify-start">
-                <button className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-xs py-2.5 px-5 rounded-lg flex items-center justify-center gap-2 shadow-sm w-full">
-                  <Mail size={14} /> Contact Lawyer
-                </button>
-                <button className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs py-2.5 px-5 rounded-lg shadow-sm transition-colors w-full">
-                  Request Referral
-                </button>
+                <a href="mailto:contact@biya-law.cm" className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-xs py-2.5 px-5 rounded-lg flex items-center justify-center gap-2 shadow-sm w-full">
+                  <Mail size={14} /> {T.contactLawyer}
+                </a>
+                <a href="/lawyer/1/referral" className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs py-2.5 px-5 rounded-lg shadow-sm transition-colors w-full flex items-center justify-center">
+                  {T.requestReferral}
+                </a>
               </div>
             </div>
 
             {/* About */}
             <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm p-6 md:p-8 space-y-4">
-              <h3 className="font-serif text-xl font-bold text-gray-900">About</h3>
+              <h3 className="font-serif text-xl font-bold text-gray-900">{T.about}</h3>
               <div className="text-sm text-gray-600 leading-relaxed space-y-4 font-medium">
                 <p>
                   With over 15 years of dedicated practice at the Cameroon Bar, Maitre Paul Biya specializes in corporate litigation and international trade law. He has a proven track record of representing both domestic enterprises and multinational corporations navigating complex regulatory environments within the CEMAC region.
@@ -98,7 +103,7 @@ export default function LawyerProfileView() {
 
             {/* Areas of Practice */}
             <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm p-6 md:p-8 space-y-4">
-              <h3 className="font-serif text-xl font-bold text-gray-900">Areas of Practice</h3>
+              <h3 className="font-serif text-xl font-bold text-gray-900">{T.areasOfPractice}</h3>
               <div className="flex flex-wrap gap-2">
                 {practiceAreas.map((area, idx) => (
                   <span key={idx} className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-semibold">
@@ -112,10 +117,10 @@ export default function LawyerProfileView() {
             <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm p-6 md:p-8 space-y-8">
               <div className="space-y-4">
                 <h3 className="font-serif text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Building size={18} className="text-gray-400" /> Experience & Education
+                  <Building size={18} className="text-gray-400" /> {T.experienceEducation}
                 </h3>
                 <div className="space-y-3 pl-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Professional Experience</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">{T.professionalExperience}</span>
                   {experience.map((exp, i) => (
                     <div key={i} className="border-l-2 border-emerald-700 pl-4 py-0.5">
                       <p className="text-xs font-bold text-gray-900">{exp.role}</p>
@@ -127,7 +132,7 @@ export default function LawyerProfileView() {
 
               <div className="space-y-4 border-t border-gray-50 pt-6">
                 <div className="space-y-3 pl-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Education</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">{T.education}</span>
                   {education.map((edu, i) => (
                     <div key={i} className="border-l-2 border-emerald-700/40 pl-4 py-0.5">
                       <p className="text-xs font-bold text-gray-800">{edu.degree}</p>
@@ -143,9 +148,9 @@ export default function LawyerProfileView() {
               <div className="w-12 h-12 rounded-xl bg-gray-50 text-gray-400 border border-gray-100 flex items-center justify-center mb-4 shadow-inner">
                 <MessageSquare size={18} />
               </div>
-              <h4 className="font-serif text-lg font-bold text-gray-900 mb-1">No Reviews Yet</h4>
+              <h4 className="font-serif text-lg font-bold text-gray-900 mb-1">{T.noReviews}</h4>
               <p className="text-xs text-gray-400 leading-relaxed max-w-sm font-semibold">
-                Reviews are only visible for verified client interactions facilitated through the LexCam platform to ensure authenticity.
+                {T.reviewsNote}
               </p>
             </div>
 
@@ -156,14 +161,14 @@ export default function LawyerProfileView() {
 
             {/* Contact card */}
             <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm p-6 space-y-5">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Contact Details</h3>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">{T.contactDetails}</h3>
 
               <div className="space-y-3 text-xs font-medium text-gray-700">
                 <div className="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3.5 flex items-center gap-3">
                   <Phone size={16} className="text-gray-400" />
                   <div>
                     <span className="text-gray-800 font-bold">+237 6XX XXX XXX</span>
-                    <span className="text-[10px] text-gray-400 font-normal ml-1.5">(Primary)</span>
+                    <span className="text-[10px] text-gray-400 font-normal ml-1.5">({T.primary})</span>
                   </div>
                 </div>
                 <div className="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3.5 flex items-center gap-3">
@@ -181,11 +186,11 @@ export default function LawyerProfileView() {
               </div>
 
               <div className="pt-2 space-y-3">
-                <button className="w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm">
-                  <Send size={14} /> Send Message
-                </button>
+                <a href="mailto:contact@biya-law.cm" className="w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm">
+                  <Send size={14} /> {T.sendMessage}
+                </a>
                 <p className="text-[10px] text-center text-gray-400 font-semibold">
-                  Messages are sent securely via LexCam.
+                  {T.secureNote}
                 </p>
               </div>
             </div>
@@ -193,20 +198,20 @@ export default function LawyerProfileView() {
             {/* Availability card */}
             <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-6 space-y-4">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                <Calendar size={16} className="text-gray-400" /> Availability
+                <Calendar size={16} className="text-gray-400" /> {T.availability}
               </h3>
               <div className="divide-y divide-gray-100 text-xs font-semibold text-gray-600">
                 <div className="flex justify-between items-baseline py-2.5">
-                  <span className="text-gray-400">Mon - Fri</span>
+                  <span className="text-gray-400">{T.monFri}</span>
                   <span className="text-gray-800 font-bold">08:00 - 17:00</span>
                 </div>
                 <div className="flex justify-between items-baseline py-2.5">
-                  <span className="text-gray-400">Saturday</span>
-                  <span className="text-gray-800 font-bold">By Appointment</span>
+                  <span className="text-gray-400">{T.saturday}</span>
+                  <span className="text-gray-800 font-bold">{T.byAppointment}</span>
                 </div>
                 <div className="flex justify-between items-baseline py-2.5">
-                  <span className="text-gray-400">Sunday</span>
-                  <span className="text-red-600 font-bold">Closed</span>
+                  <span className="text-gray-400">{T.sunday}</span>
+                  <span className="text-red-600 font-bold">{T.closed}</span>
                 </div>
               </div>
             </div>

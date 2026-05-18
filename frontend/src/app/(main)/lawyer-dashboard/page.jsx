@@ -1,3 +1,5 @@
+'use client';
+import { useState } from 'react';
 import {
   CheckCircle2,
   Clock,
@@ -7,17 +9,18 @@ import {
   FolderOpen,
   FileText,
   Lightbulb,
+  X,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { useLanguage } from '@/contexts/LanguageContext';
+import t from '@/translations';
 
 export default function LawyerDashboard() {
-  const stats = [
-    { label: 'Pending Referrals', value: '4', icon: Clock, badge: 'Action Required', iconBg: 'bg-orange-50 text-orange-600' },
-    { label: 'Accepted Cases', value: '12', icon: FolderOpen, badge: null, iconBg: 'bg-emerald-50 text-emerald-700' },
-    { label: 'Completed Consultations', value: '48', icon: Handshake, badge: null, iconBg: 'bg-teal-50 text-teal-700' },
-  ];
+  const { lang } = useLanguage();
+  const T = t[lang].lawyerDashboard;
 
-  const incomingReferrals = [
+  const [status, setStatus] = useState('accepting');
+  const [referrals, setReferrals] = useState([
     {
       client: 'M. Jean D.',
       domain: 'Labour Law',
@@ -32,7 +35,13 @@ export default function LawyerDashboard() {
       time: '5 hours ago',
       description: 'Requires legal consultation regarding property division and child custody arrangements following a separation. Needs immediate guidance on filing initial documentation.',
     },
+  ]);
+  const stats = [
+    { label: T.pendingReferrals, value: '4', icon: Clock, badge: T.actionRequired, iconBg: 'bg-orange-50 text-orange-600' },
+    { label: T.acceptedCases, value: '12', icon: FolderOpen, badge: null, iconBg: 'bg-emerald-50 text-emerald-700' },
+    { label: T.completedConsultations, value: '48', icon: Handshake, badge: null, iconBg: 'bg-teal-50 text-teal-700' },
   ];
+
 
   const activities = [
     {
@@ -70,24 +79,30 @@ export default function LawyerDashboard() {
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-[11px] font-bold text-emerald-800 mb-2">
                 <CheckCircle2 size={12} className="fill-emerald-800 text-white" />
-                Verified Lawyer
+                {T.verifiedBadge}
               </div>
               <h1 className="font-serif text-3xl font-bold text-primary">
-                Welcome back, Maitre Kamga
+                {T.welcome}
               </h1>
               <p className="text-muted text-sm mt-1">
-                Here is your referral overview for today.
+                {T.subtitle}
               </p>
             </div>
 
             {/* Status Pill Controls */}
             <div className="bg-surface rounded-xl shadow-sm border border-gray-200/60 p-1.5 flex items-center gap-1 text-sm font-medium self-start md:self-auto">
-              <button className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 text-xs md:text-sm shadow-sm font-semibold">
+              <button
+                onClick={() => setStatus('accepting')}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-xs md:text-sm font-semibold transition-colors ${status === 'accepting' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-gray-900'}`}
+              >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 block animate-pulse" />
-                Accepting Cases
+                {T.acceptingCases}
               </button>
-              <button className="text-muted hover:text-gray-900 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-colors">
-                • At Capacity
+              <button
+                onClick={() => setStatus('capacity')}
+                className={`px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-colors ${status === 'capacity' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-gray-900'}`}
+              >
+                • {T.atCapacity}
               </button>
             </div>
           </div>
@@ -122,14 +137,20 @@ export default function LawyerDashboard() {
             <div className="lg:col-span-2 space-y-6">
               <div className="flex justify-between items-baseline mb-2">
                 <h2 className="font-serif text-2xl font-bold text-primary">
-                  Incoming Referrals
+                  {T.incomingReferrals}
                 </h2>
-                <button className="text-sm font-bold text-primary hover:underline">
-                  View All
-                </button>
+                <a href="/lawyer-dashboard" className="text-sm font-bold text-primary hover:underline">
+                  {T.viewAll}
+                </a>
               </div>
 
-              {incomingReferrals.map((referral, index) => (
+              {referrals.length === 0 && (
+                <div className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-10 text-center text-gray-400 text-sm font-medium">
+                  {T.noPendingReferrals}
+                </div>
+              )}
+
+              {referrals.map((referral, index) => (
                 <div key={index} className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 md:p-8">
                   <div className="flex justify-between items-start gap-4 mb-4">
                     <div>
@@ -158,11 +179,17 @@ export default function LawyerDashboard() {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button className="bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl font-bold text-sm shadow-sm">
-                      Accept Case
+                    <button
+                      onClick={() => setReferrals(prev => prev.filter((_, i) => i !== index))}
+                      className="bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl font-bold text-sm shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 size={16} /> {T.acceptCase}
                     </button>
-                    <button className="border border-primary text-primary hover:bg-primary/5 transition-colors py-3 px-4 rounded-xl font-bold text-sm">
-                      Decline
+                    <button
+                      onClick={() => setReferrals(prev => prev.filter((_, i) => i !== index))}
+                      className="border border-primary text-primary hover:bg-primary/5 transition-colors py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                    >
+                      <X size={16} /> {T.decline}
                     </button>
                   </div>
                 </div>
@@ -172,7 +199,7 @@ export default function LawyerDashboard() {
             {/* Sidebar */}
             <div className="space-y-6">
               <h2 className="font-serif text-2xl font-bold text-primary mb-2">
-                Recent Activity
+                {T.recentActivity}
               </h2>
 
               <div className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 space-y-6">
@@ -204,10 +231,10 @@ export default function LawyerDashboard() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-900 mb-1">
-                    Tip for Lawyers
+                    {T.tipTitle}
                   </h4>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Responding to referrals within 24 hours increases your visibility rank on the directory.
+                    {T.tipBody}
                   </p>
                 </div>
               </div>
