@@ -3,6 +3,7 @@ import hmac
 import json
 import uuid
 import pytest
+import requests
 import responses as resp_mock
 from unittest.mock import patch, MagicMock
 from rest_framework.test import APIClient
@@ -386,3 +387,49 @@ class TestRetryPaymentEventsCommand:
         call_command("retry_payment_events")
         tx.refresh_from_db()
         assert tx.event_published is False
+
+
+@pytest.mark.django_db
+class TestAuthenticationEdgeCases:
+    """Covers authentication.py error paths: RequestException and non-200 response."""
+
+    @resp_mock.activate
+    def test_user_management_unavailable_returns_401(self, client):
+        resp_mock.add(
+            resp_mock.POST,
+            USER_MGMT_URL,
+            body=requests.exceptions.ConnectionError("service down"),
+        )
+        resp = client.post(
+            "/api/v1/payments/initiate",
+            data={
+                "document_id": str(uuid.uuid4()),
+                "amount": 5000,
+                "phone_number": "677123456",
+                "operator": "mtn",
+            },
+            HTTP_AUTHORIZATION="Bearer valid-token",
+            format="json",
+        )
+        assert resp.status_code == 401
+
+    @resp_mock.activate
+    def test_invalid_token_returns_401(self, client):
+        resp_mock.add(
+            resp_mock.POST,
+            USER_MGMT_URL,
+            json={"error": "invalid or expired token"},
+            status=401,
+        )
+        resp = client.post(
+            "/api/v1/payments/initiate",
+            data={
+                "document_id": str(uuid.uuid4()),
+                "amount": 5000,
+                "phone_number": "677123456",
+                "operator": "mtn",
+            },
+            HTTP_AUTHORIZATION="Bearer bad-token",
+            format="json",
+        )
+        assert resp.status_code == 401
