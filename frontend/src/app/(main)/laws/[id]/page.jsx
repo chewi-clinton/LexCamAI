@@ -24,6 +24,7 @@ export default function ArticleView() {
   const { lang } = useLanguage();
   const T = t[lang].laws;
   const [saved, setSaved] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -128,7 +129,7 @@ export default function ArticleView() {
                     </div>
                   </div>
                   <a
-                    href={`/chat?q=${encodeURIComponent(article.title ?? article.article_number)}`}
+                    href={`/chat?q=${encodeURIComponent(`Explain this law to me: ${article.article_number}${article.title ? ' — ' + article.title : ''} from ${article.document_name ?? article.document_code ?? 'Cameroonian Law'}`)}`}
                     className="w-full bg-primary hover:bg-primary-dark text-white font-bold text-xs py-3 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
                   >
                     {T.consultAI} <ArrowRight size={14} />
@@ -146,7 +147,11 @@ export default function ArticleView() {
                     </div>
                   </div>
                   <a
-                    href="/documents"
+                    href={
+                      article.domain === 'labor' ? '/documents/unpaid-wages'
+                      : article.domain === 'housing' ? '/documents/housing-dispute'
+                      : '/documents'
+                    }
                     className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
                   >
                     {T.generateTemplate}
@@ -163,14 +168,20 @@ export default function ArticleView() {
                     {saved ? T.saved : T.save}
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                      if (sharing) return;
                       if (navigator.share) {
-                        navigator.share({ title: article.title ?? article.article_number, url: window.location.href });
+                        setSharing(true);
+                        try {
+                          await navigator.share({ title: article.title ?? article.article_number, url: window.location.href });
+                        } catch { /* user cancelled */ }
+                        finally { setSharing(false); }
                       } else {
                         navigator.clipboard.writeText(window.location.href);
                       }
                     }}
-                    className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg p-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-colors"
+                    disabled={sharing}
+                    className="bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-700 border border-gray-200 rounded-lg p-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-colors"
                   >
                     <Share2 size={14} className="text-gray-400" /> {T.share}
                   </button>

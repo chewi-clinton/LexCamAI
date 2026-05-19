@@ -190,7 +190,7 @@ export default function LawExplorer() {
                       {T.readFull}
                     </a>
                     <a
-                      href="/chat"
+                      href={`/chat?q=${encodeURIComponent(`Tell me more about ${art.reference}: ${art.title} from the ${art.category}`)}`}
                       className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-sm"
                     >
                       <Bot size={16} />

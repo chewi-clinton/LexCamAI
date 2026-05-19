@@ -107,6 +107,11 @@ export const auth = {
   login:           async (email, password)    => {
     const data = await post('/api/v1/auth/login', { email, password });
     setTokens(data);
+    // cache user_id so chat can scope conversations per user
+    try {
+      const me = await get('/api/v1/users/me');
+      if (me?.id && typeof window !== 'undefined') localStorage.setItem('lexcam_user_id', me.id);
+    } catch { /* non-fatal */ }
     return data;
   },
   logout:          async ()                   => {
@@ -114,6 +119,7 @@ export const auth = {
     if (refresh) {
       try { await post('/api/v1/auth/logout', { refresh_token: refresh }); } catch { /* ignore */ }
     }
+    if (typeof window !== 'undefined') localStorage.removeItem('lexcam_user_id');
     clearTokens();
   },
   verifyEmail:     (email, code)              => post('/api/v1/auth/verify-email', { email, code }),
@@ -147,8 +153,8 @@ export const lawyers = {
 export const documents = {
   list:     ()          => get('/api/v1/documents'),
   get:      (id)        => get(`/api/v1/documents/${id}`),
-  generate: (slug, data) => post(`/api/v1/documents/documents/generate/${slug}/`, data),
-  myDocs:   ()          => get('/api/v1/documents/documents/'),
+  generate: (slug, data) => post(`/api/v1/documents/generate/${slug}`, data),
+  myDocs:   ()          => get('/api/v1/documents'),
   download: (id)        => get(`/api/v1/documents/${id}/download`),
 };
 
@@ -159,10 +165,15 @@ export const payments = {
 };
 
 // ─── Chat API ─────────────────────────────────────────────────────────────────
+function _userHeader() {
+  const uid = typeof window !== 'undefined' ? localStorage.getItem('lexcam_user_id') : null;
+  return uid ? { headers: { 'X-User-Id': uid } } : {};
+}
+
 export const chat = {
-  conversations: ()         => get('/api/v1/chat/conversations'),
+  conversations: ()         => get('/api/v1/chat/conversations', _userHeader()),
   getConversation: (id)     => get(`/api/v1/chat/conversations/${id}`),
-  create: ()                => post('/api/v1/chat/conversations', {}),
+  create: ()                => post('/api/v1/chat/conversations', {}, _userHeader()),
   sendMessage: (id, content) => post(`/api/v1/chat/conversations/${id}/messages`, { content }),
 };
 
