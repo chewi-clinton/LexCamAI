@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   Plus, MessageSquare, Bot, BookOpen, FileText, Paperclip, Send, Loader2,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import Header from '@/components/layout/Header';
 import { chat as chatApi, streamChatMessage } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -278,12 +279,26 @@ export default function AIAssistant() {
                         <Bot size={20} className="text-white" />
                       </div>
                       <div className={`bg-surface border border-gray-100 shadow-sm rounded-2xl rounded-tl-sm p-4 md:p-5 max-w-[90%] ${hasTags ? 'space-y-4' : ''}`}>
-                        <p className="text-gray-800 leading-relaxed text-sm md:text-base">
-                          {msg.text}
+                        <div className="text-gray-800 text-sm md:text-base">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                              ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                              li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                              strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                              em: ({ children }) => <em className="italic">{children}</em>,
+                              h1: ({ children }) => <h1 className="font-bold text-base mb-2 mt-3 first:mt-0">{children}</h1>,
+                              h2: ({ children }) => <h2 className="font-bold text-sm mb-1 mt-3 first:mt-0">{children}</h2>,
+                              h3: ({ children }) => <h3 className="font-semibold mb-1 mt-2 first:mt-0">{children}</h3>,
+                            }}
+                          >
+                            {msg.text}
+                          </ReactMarkdown>
                           {msg.streaming && (
                             <span className="inline-block w-0.5 h-4 bg-gray-500 ml-0.5 align-middle animate-pulse" />
                           )}
-                        </p>
+                        </div>
                         {hasTags && !msg.streaming && (
                           <>
                             <div className="flex flex-wrap gap-2 pt-2">
