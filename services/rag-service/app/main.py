@@ -76,7 +76,7 @@ def _normalize_kb_response(data: Any) -> List[Dict[str, Any]]:
             if isinstance(r, dict):
                 sid = str(r.get("id") or r.get("qdrant_id") or r.get("doc_id") or r.get("source_id") or "")
                 score = r.get("score") if "score" in r else r.get("_score")
-                snippet = r.get("snippet") or r.get("text") or r.get("content")
+                snippet = r.get("snippet") or r.get("text") or r.get("content") or r.get("text_preview")
                 language = r.get("language") or r.get("lang")
                 sources.append({"id": sid, "score": score, "snippet": snippet, "language": language})
                 documents.append({"id": sid, "score": score, "snippet": snippet, "language": language})
