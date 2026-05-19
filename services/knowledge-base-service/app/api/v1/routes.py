@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid as uuid_lib
 from typing import Any
 from uuid import UUID
 
@@ -14,6 +15,9 @@ from app.db import SessionLocal
 from app.models import LawArticle, LawDocument
 from app.schemas import (
     ArticleResponse,
+    IngestArticleInput,
+    IngestRequest,
+    IngestResponse,
     LawArticleSummary,
     LawDocumentSchema,
     RetrieveItem,
@@ -24,6 +28,8 @@ from app.schemas import (
 )
 from app.services.embedding import EmbeddingServiceClient
 from redis.asyncio import Redis
+
+VECTOR_SIZE = 384
 
 router = APIRouter()
 
@@ -299,3 +305,73 @@ def internal_retrieve(
         )
 
     return RetrieveResponse(results=results)
+
+
+@router.post("/ingest", response_model=IngestResponse)
+async def ingest_document(
+    payload: IngestRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    qdrant_client=Depends(get_qdrant),
+    embedding_client: EmbeddingServiceClient = Depends(get_embedding_client),
+) -> IngestResponse:
+    # Ensure Qdrant collection exists
+    try:
+        qdrant_client.get_collection(settings.qdrant_collection)
+    except Exception:
+        qdrant_client.create_collection(
+            collection_name=settings.qdrant_collection,
+            vectors_config=rest.VectorParams(size=VECTOR_SIZE, distance=rest.Distance.COSINE),
+        )
+
+    doc = LawDocument(
+        code=payload.code,
+        name=payload.name,
+        jurisdiction=payload.jurisdiction,
+        language=payload.language,
+        version=payload.version,
+    )
+    db.add(doc)
+    db.flush()
+
+    articles_ingested = 0
+    for art in payload.articles:
+        article = LawArticle(
+            document_id=doc.id,
+            article_number=art.article_number,
+            chapter=art.chapter,
+            title=art.title,
+            full_text=art.full_text,
+            plain_summary=art.plain_summary,
+            domain=art.domain,
+            language=art.language,
+        )
+        db.add(article)
+        db.flush()
+
+        try:
+            vector = await embedding_client.embed(art.full_text)
+            point_id = str(uuid_lib.uuid4())
+            qdrant_client.upsert(
+                collection_name=settings.qdrant_collection,
+                points=[rest.PointStruct(
+                    id=point_id,
+                    vector=vector,
+                    payload={
+                        "article_id": str(article.id),
+                        "law_name": payload.name,
+                        "article_number": art.article_number,
+                        "title": art.title,
+                        "domain": art.domain,
+                        "language": art.language,
+                        "text_preview": art.full_text[:300],
+                    },
+                )],
+            )
+            article.qdrant_id = point_id
+            articles_ingested += 1
+        except Exception:
+            pass
+
+    db.commit()
+    return IngestResponse(document_id=doc.id, articles_ingested=articles_ingested)

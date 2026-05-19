@@ -90,8 +90,12 @@ class EmbeddingModel:
                 return_tensors="np",
             )
 
-            # ONNX runtime expects numpy inputs
+            # ONNX runtime expects numpy inputs; supply token_type_ids as zeros
+            # if the tokenizer (e.g. RoBERTa) doesn't produce them but the model needs them
             ort_inputs = {k: v for k, v in enc.items()}
+            required = {i.name for i in self._session.get_inputs()}
+            if "token_type_ids" in required and "token_type_ids" not in ort_inputs:
+                ort_inputs["token_type_ids"] = np.zeros_like(ort_inputs["input_ids"])
             outputs = self._session.run(None, ort_inputs)
 
             # assume outputs[0] is last_hidden_state: (batch, seq_len, hidden)

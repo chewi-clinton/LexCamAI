@@ -83,3 +83,27 @@ class RetrieveItem(BaseModel):
 
 class RetrieveResponse(BaseModel):
     results: List[RetrieveItem]
+
+
+class IngestArticleInput(BaseModel):
+    article_number: str
+    chapter: Optional[str] = None
+    title: Optional[str] = None
+    full_text: str
+    plain_summary: Optional[str] = None
+    domain: str
+    language: str = "fr"
+
+
+class IngestRequest(BaseModel):
+    code: str
+    name: str
+    jurisdiction: str = "cameroon"
+    language: str = "fr"
+    version: Optional[str] = None
+    articles: List[IngestArticleInput]
+
+
+class IngestResponse(BaseModel):
+    document_id: UUID
+    articles_ingested: int
