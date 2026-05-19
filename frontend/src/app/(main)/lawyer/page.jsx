@@ -1,22 +1,15 @@
 'use client';
-import { useState } from 'react';
-import { Search, MapPin, Briefcase, CheckCircle2, Clock, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search, MapPin, Briefcase, CheckCircle2, Clock, ChevronDown, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { lawyers as lawyersApi } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
-const ALL_LAWYERS = [
-  { id: 1, name: 'Maitre Paul Biya', location: 'Yaoundé', specialties: ['Corporate', 'Tax Law'], bio: 'Specializing in corporate restructuring and international tax compliance for businesses operating across Central Africa.', status: 'Verified' },
-  { id: 2, name: 'Maitre Anne Etoga', location: 'Douala', specialties: ['Family Law', 'Civil Rights'], bio: 'Dedicated to protecting family rights, handling complex divorces, and advocating for civil liberties in the coastal region.', status: 'Verified' },
-  { id: 3, name: 'Maitre Jean Ndi', location: 'Bamenda', specialties: ['Labour Law', 'Contracts'], bio: "Expert in employment disputes, contract negotiation, and worker's compensation claims with over 10 years of experience.", status: 'Pending' },
-  { id: 4, name: 'Maitre Claire Mvondo', location: 'Douala', specialties: ['Criminal Law', 'Human Rights'], bio: 'Criminal defense attorney with a strong record in human rights litigation and constitutional law cases.', status: 'Verified' },
-  { id: 5, name: 'Maitre Samuel Fon', location: 'Yaoundé', specialties: ['Real Estate', 'Corporate'], bio: 'Seasoned real estate and corporate law practitioner with deep expertise in land registration and property disputes.', status: 'Verified' },
-  { id: 6, name: 'Maitre Rose Ekedi', location: 'Garoua', specialties: ['Family Law', 'Labour Law'], bio: 'Committed to protecting the rights of women and children through family law and workplace protection cases.', status: 'Pending' },
-];
-
-const CITIES = ['Douala', 'Yaoundé', 'Bamenda', 'Garoua', 'Buea'];
-const DOMAINS = ['Corporate', 'Tax Law', 'Family Law', 'Civil Rights', 'Labour Law', 'Contracts', 'Criminal Law', 'Human Rights', 'Real Estate'];
+function initials(name) {
+  return (name ?? '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+}
 
 export default function LawyerDirectory() {
   const { lang } = useLanguage();
@@ -29,18 +22,42 @@ export default function LawyerDirectory() {
   const [applied, setApplied] = useState({ query: '', city: '', domain: '' });
   const [cityOpen, setCityOpen] = useState(false);
   const [domainOpen, setDomainOpen] = useState(false);
+  const [lawyerList, setLawyerList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const CITIES = useMemo(() => [...new Set(lawyerList.map((l) => l.city).filter(Boolean))].sort(), [lawyerList]);
+  const DOMAINS = useMemo(() => [...new Set(lawyerList.flatMap((l) => l.specializations.map((s) => s.name)))].sort(), [lawyerList]);
+
+  useEffect(() => { load({}); }, []);
+
+  async function load(params) {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await lawyersApi.list(params);
+      setLawyerList(data);
+    } catch {
+      setError('Failed to load lawyers. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function applySearch() {
     setApplied({ query, city, domain });
     setCityOpen(false);
     setDomainOpen(false);
+    load({
+      ...(city   ? { city }                    : {}),
+      ...(domain ? { specialization: domain }  : {}),
+    });
   }
 
-  const filtered = ALL_LAWYERS.filter((l) => {
-    if (applied.query && !l.name.toLowerCase().includes(applied.query.toLowerCase()) && !l.specialties.some((s) => s.toLowerCase().includes(applied.query.toLowerCase()))) return false;
-    if (applied.city && l.location !== applied.city) return false;
-    if (applied.domain && !l.specialties.includes(applied.domain)) return false;
-    return true;
+  const filtered = lawyerList.filter((l) => {
+    if (!applied.query) return true;
+    const q = applied.query.toLowerCase();
+    return l.full_name.toLowerCase().includes(q) || l.specializations.some((s) => s.name.toLowerCase().includes(q));
   });
 
   return (
@@ -146,62 +163,112 @@ export default function LawyerDirectory() {
           )}
 
           {/* Results count */}
-          <p className="text-xs text-gray-400 font-medium mb-6">{filtered.length} lawyer{filtered.length !== 1 ? 's' : ''} found</p>
+          {!loading && !error && (
+            <p className="text-xs text-gray-400 font-medium mb-6">{filtered.length} lawyer{filtered.length !== 1 ? 's' : ''} found</p>
+          )}
+
+          {/* Error state */}
+          {error && (
+            <div className="text-center py-20 text-gray-400">
+              <p className="text-lg font-semibold text-red-500">{error}</p>
+              <button onClick={() => load({})} className="mt-4 text-sm text-primary font-bold hover:underline">Try again</button>
+            </div>
+          )}
+
+          {/* Loading skeletons */}
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 md:p-8 animate-pulse">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mb-6">
+                    <div className="h-6 bg-gray-200 rounded-full w-20" />
+                    <div className="h-6 bg-gray-200 rounded-full w-24" />
+                  </div>
+                  <div className="space-y-2 mb-8">
+                    <div className="h-3 bg-gray-200 rounded w-full" />
+                    <div className="h-3 bg-gray-200 rounded w-5/6" />
+                    <div className="h-3 bg-gray-200 rounded w-4/6" />
+                  </div>
+                  <div className="flex justify-between pt-4 border-t border-gray-50">
+                    <div className="h-4 bg-gray-200 rounded w-20" />
+                    <div className="h-9 bg-gray-200 rounded-lg w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Directory Grid */}
-          {filtered.length === 0 ? (
+          {!loading && !error && (filtered.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
               <p className="text-lg font-semibold">No lawyers match your search.</p>
               <p className="text-sm mt-2">Try adjusting your filters.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {filtered.map((lawyer) => (
-                <div key={lawyer.id} className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 md:p-8 flex flex-col justify-between hover:shadow-md transition-shadow">
-                  <div>
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 border border-gray-100 shadow-inner" />
-                      <div>
-                        <h3 className="font-serif text-xl font-bold text-primary leading-snug">{lawyer.name}</h3>
-                        <div className="flex items-center gap-1 text-xs text-muted font-medium mt-1">
-                          <MapPin size={14} className="text-gray-400" />
-                          <span>{lawyer.location}</span>
+              {filtered.map((lawyer) => {
+                const verified = lawyer.verification_status === 'verified';
+                const specs = lawyer.specializations ?? [];
+                return (
+                  <div key={lawyer.id} className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 md:p-8 flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div>
+                      <div className="flex items-center gap-4 mb-6">
+                        {lawyer.profile_photo_url ? (
+                          <img src={lawyer.profile_photo_url} alt={lawyer.full_name} className="w-16 h-16 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-primary/10 flex-shrink-0 border border-gray-100 flex items-center justify-center text-primary font-bold text-lg">
+                            {initials(lawyer.full_name)}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-serif text-xl font-bold text-primary leading-snug">{lawyer.full_name}</h3>
+                          <div className="flex items-center gap-1 text-xs text-muted font-medium mt-1">
+                            <MapPin size={14} className="text-gray-400" />
+                            <span>{lawyer.city}{lawyer.region ? `, ${lawyer.region}` : ''}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {lawyer.specialties.map((spec) => (
-                        <span key={spec} className={`px-3 py-1 rounded-full text-xs font-medium ${domain === spec ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600'}`}>{spec}</span>
-                      ))}
-                    </div>
-                    <p className="text-muted text-sm leading-relaxed mb-8">{lawyer.bio}</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-50 mt-auto">
-                    {lawyer.status === 'Verified' ? (
-                      <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-bold">
-                        <CheckCircle2 size={16} className="fill-emerald-800 text-white" />
-                        <span>{T.verified}</span>
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {specs.map((s) => (
+                          <span key={s.id ?? s.name} className={`px-3 py-1 rounded-full text-xs font-medium ${applied.domain === s.name ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600'}`}>{s.name}</span>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-gray-500 text-xs font-bold">
-                        <Clock size={16} />
-                        <span>{T.pending}</span>
-                      </div>
-                    )}
-                    {lawyer.status === 'Verified' ? (
-                      <a href={`/lawyer/${lawyer.id}`} className="px-5 py-2.5 rounded-lg border font-bold text-sm transition-colors border-primary text-primary hover:bg-primary/5">
-                        {T.contact}
-                      </a>
-                    ) : (
-                      <button disabled className="px-5 py-2.5 rounded-lg border font-bold text-sm border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">
-                        {T.contact}
-                      </button>
-                    )}
+                      <p className="text-muted text-sm leading-relaxed mb-8 line-clamp-3">{lawyer.bio}</p>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 pt-4 border-t border-gray-50 mt-auto">
+                      {verified ? (
+                        <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-bold">
+                          <CheckCircle2 size={16} className="fill-emerald-800 text-white" />
+                          <span>{T.verified}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-gray-500 text-xs font-bold">
+                          <Clock size={16} />
+                          <span>{T.pending}</span>
+                        </div>
+                      )}
+                      {verified ? (
+                        <a href={`/lawyer/${lawyer.id}`} className="px-5 py-2.5 rounded-lg border font-bold text-sm transition-colors border-primary text-primary hover:bg-primary/5">
+                          {T.contact}
+                        </a>
+                      ) : (
+                        <button disabled className="px-5 py-2.5 rounded-lg border font-bold text-sm border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">
+                          {T.contact}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
+          ))}
 
         </div>
       </div>
