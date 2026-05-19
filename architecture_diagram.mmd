@@ -1,0 +1,162 @@
+flowchart TB
+    %% ── Client ──
+    User("<b>Next.js PWA</b><br/>Bilingual, offline<br/>CDN served"):::client
+
+    subgraph Cloud["Cloud"]
+        WAF["WAF"]:::infra
+        LB["Load Balancer<br/>(TLS, health checks)"]:::infra
+        CDN["CDN"]:::infra
+
+        subgraph K8s["Kubernetes Cluster"]
+            Kong["Kong API Gateway<br/>(1..N replicas)"]:::gateway
+
+            subgraph Obs["Observability"]
+                Prom["Prometheus"]:::obs
+                Graf["Grafana"]:::obs
+            end
+
+            subgraph SvcUser["User Mgmt"]
+                UserSvc["User Service<br/>Django"]:::django
+                DBUser[("PostgreSQL<br/>users")]:::db
+            end
+            subgraph SvcLaw["Lawyer"]
+                LawyerSvc["Lawyer Service<br/>Django"]:::django
+                DBLaw[("PostgreSQL<br/>lawyers")]:::db
+            end
+            subgraph SvcKB["Knowledge Base"]
+                KBSvc["KB Service<br/>FastAPI"]:::fastapi
+                DBKB[("PostgreSQL<br/>knowledge")]:::db
+                Qdrant[("Qdrant")]:::db
+            end
+            subgraph SvcRAG["RAG"]
+                RAGSvc["RAG Service<br/>FastAPI"]:::fastapi
+                DBRAG[("PostgreSQL<br/>rag_sessions")]:::db
+                CacheRAG[("Redis<br/>cache")]:::db
+            end
+            subgraph SvcEmb["Embedding"]
+                EmbSvc["Embedding Service<br/>FastAPI (stateless)"]:::fastapi
+            end
+            subgraph SvcDoc["Document"]
+                DocSvc["Document Service<br/>Django"]:::django
+                DBDoc[("PostgreSQL<br/>documents")]:::db
+                MinIODoc[("MinIO<br/>PDFs")]:::db
+            end
+            subgraph SvcPay["Payment"]
+                PaySvc["Payment Service<br/>Django"]:::django
+                DBPay[("PostgreSQL<br/>payments")]:::db
+            end
+            subgraph SvcNotif["Notification"]
+                NotifSvc["Notification Service<br/>Django"]:::django
+                DBNotif[("PostgreSQL<br/>notifications")]:::db
+            end
+            subgraph SvcFb["Feedback"]
+                FbSvc["Feedback Service<br/>Django"]:::django
+                DBFb[("PostgreSQL<br/>feedback")]:::db
+            end
+            subgraph SvcScrap["Scraper"]
+                ScrapSvc["Scraper Service<br/>Django"]:::django
+                DBScrap[("PostgreSQL<br/>scraping")]:::db
+                MinIOScrap[("MinIO<br/>raw HTML")]:::db
+            end
+            subgraph SvcAdmin["Admin"]
+                AdminSvc["Admin Panel<br/>Django"]:::django
+                DBAdmin[("PostgreSQL<br/>admin")]:::db
+            end
+
+            DocWorker["Doc Worker"]:::worker
+            NotifWorker["Notif Worker"]:::worker
+            LawyerWorker["Lawyer Ingest Worker"]:::worker
+            IndexWorker["Indexing Worker"]:::worker
+
+            MQ["RabbitMQ"]:::msg
+            RedisOTP["Redis<br/>OTP"]:::db
+        end
+    end
+
+    subgraph Ext["External APIs"]
+        Groq["Groq<br/>LLM"]
+        Campay["Campay"]
+        SMTP["SMTP"]
+        Bar["Cameroon Bar"]
+    end
+
+    %% Traffic flow
+    User --> CDN
+    User <-->|HTTPS| WAF
+    WAF --> LB
+    LB --> Kong
+    CDN --> User
+
+    %% Kong → services
+    Kong --> UserSvc
+    Kong --> LawyerSvc
+    Kong --> KBSvc
+    Kong --> RAGSvc
+    Kong --> DocSvc
+    Kong --> PaySvc
+    Kong --> AdminSvc
+    Kong --> FbSvc
+
+    %% Sync HTTP service-to-service
+    RAGSvc --> EmbSvc
+    KBSvc --> EmbSvc
+    RAGSvc --> KBSvc
+    RAGSvc --> RedisOTP
+    RAGSvc --> Groq
+    PaySvc --> Campay
+    NotifWorker --> SMTP
+    ScrapSvc --> Bar
+
+    %% Async events
+    UserSvc -- "user.*" --> MQ
+    LawyerSvc -- "lawyer.*<br/>referral.*" --> MQ
+    KBSvc -- "corpus.updated" --> MQ
+    RAGSvc -- "matching.requested<br/>document.requested" --> MQ
+    PaySvc -- "payment.confirmed" --> MQ
+    ScrapSvc -- "lawyers.scraped" --> MQ
+    FbSvc -- "feedback.flagged" --> MQ
+    AdminSvc -- "scrape.requested" --> MQ
+
+    MQ --> DocWorker
+    MQ --> NotifWorker
+    MQ --> LawyerWorker
+    MQ --> IndexWorker
+    MQ --> NotifSvc
+    MQ --> DocSvc
+    MQ --> LawyerSvc
+
+    %% Worker data access
+    DocWorker --> MinIODoc
+    IndexWorker --> Qdrant
+    IndexWorker --> EmbSvc
+    LawyerWorker --> DBLaw
+
+    %% Observability
+    Kong -.-> Prom
+    UserSvc -.-> Prom
+    LawyerSvc -.-> Prom
+    KBSvc -.-> Prom
+    RAGSvc -.-> Prom
+    EmbSvc -.-> Prom
+    DocSvc -.-> Prom
+    PaySvc -.-> Prom
+    NotifSvc -.-> Prom
+    FbSvc -.-> Prom
+    ScrapSvc -.-> Prom
+    AdminSvc -.-> Prom
+    DocWorker -.-> Prom
+    NotifWorker -.-> Prom
+    LawyerWorker -.-> Prom
+    IndexWorker -.-> Prom
+    Prom --> Graf
+
+    %% Styles
+    classDef client fill:#e3f2fd,stroke:#1565c0
+    classDef infra fill:#f5f5f5,stroke:#757575
+    classDef gateway fill:#fce4ec,stroke:#c62828
+    classDef django fill:#e8f0fe,stroke:#1a73e8
+    classDef fastapi fill:#e8f5e9,stroke:#2e7d32
+    classDef worker fill:#fff8e1,stroke:#f9a825
+    classDef db fill:#f3e5f5,stroke:#8e24aa
+    classDef obs fill:#eceff1,stroke:#90a4ae
+    classDef msg fill:#e0f7fa,stroke:#00838f
