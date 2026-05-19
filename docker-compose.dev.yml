@@ -163,10 +163,10 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
       CELERY_RESULT_BACKEND: rpc://
-      SMTP_HOST: smtp.example.com
-      SMTP_PORT: 587
-      SMTP_USER: smtp_user
-      SMTP_PASS: smtp_pass
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
       LOG_LEVEL: INFO
     ports:
       - "8011:8000"
@@ -218,9 +218,18 @@ services:
     container_name: lexcam-notification-consumer
     command: python -u -m app.events_consumer
     restart: on-failure
+    environment:
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_notif
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
     depends_on:
       - rabbitmq
       - notification-service
+      - postgres
 
   scraper-worker:
     image: lexcam-scraper-service
@@ -286,11 +295,12 @@ services:
       USER_MANAGEMENT_URL: http://user-management:8001
       INTERNAL_SERVICE_KEY: dev-internal-key
       MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_ENDPOINT: localhost:9000
       MINIO_ACCESS_KEY: lexcam
       MINIO_SECRET_KEY: lexcam_dev123
     ports:
       - "8006:8006"
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8006"
+    command: sh -c "python manage.py migrate && python manage.py consume_events & python manage.py runserver 0.0.0.0:8006"
     depends_on:
       - postgres
       - redis
@@ -311,6 +321,12 @@ services:
       REDIS_URL: redis://redis:6379/0
       USER_MANAGEMENT_URL: http://user-management:8001
       INTERNAL_SERVICE_KEY: dev-internal-key
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      CAMPAY_URL: ${CAMPAY_URL}
+      CAMPAY_USERNAME: ${CAMPAY_USERNAME}
+      CAMPAY_PASSWORD: ${CAMPAY_PASSWORD}
+      CAMPAY_WEBHOOK_SECRET: ${CAMPAY_WEBHOOK_SECRET}
+      CAMPAY_REDIRECT_URL: ${CAMPAY_REDIRECT_URL}
     ports:
       - "8007:8007"
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8007"
