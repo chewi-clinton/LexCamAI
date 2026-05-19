@@ -21,5 +21,8 @@ def placeholder_run_scrape(self, job_id: int):
     raise NotImplementedError("Scrape implementation is provided by the team")
 
 
+run_scrape_async = placeholder_run_scrape
+
+
 def get_celery_app():
     return celery_app

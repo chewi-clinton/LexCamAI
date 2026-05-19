@@ -18,5 +18,8 @@ def placeholder_process_feedback(self, feedback_id: int):
     raise NotImplementedError("Feedback processing implemented by the team")
 
 
+process_feedback_async = placeholder_process_feedback
+
+
 def get_celery_app():
     return celery_app
