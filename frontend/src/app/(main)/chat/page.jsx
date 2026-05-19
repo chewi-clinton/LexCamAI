@@ -9,6 +9,39 @@ import { chat as chatApi, streamChatMessage } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
+function getDocumentPromo(tags, lang) {
+  const lawText = tags.map((t) => (t.law_name || '').toLowerCase()).join(' ');
+  const isLabour = lawText.includes('labour') || lawText.includes('labor');
+  const isHousing = lawText.includes('housing') || lawText.includes('rent') || lawText.includes('tenant');
+  const isFamily = lawText.includes('family') || lawText.includes('civil status');
+  const isPenal = lawText.includes('penal') || lawText.includes('criminal');
+  if (isPenal) return null;
+  if (isLabour) return {
+    title: lang === 'fr' ? 'Besoin d\'un document de droit du travail ?' : 'Need a labour law document?',
+    desc: lang === 'fr' ? 'Rédigez une mise en demeure ou une demande d\'indemnités de licenciement conformément au Code du Travail.' : 'Draft a formal notice or severance pay request compliant with the Labour Code.',
+    href: '/documents/unpaid-wages',
+    label: lang === 'fr' ? 'Générer la lettre de mise en demeure' : 'Generate Formal Notice Letter',
+  };
+  if (isHousing) return {
+    title: lang === 'fr' ? 'Besoin d\'un document immobilier ?' : 'Need a housing document?',
+    desc: lang === 'fr' ? 'Rédigez une lettre de litige locatif conforme à la loi camerounaise.' : 'Draft a rental dispute letter compliant with Cameroonian housing law.',
+    href: '/documents/housing-dispute',
+    label: lang === 'fr' ? 'Générer la lettre de litige' : 'Generate Dispute Letter',
+  };
+  if (isFamily) return {
+    title: lang === 'fr' ? 'Besoin d\'un document de droit de la famille ?' : 'Need a family law document?',
+    desc: lang === 'fr' ? 'Accédez aux modèles de documents juridiques familiaux.' : 'Access family law document templates.',
+    href: '/documents',
+    label: lang === 'fr' ? 'Voir les modèles' : 'Browse Templates',
+  };
+  return {
+    title: lang === 'fr' ? 'Besoin d\'un document juridique ?' : 'Need a legal document?',
+    desc: lang === 'fr' ? 'Générez un modèle conforme au droit camerounais.' : 'Generate a compliant legal template under Cameroonian law.',
+    href: '/documents',
+    label: lang === 'fr' ? 'Voir les modèles' : 'Browse Templates',
+  };
+}
+
 function relativeDate(iso, lang) {
   if (!iso) return '';
   const diff = Math.floor((Date.now() - new Date(iso)) / 86400000);
@@ -41,6 +74,11 @@ export default function AIAssistant() {
   const scrollRef = useRef(null);
   const streamIntervalRef = useRef(null);
   const botAddedRef = useRef(false);
+  const autoSentRef = useRef(false);
+  const sourcesRef = useRef([]);
+  const targetTextRef = useRef('');
+  const displayedLengthRef = useRef(0);
+  const streamDoneRef = useRef(false);
 
   useEffect(() => {
     loadConversations();
@@ -51,8 +89,9 @@ export default function AIAssistant() {
       selectConversation(convId);
     } else if (q) {
       setInput(q);
-      // auto-send after a short delay to let the component mount
       setTimeout(() => {
+        if (autoSentRef.current) return;
+        autoSentRef.current = true;
         setInput('');
         sendMessageText(q);
       }, 300);
@@ -100,6 +139,29 @@ export default function AIAssistant() {
     window.history.replaceState({}, '', '/chat');
   }
 
+  function startDisplayTimer(botMsgId) {
+    clearInterval(streamIntervalRef.current);
+    streamIntervalRef.current = setInterval(() => {
+      const full = targetTextRef.current;
+      const cur = displayedLengthRef.current;
+      if (cur >= full.length) {
+        if (streamDoneRef.current) {
+          clearInterval(streamIntervalRef.current);
+          setIsStreaming(false);
+          setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, streaming: false } : m));
+        }
+        return;
+      }
+      const remaining = full.slice(cur);
+      const nextSpace = remaining.indexOf(' ');
+      const advance = nextSpace === -1 ? remaining.length : nextSpace + 1;
+      displayedLengthRef.current = cur + advance;
+      setMessages((prev) => prev.map((m) => m.id === botMsgId
+        ? { ...m, text: full.slice(0, displayedLengthRef.current) }
+        : m));
+    }, 50);
+  }
+
   function simulateStreaming(botMsgId, fullText, tags) {
     const words = fullText.split(' ');
     let wordIndex = 0;
@@ -134,30 +196,32 @@ export default function AIAssistant() {
     const userMsgId = `u_${Date.now()}`;
     const botMsgId = `b_${Date.now() + 1}`;
     botAddedRef.current = false;
+    sourcesRef.current = [];
+    targetTextRef.current = '';
+    displayedLengthRef.current = 0;
+    streamDoneRef.current = false;
 
     setMessages((prev) => [...prev, { id: userMsgId, role: 'user', text }]);
     setIsTyping(true);
 
-    let accumulated = '';
-
     await streamChatMessage(convId, text, {
       onSources: (srcs) => {
+        sourcesRef.current = srcs;
         setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, tags: srcs } : m));
       },
       onChunk: (chunk) => {
-        accumulated += chunk;
+        targetTextRef.current += chunk;
         if (!botAddedRef.current) {
           botAddedRef.current = true;
           setIsTyping(false);
           setIsStreaming(true);
-          setMessages((prev) => [...prev, { id: botMsgId, role: 'bot', text: accumulated, streaming: true, tags: [] }]);
-        } else {
-          setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, text: accumulated } : m));
+          setMessages((prev) => [...prev, { id: botMsgId, role: 'bot', text: '', streaming: true, tags: sourcesRef.current }]);
+          startDisplayTimer(botMsgId);
         }
       },
       onDone: () => {
-        setIsStreaming(false);
-        setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, streaming: false } : m));
+        streamDoneRef.current = true;
+        // display timer drains remaining text then clears itself
       },
       onError: async () => {
         try {
@@ -336,18 +400,24 @@ export default function AIAssistant() {
                                 );
                               })}
                             </div>
-                            <div className="mt-2 bg-[#EDF5F0] border border-primary/20 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                              <div className="flex gap-3 items-start">
-                                <FileText className="text-primary mt-1" size={20} />
-                                <div>
-                                  <h4 className="font-bold text-primary text-sm">{T.wantToSendLetter}</h4>
-                                  <p className="text-sm text-primary/80 mt-1">{T.draftLetter}</p>
+                            {(() => {
+                              const promo = getDocumentPromo(msg.tags, lang);
+                              if (!promo) return null;
+                              return (
+                                <div className="mt-2 bg-[#EDF5F0] border border-primary/20 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                  <div className="flex gap-3 items-start">
+                                    <FileText className="text-primary mt-1" size={20} />
+                                    <div>
+                                      <h4 className="font-bold text-primary text-sm">{promo.title}</h4>
+                                      <p className="text-sm text-primary/80 mt-1">{promo.desc}</p>
+                                    </div>
+                                  </div>
+                                  <a href={promo.href} className="bg-primary hover:bg-primary-light transition-colors text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">
+                                    {promo.label}
+                                  </a>
                                 </div>
-                              </div>
-                              <a href="/documents" className="bg-primary hover:bg-primary-light transition-colors text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">
-                                {T.generateDocument}
-                              </a>
-                            </div>
+                              );
+                            })()}
                           </>
                         )}
                       </div>
