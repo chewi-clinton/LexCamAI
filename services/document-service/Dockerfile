@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libpq-dev gcc \
     libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
-    libgdk-pixbuf2.0-0 libffi-dev \
+    libgdk-pixbuf-xlib-2.0-0 libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
