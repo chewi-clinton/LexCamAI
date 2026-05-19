@@ -1,0 +1,6 @@
+import os
+
+RABBITMQ_URL = os.environ["RABBITMQ_URL"]
+LAWYER_SERVICE_URL = os.environ["LAWYER_SERVICE_URL"]
+INTERNAL_SERVICE_KEY = os.environ["INTERNAL_SERVICE_KEY"]
+REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT", "10"))
