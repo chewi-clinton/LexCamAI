@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import os
+import json
 import httpx
 from typing import List, Any, Dict
 from contextlib import asynccontextmanager
@@ -207,10 +208,9 @@ async def query_stream(req: QueryRequest, request: Request):
             async for chunk in stream_generate(prompt, documents):
                 if not chunk:
                     continue
-                yield f"data: {chunk}\n\n"
+                yield f"data: {json.dumps({'content': chunk})}\n\n"
             yield "event: done\n\n"
         finally:
-            # Optionally save final aggregated response into DB.
             pass
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
@@ -393,7 +393,7 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
                 if not chunk:
                     continue
                 collected.append(chunk)
-                yield f"data: {chunk}\n\n"
+                yield f"data: {json.dumps({'content': chunk})}\n\n"
         finally:
             full_answer = "".join(collected)
             domain = classify_domain(req.content)
