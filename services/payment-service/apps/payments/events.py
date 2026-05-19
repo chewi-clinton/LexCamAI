@@ -36,3 +36,13 @@ def publish_payment_confirmed(transaction):
         "amount": transaction.amount,
         "operator": transaction.operator,
     })
+
+
+def publish_payment_failed(transaction):
+    return _publish("payment.failed", {
+        "transaction_id": str(transaction.id),
+        "user_id": str(transaction.user_id),
+        "document_id": str(transaction.document_id),
+        "amount": transaction.amount,
+        "operator": transaction.operator,
+    })

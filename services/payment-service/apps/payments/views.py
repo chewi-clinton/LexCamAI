@@ -6,10 +6,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .events import publish_payment_confirmed
+from .events import publish_payment_confirmed, publish_payment_failed
 from .models import Transaction
 from .serializers import InitiatePaymentSerializer, TransactionSerializer
-from .services import handle_webhook, initiate_payment, validate_webhook_signature
+from .services import get_campay_payment_status, handle_webhook, initiate_payment, validate_webhook_signature
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,30 @@ class TransactionDetailView(APIView):
             )
         except Transaction.DoesNotExist:
             return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # If still pending, poll Campay directly so webhook is not required
+        if transaction.status == Transaction.STATUS_PENDING and transaction.campay_reference:
+            try:
+                campay_status = get_campay_payment_status(transaction.campay_reference)
+                if campay_status == "SUCCESSFUL":
+                    transaction.status = Transaction.STATUS_CONFIRMED
+                    transaction.save(update_fields=["status", "updated_at"])
+                    if not transaction.event_published:
+                        published = publish_payment_confirmed(transaction)
+                        if published:
+                            transaction.event_published = True
+                            transaction.save(update_fields=["event_published"])
+                elif campay_status in ("FAILED", "EXPIRED"):
+                    transaction.status = Transaction.STATUS_FAILED
+                    transaction.save(update_fields=["status", "updated_at"])
+                    if not transaction.event_published:
+                        published = publish_payment_failed(transaction)
+                        if published:
+                            transaction.event_published = True
+                            transaction.save(update_fields=["event_published"])
+            except Exception as exc:
+                logger.warning("Campay status poll failed for %s: %s", reference, exc)
+
         return Response(TransactionSerializer(transaction).data)
 
 

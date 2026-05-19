@@ -46,11 +46,13 @@ def initiate_payment(user_id, document_id, amount, phone_number, operator):
     )
 
     token = _get_campay_token()
+    # Campay demo environment caps transactions at 25 XAF
+    campay_amount = min(amount, 25) if "demo" in settings.CAMPAY_URL else amount
     resp = requests.post(
         f"{settings.CAMPAY_URL}collect/",
         headers={"Authorization": f"Token {token}"},
         json={
-            "amount": str(amount),
+            "amount": str(campay_amount),
             "from": phone_number,
             "description": f"LexCam Document {document_id}",
             "external_reference": internal_reference,
@@ -68,7 +70,8 @@ def initiate_payment(user_id, document_id, amount, phone_number, operator):
         "id": internal_reference,
         "internal_reference": internal_reference,
         "campay_reference": data["reference"],
-        "payment_url": data["payment_url"],
+        "ussd_code": data.get("ussd_code"),
+        "operator": data.get("operator"),
     }
 
 
