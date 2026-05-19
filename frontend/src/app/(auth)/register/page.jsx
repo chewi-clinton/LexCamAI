@@ -36,6 +36,7 @@ export default function SignUp() {
         consent_given: true,
       });
       sessionStorage.setItem('pending_verify_email', email);
+      sessionStorage.setItem('pending_verify_password', password);
       router.push('/verify-email');
     } catch (err) {
       setError(err.data?.email?.[0] ?? err.message ?? 'Registration failed.');

@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
     }
     users.me()
       .then(setUser)
-      .catch(() => clearTokens())
+      .catch((err) => { if (err?.status === 401) clearTokens(); })
       .finally(() => setLoading(false));
   }, []);
 

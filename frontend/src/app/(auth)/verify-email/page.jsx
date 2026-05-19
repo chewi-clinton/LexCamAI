@@ -3,11 +3,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, ArrowRight, ArrowLeft, ShieldCheck, Loader2 } from 'lucide-react';
 import { auth } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
 export default function VerifyCode() {
   const router = useRouter();
+  const { login } = useAuth();
   const { lang } = useLanguage();
   const T = t[lang].verifyEmail;
   const [digits, setDigits]     = useState(['', '', '', '', '', '']);
@@ -80,8 +82,15 @@ export default function VerifyCode() {
           setLoading(true);
           try {
             await auth.verifyEmail(emailRef.current, code);
+            const password = sessionStorage.getItem('pending_verify_password');
             sessionStorage.removeItem('pending_verify_email');
-            router.push('/login');
+            sessionStorage.removeItem('pending_verify_password');
+            if (password) {
+              const user = await login(emailRef.current, password);
+              router.push(user.role === 'lawyer' ? '/lawyer-dashboard' : user.role === 'admin' ? '/admin' : '/dashboard');
+            } else {
+              router.push('/login');
+            }
           } catch (err) {
             setError(err.message ?? 'Invalid or expired code.');
             setDigits(['', '', '', '', '', '']);
