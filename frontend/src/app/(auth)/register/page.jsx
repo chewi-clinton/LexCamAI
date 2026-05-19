@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, MapPin, Lock, ChevronDown, ArrowRight, Loader2 } from 'lucide-react';
+import { User, Mail, MapPin, Lock, ChevronDown, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import GavelIcon from '@/components/ui/GavelIcon';
 import { auth } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -16,6 +16,7 @@ export default function SignUp() {
   const [email, setEmail]       = useState('');
   const [city, setCity]         = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [consent, setConsent]   = useState(false);
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
@@ -124,14 +125,21 @@ export default function SignUp() {
                 <Lock size={18} />
               </div>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
                 minLength={8}
-                className="block w-full pl-11 pr-4 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none tracking-widest"
+                className="block w-full pl-11 pr-11 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none tracking-widest"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
