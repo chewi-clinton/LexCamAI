@@ -7,12 +7,12 @@ services:
       POSTGRES_PASSWORD: lexcam_dev
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "5490:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lexcam"]
+      test: ["CMD-SHELL", "pg_isready -U lexcam -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -78,7 +78,7 @@ services:
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT: "120/minute"
     ports:
-      - "8001:8000"
+      - "8005:8000"
     volumes:
       - embedding_cache:/cache
 
@@ -113,12 +113,22 @@ services:
       API_PREFIX: /api/v1
       KNOWLEDGE_BASE_URL: http://knowledge-base-service:8000
       EMBEDDING_SERVICE_URL: http://embedding-service:8000
+      RAG_DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_rag_sessions
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
+      REDIS_URL: redis://redis:6379/0
       HF_API_KEY: ${HF_API_KEY}
       HF_MODEL: ${HF_MODEL:-google/flan-t5-small}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_API_URL: https://api.groq.com/openai/v1/chat/completions
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GROQ_STREAMING: "true"
       LOG_LEVEL: INFO
     ports:
       - "8004:8000"
     depends_on:
+      - postgres
+      - rabbitmq
+      - redis
       - knowledge-base-service
       - embedding-service
 
@@ -207,6 +217,7 @@ services:
       context: ./services/notification-service
     container_name: lexcam-notification-consumer
     command: python -u -m app.events_consumer
+    restart: on-failure
     depends_on:
       - rabbitmq
       - notification-service
@@ -218,6 +229,95 @@ services:
       - scraper-service
       - redis
     command: celery -A app.tasks.celery_app worker -l info -Q default
+
+  user-management:
+    build:
+      context: ./services/user-management
+    container_name: lexcam-user-management
+    env_file:
+      - ./services/user-management/.env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_users
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+    ports:
+      - "8001:8001"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8001"
+    depends_on:
+      - postgres
+      - redis
+
+  lawyer-service:
+    build:
+      context: ./services/lawyer-service
+    container_name: lexcam-lawyer-service
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DB_NAME: lexcam_lawyers
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: dev-internal-key
+    ports:
+      - "8002:8002"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
+    depends_on:
+      - postgres
+      - redis
+      - user-management
+
+  document-service:
+    build:
+      context: ./services/document-service
+    container_name: lexcam-document-service
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DB_NAME: lexcam_documents
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: dev-internal-key
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+    ports:
+      - "8006:8006"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8006"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - user-management
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+    container_name: lexcam-payment-service
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DB_NAME: lexcam_payments
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: dev-internal-key
+    ports:
+      - "8007:8007"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8007"
+    depends_on:
+      - postgres
+      - redis
+      - user-management
 
 volumes:
   postgres_data:
