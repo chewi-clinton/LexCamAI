@@ -5,6 +5,7 @@ const nextConfig = {
     const ls = process.env.LAWYER_SERVICE_URL;
     const ds = process.env.DOCUMENT_SERVICE_URL;
     const ps = process.env.PAYMENT_SERVICE_URL;
+    const rs = process.env.RAG_SERVICE_URL;
 
     return [
       { source: '/api/v1/auth/:path*',      destination: `${um}/api/v1/auth/:path*` },
@@ -13,6 +14,8 @@ const nextConfig = {
       { source: '/api/v1/referrals/:path*', destination: `${ls}/api/v1/referrals/:path*` },
       { source: '/api/v1/documents/:path*', destination: `${ds}/api/v1/documents/:path*` },
       { source: '/api/v1/payments/:path*',  destination: `${ps}/api/v1/payments/:path*` },
+      { source: '/api/v1/chat/:path*',      destination: `${rs}/api/v1/chat/:path*` },
+      { source: '/api/v1/query/:path*',     destination: `${rs}/api/v1/query/:path*` },
     ];
   },
 };
