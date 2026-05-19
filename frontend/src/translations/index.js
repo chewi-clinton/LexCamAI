@@ -545,7 +545,7 @@ const t = {
     },
     verifyEmail: {
       title: 'Verification Code',
-      desc: 'Please enter the 6-digit code sent to your registered device.',
+      desc: 'Please enter the 6-digit code sent to your email address.',
       verifyBtn: 'Verify Identity',
       didntReceive: "Didn't receive a code?",
       resendIn: 'Resend in 00:59',
@@ -1146,7 +1146,7 @@ const t = {
     },
     verifyEmail: {
       title: 'Code de Vérification',
-      desc: 'Veuillez entrer le code à 6 chiffres envoyé à votre appareil enregistré.',
+      desc: 'Veuillez entrer le code à 6 chiffres envoyé à votre adresse e-mail.',
       verifyBtn: "Vérifier l'Identité",
       didntReceive: "Vous n'avez pas reçu le code ?",
       resendIn: 'Renvoyer dans 00:59',
