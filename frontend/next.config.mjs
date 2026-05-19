@@ -1,12 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    const um = process.env.USER_MANAGEMENT_URL;
-    const ls = process.env.LAWYER_SERVICE_URL;
-    const ds = process.env.DOCUMENT_SERVICE_URL;
-    const ps = process.env.PAYMENT_SERVICE_URL;
-    const rs = process.env.RAG_SERVICE_URL;
-    const kb = process.env.KNOWLEDGE_BASE_URL;
+    const um = process.env.USER_MANAGEMENT_URL  || 'http://localhost:8001';
+    const ls = process.env.LAWYER_SERVICE_URL   || 'http://localhost:8002';
+    const ds = process.env.DOCUMENT_SERVICE_URL || 'http://localhost:8006';
+    const ps = process.env.PAYMENT_SERVICE_URL  || 'http://localhost:8007';
+    const rs = process.env.RAG_SERVICE_URL       || 'http://localhost:8004';
+    const kb = process.env.KNOWLEDGE_BASE_URL   || 'http://localhost:8003';
 
     return [
       { source: '/api/v1/auth/:path*',      destination: `${um}/api/v1/auth/:path*` },
