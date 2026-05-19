@@ -21,6 +21,8 @@ INSTALLED_APPS = [
     "apps.documents",
 ]
 
+APPEND_SLASH = False
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
