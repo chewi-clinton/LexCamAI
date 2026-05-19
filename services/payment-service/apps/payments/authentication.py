@@ -26,14 +26,14 @@ class RemoteJWTAuthentication(BaseAuthentication):
         try:
             response = requests.post(
                 f"{settings.USER_MANAGEMENT_URL}/internal/auth/validate",
-                headers={"Authorization": f"Bearer {token}"},
+                json={"token": token},
                 timeout=5,
             )
         except requests.RequestException:
-            raise AuthenticationFailed("User Management Service unavailable.")
+            return None
 
         if response.status_code != 200:
-            raise AuthenticationFailed("Invalid or expired token.")
+            return None
 
         data = response.json()
         user = RemoteUser(user_id=data["user_id"], role=data["role"])
