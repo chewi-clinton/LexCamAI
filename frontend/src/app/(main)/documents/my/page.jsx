@@ -52,8 +52,16 @@ export default function MyDocuments() {
 
   useEffect(() => { load(); }, []);
 
-  async function load() {
-    setLoading(true);
+  // Auto-refresh while any document is still generating
+  useEffect(() => {
+    const hasInProgress = docList.some((d) => d.status === 'generating' || d.status === 'awaiting_payment');
+    if (!hasInProgress) return;
+    const id = setInterval(() => load(true), 4000);
+    return () => clearInterval(id);
+  }, [docList]);
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const data = await documentsApi.myDocs();
@@ -61,19 +69,14 @@ export default function MyDocuments() {
     } catch {
       setError('Failed to load documents.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
   async function handleDownload(doc) {
-    if (doc.download_url) {
-      window.open(doc.download_url, '_blank');
-      return;
+    if (doc.file_url) {
+      window.open(doc.file_url, '_blank');
     }
-    try {
-      const result = await documentsApi.download(doc.id);
-      if (result?.url) window.open(result.url, '_blank');
-    } catch { /* silent */ }
   }
 
   async function handleRetry(doc) {
