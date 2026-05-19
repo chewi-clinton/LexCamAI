@@ -6,14 +6,13 @@ import httpx
 from typing import List, Any, Dict
 from contextlib import asynccontextmanager
 
-from .llm import generate_answer_from_documents
 from .llm_adapter import generate, stream_generate
 from .translator import translate_text
 from .events import publish_matching_requested
 from langdetect import detect
 import asyncio
 from .db import engine, SessionLocal
-from .models import Base, RagSession
+from .models import Base, RagSession, Conversation, Message
 
 
 class QueryRequest(BaseModel):
@@ -72,6 +71,19 @@ def _normalize_kb_response(data: Any) -> List[Dict[str, Any]]:
                 sources.append({"id": sid, "score": score, "snippet": snippet, "language": language})
                 documents.append({"id": sid, "score": score, "snippet": snippet, "language": language})
     return sources, documents
+
+
+def classify_domain(text: str) -> str:
+    t = text.lower()
+    if any(k in t for k in ["salary", "pay", "wage", "salaire", "impay"]):
+        return "labor"
+    if any(k in t for k in ["house", "rent", "logement", "bail", "evict"]):
+        return "housing"
+    if any(k in t for k in ["family", "divorce", "marriage", "famil"]):
+        return "family"
+    if any(k in t for k in ["crime", "police", "punish", "délit"]):
+        return "criminal"
+    return "general"
 
 
 def _save_session(query: str, prompt: str | None, response: str | None, sources: List[Dict]):
@@ -135,38 +147,19 @@ async def query(req: QueryRequest):
         # translation failures are non-fatal; continue with original snippets
         pass
 
-    # Build a simple prompt (could be expanded to include provenance formatting)
-    prompt_parts = [f"You are an assistant. Answer using only the provided documents.", f"Question: {req.query}", "Documents:"]
-    for i, d in enumerate(documents, start=1):
-        prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
-    prompt = "\n\n".join(prompt_parts)
-
-    # Generate answer via adapter
+    # Generate answer via adapter (llm.py builds the prompt internally from query + documents)
     try:
-        answer = generate(prompt, documents)
+        answer = generate(req.query, documents)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"LLM generation failed: {e}")
 
     # persist session
     session_id = None
     try:
-        session_id = _save_session(req.query, prompt, answer, sources)
+        session_id = _save_session(req.query, None, answer, sources)
     except Exception:
         # don't fail the request if DB save fails
         pass
-
-    # classify domain (simple keyword-based heuristic)
-    def classify_domain(text: str) -> str:
-        t = text.lower()
-        if any(k in t for k in ["salary", "pay", "wage", "salaire", "impay"]):
-            return "labor"
-        if any(k in t for k in ["house", "rent", "logement", "bail", "evict"]):
-            return "housing"
-        if any(k in t for k in ["family", "divorce", "marriage", "famil"]):
-            return "family"
-        if any(k in t for k in ["crime", "police", "punish", "délit"]):
-            return "criminal"
-        return "general"
 
     domain = classify_domain(req.query)
 
@@ -209,5 +202,203 @@ async def query_stream(req: QueryRequest, request: Request):
         finally:
             # Optionally save final aggregated response into DB.
             pass
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ── Chat / Conversation endpoints ──────────────────────────────────────────
+
+class ChatMessageRequest(BaseModel):
+    content: str
+
+
+def _conv_dict(conv: Conversation, include_messages: bool = False) -> Dict:
+    d = {
+        "id": conv.id,
+        "title": conv.title or "New conversation",
+        "domain": conv.domain,
+        "message_count": conv.message_count or 0,
+        "created_at": conv.created_at.isoformat() if conv.created_at else None,
+        "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+    }
+    if include_messages:
+        d["messages"] = [
+            {
+                "id": m.id,
+                "role": m.role,
+                "content": m.content,
+                "sources": m.sources,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in conv.messages
+        ]
+    return d
+
+
+@app.post("/api/v1/chat/conversations")
+def create_conversation():
+    db = SessionLocal()
+    try:
+        conv = Conversation(title=None, domain=None, message_count=0)
+        db.add(conv)
+        db.commit()
+        db.refresh(conv)
+        return _conv_dict(conv)
+    finally:
+        db.close()
+
+
+@app.get("/api/v1/chat/conversations")
+def list_conversations():
+    db = SessionLocal()
+    try:
+        convs = (
+            db.query(Conversation)
+            .order_by(Conversation.updated_at.desc())
+            .limit(50)
+            .all()
+        )
+        return [_conv_dict(c) for c in convs]
+    finally:
+        db.close()
+
+
+@app.get("/api/v1/chat/conversations/{conv_id}")
+def get_conversation(conv_id: int):
+    db = SessionLocal()
+    try:
+        conv = db.query(Conversation).filter(Conversation.id == conv_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return _conv_dict(conv, include_messages=True)
+    finally:
+        db.close()
+
+
+@app.post("/api/v1/chat/conversations/{conv_id}/messages")
+async def send_chat_message(conv_id: int, req: ChatMessageRequest):
+    from datetime import datetime, timezone
+
+    db = SessionLocal()
+    try:
+        conv = db.query(Conversation).filter(Conversation.id == conv_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        user_msg = Message(conversation_id=conv_id, role="user", content=req.content)
+        db.add(user_msg)
+        db.commit()
+    finally:
+        db.close()
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.post(f"{KB_URL}/api/v1/search", json={"query": req.content, "k": 5})
+            resp.raise_for_status()
+            data = resp.json()
+        except httpx.HTTPError:
+            data = []
+
+    sources, documents = _normalize_kb_response(data)
+
+    try:
+        answer = generate(req.content, documents)
+    except Exception:
+        answer = "I'm sorry, I couldn't generate an answer at this time."
+
+    domain = classify_domain(req.content)
+
+    db = SessionLocal()
+    try:
+        conv = db.query(Conversation).filter(Conversation.id == conv_id).first()
+        if conv:
+            conv.message_count = (conv.message_count or 0) + 2
+            if not conv.title:
+                conv.title = req.content[:60]
+            conv.domain = domain
+            conv.updated_at = datetime.now(timezone.utc)
+        assistant_msg = Message(
+            conversation_id=conv_id,
+            role="assistant",
+            content=answer,
+            sources=sources,
+        )
+        db.add(assistant_msg)
+        db.commit()
+        db.refresh(assistant_msg)
+        return {
+            "id": assistant_msg.id,
+            "role": "assistant",
+            "content": answer,
+            "sources": sources,
+            "created_at": assistant_msg.created_at.isoformat() if assistant_msg.created_at else None,
+        }
+    finally:
+        db.close()
+
+
+@app.post("/api/v1/chat/conversations/{conv_id}/messages/stream")
+async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Request):
+    from datetime import datetime, timezone
+
+    db = SessionLocal()
+    try:
+        conv = db.query(Conversation).filter(Conversation.id == conv_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        user_msg = Message(conversation_id=conv_id, role="user", content=req.content)
+        db.add(user_msg)
+        db.commit()
+    finally:
+        db.close()
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.post(f"{KB_URL}/api/v1/search", json={"query": req.content, "k": 5})
+            resp.raise_for_status()
+            data = resp.json()
+        except httpx.HTTPError:
+            data = []
+
+    sources, documents = _normalize_kb_response(data)
+    prompt_parts = [
+        "You are a legal assistant for Cameroon. Answer using only the provided documents.",
+        f"Question: {req.content}",
+        "Documents:",
+    ]
+    for i, d in enumerate(documents, start=1):
+        prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
+    prompt = "\n\n".join(prompt_parts)
+
+    collected: List[str] = []
+
+    async def event_generator():
+        try:
+            async for chunk in stream_generate(prompt, documents):
+                if not chunk:
+                    continue
+                collected.append(chunk)
+                yield f"data: {chunk}\n\n"
+        finally:
+            full_answer = "".join(collected)
+            domain = classify_domain(req.content)
+            _db = SessionLocal()
+            try:
+                _conv = _db.query(Conversation).filter(Conversation.id == conv_id).first()
+                if _conv:
+                    _conv.message_count = (_conv.message_count or 0) + 2
+                    if not _conv.title:
+                        _conv.title = req.content[:60]
+                    _conv.domain = domain
+                    _conv.updated_at = datetime.now(timezone.utc)
+                _db.add(Message(
+                    conversation_id=conv_id,
+                    role="assistant",
+                    content=full_answer or "(no response)",
+                    sources=sources,
+                ))
+                _db.commit()
+            finally:
+                _db.close()
+            yield "event: done\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
