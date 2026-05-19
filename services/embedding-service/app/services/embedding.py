@@ -63,9 +63,12 @@ class EmbeddingModel:
         if settings.model_path:
             return Path(settings.model_path)
 
-        repo_backup = Path(__file__).resolve().parents[4].joinpath("_safe_backups", "model.onnx")
-        if repo_backup.exists():
-            return repo_backup
+        try:
+            repo_backup = Path(__file__).resolve().parents[4].joinpath("_safe_backups", "model.onnx")
+            if repo_backup.exists():
+                return repo_backup
+        except IndexError:
+            pass
 
         return Path("/cache/model.onnx")
 
