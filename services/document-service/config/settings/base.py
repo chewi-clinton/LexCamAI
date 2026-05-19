@@ -86,8 +86,12 @@ SPECTACULAR_SETTINGS = {
 USER_MANAGEMENT_URL = config("USER_MANAGEMENT_URL", default="http://localhost:8001")
 INTERNAL_SERVICE_KEY = config("INTERNAL_SERVICE_KEY", default="dev-internal-key")
 
+# RabbitMQ
+RABBITMQ_URL = config("RABBITMQ_URL", default="amqp://guest:guest@localhost:5672/")
+
 # MinIO
 MINIO_ENDPOINT = config("MINIO_ENDPOINT", default="localhost:9000")
+MINIO_PUBLIC_ENDPOINT = config("MINIO_PUBLIC_ENDPOINT", default="localhost:9000")
 MINIO_ACCESS_KEY = config("MINIO_ACCESS_KEY", default="lexcam")
 MINIO_SECRET_KEY = config("MINIO_SECRET_KEY", default="lexcam_dev123")
 MINIO_DOCUMENTS_BUCKET = config("MINIO_DOCUMENTS_BUCKET", default="lexcam-documents")

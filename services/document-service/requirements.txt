@@ -6,6 +6,7 @@ drf-spectacular
 minio
 WeasyPrint
 Jinja2
+pika
 pytest
 pytest-django
 pytest-cov
