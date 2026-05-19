@@ -1,5 +1,6 @@
 'use client';
-import { ArrowLeft, ArrowRight, EyeOff, HelpCircle } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import GavelIcon from '@/components/ui/GavelIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -9,6 +10,7 @@ export default function LawyerOnboarding() {
   const router = useRouter();
   const { lang } = useLanguage();
   const T = t[lang].registerLawyer;
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col items-center justify-start pb-16">
@@ -88,15 +90,16 @@ export default function LawyerOnboarding() {
               </label>
               <div className="relative rounded-lg border border-gray-300 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary bg-white transition-shadow">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder={T.passwordPlaceholder}
                   className="block w-full pl-4 pr-11 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none"
                 />
                 <button
                   type="button"
+                  onClick={() => setShowPassword((v) => !v)}
                   className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <EyeOff size={18} />
+                  {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
               </div>
             </div>

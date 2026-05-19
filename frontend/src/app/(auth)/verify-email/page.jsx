@@ -1,4 +1,5 @@
 'use client';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, ArrowRight, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,6 +9,32 @@ export default function VerifyCode() {
   const router = useRouter();
   const { lang } = useLanguage();
   const T = t[lang].verifyEmail;
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const inputRefs = useRef([]);
+
+  function handleDigitChange(index, value) {
+    const char = value.replace(/\D/g, '').slice(-1);
+    const next = [...digits];
+    next[index] = char;
+    setDigits(next);
+    if (char && index < 5) inputRefs.current[index + 1]?.focus();
+  }
+
+  function handleKeyDown(index, e) {
+    if (e.key === 'Backspace' && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  }
+
+  function handlePaste(e) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6).split('');
+    const next = [...digits];
+    pasted.forEach((char, i) => { next[i] = char; });
+    setDigits(next);
+    const focusIdx = Math.min(pasted.length, 5);
+    inputRefs.current[focusIdx]?.focus();
+  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
@@ -23,13 +50,18 @@ export default function VerifyCode() {
         <h2 className="font-serif text-2xl font-bold text-primary mb-3">{T.title}</h2>
         <p className="text-muted text-sm leading-relaxed max-w-xs mb-8">{T.desc}</p>
 
-        <form className="w-full space-y-6" onSubmit={(e) => { e.preventDefault(); router.push('/dashboard'); }}>
-          <div className="grid grid-cols-6 gap-2 max-w-xs mx-auto">
-            {[...Array(6)].map((_, index) => (
+        <form className="w-full space-y-6" onSubmit={(e) => { e.preventDefault(); router.push('/lawyer-dashboard'); }}>
+          <div className="grid grid-cols-6 gap-2 max-w-xs mx-auto" onPaste={handlePaste}>
+            {digits.map((digit, index) => (
               <input
                 key={index}
+                ref={(el) => { inputRefs.current[index] = el; }}
                 type="text"
+                inputMode="numeric"
                 maxLength={1}
+                value={digit}
+                onChange={(e) => handleDigitChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
                 className="w-full aspect-square border border-gray-300 rounded-lg text-center font-semibold text-lg text-gray-800 bg-white outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow"
               />
             ))}
