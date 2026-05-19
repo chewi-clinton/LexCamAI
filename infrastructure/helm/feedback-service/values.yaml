@@ -1,0 +1,31 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/feedback-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8009
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+config:
+  SERVICE_NAME: feedback-service
+  DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres-feedback-svc:5432/lexcam_feedback
+  REDIS_URL: redis://redis-svc:6379/0
+  CELERY_BROKER_URL: redis://redis-svc:6379/1
+  CELERY_RESULT_BACKEND: redis://redis-svc:6379/2
+  MIGRATE_AUTO: "true"
+  USER_MGMT_URL: http://user-management-svc:8001
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+
+secrets:
+  SECRET_KEY: "change-me-in-production"

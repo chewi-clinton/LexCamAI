@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/notification-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8008
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+config:
+  SERVICE_NAME: notification-service
+  DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres-notif-svc:5432/lexcam_notif
+  REDIS_URL: redis://redis-svc:6379/0
+  CELERY_BROKER_URL: redis://redis-svc:6379/1
+  CELERY_RESULT_BACKEND: redis://redis-svc:6379/2
+  MIGRATE_AUTO: "true"
+  USER_MGMT_URL: http://user-management-svc:8001
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  SMTP_HOST: smtp.gmail.com
+  SMTP_PORT: "587"
+
+secrets:
+  SECRET_KEY: "change-me-in-production"
+  SMTP_USER: "lexcam@gmail.com"
+  SMTP_PASS: "your-app-password"
+
+consumer:
+  enabled: true
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"

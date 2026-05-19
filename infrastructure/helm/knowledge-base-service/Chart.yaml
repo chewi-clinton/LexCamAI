@@ -1,0 +1,7 @@
+apiVersion: v2
+name: knowledge-base-service
+description: LexCam Knowledge Base Service — vector search and law explorer
+
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

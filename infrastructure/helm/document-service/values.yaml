@@ -35,7 +35,7 @@ secrets:
   SECRET_KEY: "change-me-in-production"
   INTERNAL_SERVICE_KEY: "dev-internal-key"
   MINIO_ACCESS_KEY: "lexcam"
-  MINIO_SECRET_KEY: "lexcam_dev123"
+  MINIO_SECRET_KEY: "lexcam_dev_minio"
 
 hpa:
   enabled: false

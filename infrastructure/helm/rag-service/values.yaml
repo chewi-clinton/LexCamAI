@@ -1,0 +1,35 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/rag-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8004
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+config:
+  SERVICE_NAME: rag-service
+  API_PREFIX: /api/v1
+  KNOWLEDGE_BASE_URL: http://knowledge-base-service-svc:8003
+  EMBEDDING_SERVICE_URL: http://embedding-service:8000
+  RAG_DATABASE_URL: postgresql+psycopg://lexcam:lexcam_dev@postgres-rag-svc:5432/lexcam_rag_sessions
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  RAG_EVENTS_EXCHANGE: lexcam.events
+  HF_MODEL: google/flan-t5-small
+  HF_FALLBACK_MODEL: gpt2
+  GROQ_API_URL: ""
+  LOG_LEVEL: INFO
+
+secrets:
+  HF_API_KEY: ""
+  GROQ_API_KEY: ""

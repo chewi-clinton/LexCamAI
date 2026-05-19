@@ -123,6 +123,9 @@ OTP_EXPIRE_MINUTES = config("OTP_EXPIRE_MINUTES", default=10, cast=int)
 # RabbitMQ
 RABBITMQ_URL = config("RABBITMQ_URL", default="amqp://lexcam:lexcam_dev@localhost:5672/")
 
+# Internal service auth
+INTERNAL_SERVICE_KEY = config("INTERNAL_SERVICE_KEY", default="dev-internal-key")
+
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = config("SMTP_HOST", default="smtp.gmail.com")

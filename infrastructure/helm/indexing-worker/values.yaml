@@ -12,8 +12,8 @@ resources:
     cpu: "500m"
 
 config:
-  KB_SERVICE_URL: http://knowledge-base-svc:8003
-  EMBEDDING_SERVICE_URL: http://embedding-svc:8005
+  KB_SERVICE_URL: http://knowledge-base-service-svc:8003
+  EMBEDDING_SERVICE_URL: http://embedding-service:8000
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
   QDRANT_URL: http://qdrant-svc:6333
   QDRANT_COLLECTION: lexcam_laws

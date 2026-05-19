@@ -1,0 +1,33 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/knowledge-base-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8003
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+config:
+  SERVICE_NAME: knowledge-base-service
+  API_PREFIX: /api/v1
+  DATABASE_URL: postgresql+psycopg://lexcam:lexcam_dev@postgres-knowledge-svc:5432/lexcam_knowledge
+  QDRANT_URL: http://qdrant-svc:6333
+  QDRANT_COLLECTION: lexcam_laws
+  EMBEDDING_SERVICE_URL: http://embedding-service:8000
+  REDIS_URL: redis://redis-svc:6379/0
+  LOG_LEVEL: INFO
+  PLAIN_SUMMARY_CACHE_TTL_SECONDS: "604800"
+  MAX_SEARCH_RESULTS: "10"
+
+secrets:
+  QDRANT_API_KEY: ""

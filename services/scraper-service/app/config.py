@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     RABBITMQ_URL: str = "amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F"
+    MINIO_ENDPOINT: str = "minio:9000"
+    MINIO_ACCESS_KEY: str = "lexcam"
+    MINIO_SECRET_KEY: str = "lexcam_dev_minio"
+    MINIO_SCRAPER_BUCKET: str = "lexcam-scraper-html"
+    MINIO_SECURE: bool = False
+    SCRAPER_DEFAULT_CITY: str = "Douala"
+    SCRAPER_REQUEST_TIMEOUT_SECONDS: int = 30
+    SCRAPER_MAX_LAWYERS_PER_RUN: int = 200
 
     class Config:
         env_file = ".env"

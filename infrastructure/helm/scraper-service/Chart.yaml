@@ -1,0 +1,7 @@
+apiVersion: v2
+name: scraper-service
+description: LexCam Scraper Service — web scraping and scrape jobs
+
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

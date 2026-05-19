@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/scraper-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8011
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+config:
+  SERVICE_NAME: scraper-service
+  DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres-scraping-svc:5432/lexcam_scraping
+  REDIS_URL: redis://redis-svc:6379/0
+  CELERY_BROKER_URL: redis://redis-svc:6379/1
+  CELERY_RESULT_BACKEND: redis://redis-svc:6379/2
+  MIGRATE_AUTO: "true"
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  MINIO_ENDPOINT: minio-svc:9000
+  MINIO_SCRAPER_BUCKET: lexcam-scraper-html
+  MINIO_SECURE: "false"
+  SCRAPER_DEFAULT_CITY: Douala
+
+secrets:
+  SECRET_KEY: "change-me-in-production"
+  MINIO_ACCESS_KEY: "lexcam"
+  MINIO_SECRET_KEY: "lexcam_dev_minio"

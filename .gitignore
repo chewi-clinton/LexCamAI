@@ -25,6 +25,7 @@ media/
 .env
 .env.local
 .env.*.local
+backend.env
 
 # Node / Next.js
 node_modules/

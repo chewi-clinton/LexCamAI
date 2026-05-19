@@ -1,0 +1,33 @@
+{{- if .Values.consumer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "notification-service.name" . }}-consumer
+  labels:
+    {{- include "notification-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "notification-service.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: consumer
+  template:
+    metadata:
+      labels:
+        {{- include "notification-service.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: consumer
+    spec:
+      containers:
+        - name: consumer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "notification-service.name" . }}-config
+            - secretRef:
+                name: {{ include "notification-service.name" . }}-secret
+          command: ["python", "-u", "-m", "app.events_consumer"]
+          resources:
+            {{- toYaml .Values.consumer.resources | nindent 12 }}
+{{- end }}

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: feedback-service
+description: LexCam Feedback Service — ratings and flagged responses
+
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
