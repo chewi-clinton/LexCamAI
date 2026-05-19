@@ -16,6 +16,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -25,6 +26,7 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -33,6 +35,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -45,6 +48,7 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
 
   minio:
     image: minio/minio:latest
@@ -58,6 +62,30 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: lexcam-minio-init
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      until mc alias set local http://minio:9000 lexcam lexcam_dev123; do
+        echo "Waiting for MinIO..."; sleep 3;
+      done
+      mc mb --ignore-existing local/lexcam-documents
+      mc mb --ignore-existing local/lexcam-scraper-html
+      mc anonymous set download local/lexcam-documents
+    restart: "no"
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: lexcam-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
 
   embedding-service:
     build:
@@ -78,9 +106,10 @@ services:
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT: "120/minute"
     ports:
-      - "8001:8000"
+      - "8005:8000"
     volumes:
       - embedding_cache:/cache
+    restart: unless-stopped
 
   knowledge-base-service:
     build:
@@ -91,6 +120,7 @@ services:
       API_PREFIX: /api/v1
       DATABASE_URL: postgresql+psycopg://lexcam:lexcam_dev@postgres:5432/lexcam_knowledge
       QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: lexcam_laws
       EMBEDDING_SERVICE_URL: http://embedding-service:8000
       REDIS_URL: redis://redis:6379/0
       LOG_LEVEL: INFO
@@ -103,6 +133,7 @@ services:
       - qdrant
       - redis
       - embedding-service
+    restart: unless-stopped
 
   rag-service:
     build:
@@ -113,111 +144,395 @@ services:
       API_PREFIX: /api/v1
       KNOWLEDGE_BASE_URL: http://knowledge-base-service:8000
       EMBEDDING_SERVICE_URL: http://embedding-service:8000
+      RAG_DATABASE_URL: postgresql+psycopg://lexcam:lexcam_dev@postgres:5432/lexcam_rag_sessions
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
       HF_API_KEY: ${HF_API_KEY}
       HF_MODEL: ${HF_MODEL:-google/flan-t5-small}
+      HF_FALLBACK_MODEL: ${HF_FALLBACK_MODEL:-gpt2}
+      GROQ_API_URL: ${GROQ_API_URL}
+      GROQ_API_KEY: ${GROQ_API_KEY}
       LOG_LEVEL: INFO
     ports:
       - "8004:8000"
     depends_on:
       - knowledge-base-service
       - embedding-service
+      - postgres
+      - rabbitmq
+    restart: unless-stopped
 
-  feedback-service:
+  user-management:
     build:
-      context: ./services/feedback-service
-    image: lexcam-feedback-service
-    container_name: lexcam-feedback-service
+      context: ./services/user-management
+    container_name: lexcam-user-management
     environment:
-      SERVICE_NAME: feedback-service
-      API_PREFIX: /v1
-      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_feedback
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_users
       REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
-      CELERY_RESULT_BACKEND: rpc://
-      LOG_LEVEL: INFO
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-key-change-me}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 15
+      REFRESH_TOKEN_EXPIRE_DAYS: 30
+      OTP_EXPIRE_MINUTES: 10
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      DJANGO_SETTINGS_MODULE: config.settings.production
     ports:
-      - "8010:8000"
+      - "8001:8001"
     depends_on:
       - postgres
       - redis
+      - rabbitmq
+    restart: unless-stopped
+
+  lawyer-service:
+    build:
+      context: ./services/lawyer-service
+    container_name: lexcam-lawyer-service
+    environment:
+      DB_NAME: lexcam_lawyers
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      MINIO_DOCUMENTS_BUCKET: lexcam-documents
+      MINIO_USE_SSL: "False"
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+      - minio
+      - user-management
+    restart: unless-stopped
+
+  lawyer-events-consumer:
+    build:
+      context: ./services/lawyer-service
+    container_name: lexcam-lawyer-events-consumer
+    command: ["python", "manage.py", "consume_events"]
+    environment:
+      DB_NAME: lexcam_lawyers
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      MINIO_DOCUMENTS_BUCKET: lexcam-documents
+      MINIO_USE_SSL: "False"
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    depends_on:
+      - lawyer-service
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+
+  document-service:
+    build:
+      context: ./services/document-service
+    container_name: lexcam-document-service
+    environment:
+      SECRET_KEY: ${DOCUMENT_SECRET_KEY:-dev-secret-key-change-me}
+      DEBUG: "False"
+      ALLOWED_HOSTS: "*"
+      DB_NAME: lexcam_documents
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      MINIO_DOCUMENTS_BUCKET: lexcam-documents
+      MINIO_USE_SSL: "False"
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    ports:
+      - "8006:8006"
+    depends_on:
+      - postgres
+      - minio
+      - user-management
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+    container_name: lexcam-payment-service
+    environment:
+      SECRET_KEY: ${PAYMENT_SECRET_KEY:-dev-secret-key-change-me}
+      DB_NAME: lexcam_payments
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      CAMPAY_URL: ${CAMPAY_URL:-https://demo.campay.net/api/}
+      CAMPAY_USERNAME: ${CAMPAY_USERNAME}
+      CAMPAY_PASSWORD: ${CAMPAY_PASSWORD}
+      CAMPAY_WEBHOOK_SECRET: ${CAMPAY_WEBHOOK_SECRET}
+      CAMPAY_REDIRECT_URL: ${CAMPAY_REDIRECT_URL:-https://lexcam.cm/payment/callback}
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    ports:
+      - "8007:8007"
+    depends_on:
+      - postgres
+      - user-management
+      - rabbitmq
+    restart: unless-stopped
+
+  admin-panel:
+    build:
+      context: ./services/admin-panel
+    container_name: lexcam-admin-panel
+    environment:
+      SECRET_KEY: ${ADMIN_SECRET_KEY:-dev-secret-key-change-me}
+      DB_NAME: lexcam_admin
+      DB_USER: lexcam
+      DB_PASSWORD: lexcam_dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      USER_MANAGEMENT_URL: http://user-management:8001
+      LAWYER_SERVICE_URL: http://lawyer-service:8002
+      DOCUMENT_SERVICE_URL: http://document-service:8006
+      PAYMENT_SERVICE_URL: http://payment-service:8007
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    ports:
+      - "8010:8010"
+    depends_on:
+      - postgres
+      - user-management
+      - lawyer-service
+      - document-service
+      - payment-service
+      - rabbitmq
+    restart: unless-stopped
 
   notification-service:
     build:
       context: ./services/notification-service
-    image: lexcam-notification-service
     container_name: lexcam-notification-service
     environment:
       SERVICE_NAME: notification-service
-      API_PREFIX: /v1
       DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_notif
       REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
-      CELERY_RESULT_BACKEND: rpc://
-      SMTP_HOST: smtp.example.com
-      SMTP_PORT: 587
-      SMTP_USER: smtp_user
-      SMTP_PASS: smtp_pass
-      LOG_LEVEL: INFO
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      MIGRATE_AUTO: "true"
+      SECRET_KEY: ${NOTIFICATION_SECRET_KEY:-dev-secret-key-change-me}
+      USER_MGMT_URL: http://user-management:8001
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASSWORD:-}
     ports:
-      - "8011:8000"
+      - "8008:8000"
     depends_on:
       - postgres
       - redis
-
-  scraper-service:
-    build:
-      context: ./services/scraper-service
-    image: lexcam-scraper-service
-    container_name: lexcam-scraper-service
-    environment:
-      SERVICE_NAME: scraper-service
-      API_PREFIX: /v1
-      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
-      CELERY_RESULT_BACKEND: rpc://
-      MINIO_URL: http://minio:9000
-      MINIO_ACCESS_KEY: lexcam
-      MINIO_SECRET_KEY: lexcam_dev123
-      LOG_LEVEL: INFO
-    ports:
-      - "8012:8000"
-    depends_on:
-      - postgres
-      - redis
-
-  feedback-worker:
-    image: lexcam-feedback-service
-    container_name: lexcam-feedback-worker
-    depends_on:
-      - feedback-service
-      - redis
-    command: celery -A app.tasks.celery_app worker -l info -Q default
-
-  notification-worker:
-    image: lexcam-notification-service
-    container_name: lexcam-notification-worker
-    depends_on:
-      - notification-service
-      - redis
-    command: celery -A app.tasks.celery_app worker -l info -Q default
+      - rabbitmq
+      - user-management
+    restart: unless-stopped
 
   notification-consumer:
     build:
       context: ./services/notification-service
     container_name: lexcam-notification-consumer
-    command: python -u -m app.events_consumer
+    command: ["python", "-u", "-m", "app.events_consumer"]
+    environment:
+      SERVICE_NAME: notification-service
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_notif
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      MIGRATE_AUTO: "true"
+      SECRET_KEY: ${NOTIFICATION_SECRET_KEY:-dev-secret-key-change-me}
+      USER_MGMT_URL: http://user-management:8001
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASSWORD:-}
     depends_on:
       - rabbitmq
       - notification-service
+    restart: unless-stopped
+
+  feedback-service:
+    build:
+      context: ./services/feedback-service
+    container_name: lexcam-feedback-service
+    environment:
+      SERVICE_NAME: feedback-service
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_feedback
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      MIGRATE_AUTO: "true"
+      SECRET_KEY: ${FEEDBACK_SECRET_KEY:-dev-secret-key-change-me}
+      USER_MGMT_URL: http://user-management:8001
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+    ports:
+      - "8009:8000"
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+      - user-management
+    restart: unless-stopped
+
+  scraper-service:
+    build:
+      context: ./services/scraper-service
+    container_name: lexcam-scraper-service
+    environment:
+      SERVICE_NAME: scraper-service
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      MIGRATE_AUTO: "true"
+      SECRET_KEY: ${SCRAPER_SECRET_KEY:-dev-secret-key-change-me}
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      MINIO_SCRAPER_BUCKET: lexcam-scraper-html
+      MINIO_SECURE: "false"
+      SCRAPER_DEFAULT_CITY: Douala
+    ports:
+      - "8011:8000"
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    restart: unless-stopped
 
   scraper-worker:
-    image: lexcam-scraper-service
+    build:
+      context: ./services/scraper-service
     container_name: lexcam-scraper-worker
+    command: celery -A app.tasks.celery_app worker -l info -Q default
+    environment:
+      SERVICE_NAME: scraper-service
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      MIGRATE_AUTO: "true"
+      SECRET_KEY: ${SCRAPER_SECRET_KEY:-dev-secret-key-change-me}
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      MINIO_SCRAPER_BUCKET: lexcam-scraper-html
+      MINIO_SECURE: "false"
+      SCRAPER_DEFAULT_CITY: Douala
     depends_on:
       - scraper-service
       - redis
-    command: celery -A app.tasks.celery_app worker -l info -Q default
+      - minio
+    restart: unless-stopped
+
+  doc-worker:
+    build:
+      context: ./workers/doc-worker
+    container_name: lexcam-doc-worker
+    environment:
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      DOCUMENT_SERVICE_URL: http://document-service:8006
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      MINIO_DOCUMENTS_BUCKET: lexcam-documents
+      MINIO_SECURE: "false"
+    depends_on:
+      - rabbitmq
+      - document-service
+      - minio
+    restart: unless-stopped
+
+  indexing-worker:
+    build:
+      context: ./workers/indexing-worker
+    container_name: lexcam-indexing-worker
+    environment:
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      KB_SERVICE_URL: http://knowledge-base-service:8000
+      EMBEDDING_SERVICE_URL: http://embedding-service:8000
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: lexcam_laws
+      CHUNK_SIZE: "500"
+      CHUNK_OVERLAP: "50"
+    depends_on:
+      - rabbitmq
+      - knowledge-base-service
+      - embedding-service
+      - qdrant
+    restart: unless-stopped
+
+  lawyer-ingest-worker:
+    build:
+      context: ./workers/lawyer-ingest-worker
+    container_name: lexcam-lawyer-ingest-worker
+    environment:
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      LAWYER_SERVICE_URL: http://lawyer-service:8002
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      EXCHANGE: lexcam.events
+      DLX_EXCHANGE: lexcam.dlx
+      QUEUE: lawyer-ingest-worker.lawyers.scraped
+      ROUTING_KEY: lawyers.scraped
+      BATCH_SIZE: "20"
+    depends_on:
+      - rabbitmq
+      - lawyer-service
+    restart: unless-stopped
+
+  notification-worker:
+    build:
+      context: ./workers/notification-worker
+    container_name: lexcam-notification-worker
+    environment:
+      RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/
+      USER_MANAGEMENT_URL: http://user-management:8001
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-dev-internal-key}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      FROM_EMAIL: noreply@lexcam.cm
+    depends_on:
+      - rabbitmq
+      - user-management
+      - mailhog
+    restart: unless-stopped
 
 volumes:
   postgres_data:
