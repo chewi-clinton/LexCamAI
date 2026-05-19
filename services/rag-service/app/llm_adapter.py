@@ -46,39 +46,46 @@ async def stream_generate(prompt: str, documents: List[Dict], max_tokens: int = 
                 yield p.strip()
         return
 
-    headers = {"Authorization": f"Bearer {groq_key}", "Accept": "text/event-stream", "Content-Type": "application/json"}
-    payload = {"prompt": prompt, "documents": documents, "max_tokens": max_tokens}
+    groq_model = os.getenv("GROQ_MODEL", "llama3-8b-8192")
+    headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
+    # OpenAI-compatible format required by Groq /openai/v1/chat/completions
+    payload = {
+        "model": groq_model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "stream": True,
+    }
 
     async with httpx.AsyncClient(timeout=None) as client:
         try:
             async with client.stream("POST", groq_url, json=payload, headers=headers) as resp:
                 resp.raise_for_status()
-                async for chunk in resp.aiter_text(chunk_size=1024):
-                    if not chunk:
-                        continue
-                    # split into lines and handle data: prefixes
-                    for line in chunk.splitlines():
+                buf = ""
+                async for chunk in resp.aiter_text():
+                    buf += chunk
+                    lines = buf.split("\n")
+                    buf = lines[-1]  # keep any incomplete trailing line
+                    for line in lines[:-1]:
                         line = line.strip()
-                        if not line:
+                        if not line or not line.startswith("data:"):
                             continue
-                        # SSE-style 'data: ...'
-                        if line.startswith("data:"):
-                            content = line[len("data:"):].strip()
-                        else:
-                            content = line
-                        # try JSON
+                        content = line[len("data:"):].strip()
+                        if content == "[DONE]":
+                            return
                         try:
                             obj = json.loads(content)
-                            # accept 'token' or 'text' fields
-                            token = obj.get("token") or obj.get("text")
-                            if token:
-                                yield token
-                                continue
+                            choices = obj.get("choices") or []
+                            if choices:
+                                delta = choices[0].get("delta", {})
+                                tok = delta.get("content", "")
+                                if tok:
+                                    yield tok
+                                    continue
+                            tok = obj.get("token") or obj.get("text")
+                            if tok:
+                                yield tok
                         except Exception:
-                            # not JSON, yield raw
-                            yield content
-                            continue
+                            pass  # skip malformed lines silently
         except httpx.HTTPError:
-            # On stream failure, fallback to sync answer once
             answer = generate(prompt, documents, max_tokens=max_tokens)
             yield answer
