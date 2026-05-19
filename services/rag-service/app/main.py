@@ -186,9 +186,19 @@ async def query_stream(req: QueryRequest, request: Request):
 
     sources, documents = _normalize_kb_response(data)
 
-    prompt_parts = [f"You are an assistant. Answer using only the provided documents.", f"Question: {req.query}", "Documents:"]
-    for i, d in enumerate(documents, start=1):
-        prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
+    if documents:
+        prompt_parts = [
+            "You are a helpful legal assistant for Cameroon. Answer the question using the provided documents as your primary source.",
+            f"Question: {req.query}",
+            "Documents:",
+        ]
+        for i, d in enumerate(documents, start=1):
+            prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
+    else:
+        prompt_parts = [
+            "You are a helpful legal assistant for Cameroon. Answer the question based on your knowledge of Cameroonian law and general legal principles.",
+            f"Question: {req.query}",
+        ]
     prompt = "\n\n".join(prompt_parts)
 
     async def event_generator():
@@ -360,13 +370,19 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
             data = []
 
     sources, documents = _normalize_kb_response(data)
-    prompt_parts = [
-        "You are a legal assistant for Cameroon. Answer using only the provided documents.",
-        f"Question: {req.content}",
-        "Documents:",
-    ]
-    for i, d in enumerate(documents, start=1):
-        prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
+    if documents:
+        prompt_parts = [
+            "You are a helpful legal assistant for Cameroon. Answer the question using the provided documents as your primary source.",
+            f"Question: {req.content}",
+            "Documents:",
+        ]
+        for i, d in enumerate(documents, start=1):
+            prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
+    else:
+        prompt_parts = [
+            "You are a helpful legal assistant for Cameroon. Answer the question based on your knowledge of Cameroonian law and general legal principles.",
+            f"Question: {req.content}",
+        ]
     prompt = "\n\n".join(prompt_parts)
 
     collected: List[str] = []
