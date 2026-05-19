@@ -8,6 +8,27 @@ import GavelIcon from '@/components/ui/GavelIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
+function exportReportsCSV() {
+  const rows = [
+    ['Metric', 'Value'],
+    ['Total Users', '4,821'],
+    ['Verified Lawyers', '312'],
+    ['Docs Generated', '9,140'],
+    ['Revenue (XAF)', '12,450,000'],
+    ['Pending Verification', '24'],
+    ['Flagged AI Sessions', '1,248'],
+    ['Export Date', new Date().toISOString().slice(0, 10)],
+  ];
+  const csv = rows.map((r) => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lexcam-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const { lang, setLang } = useLanguage();
@@ -66,7 +87,10 @@ export default function AdminLayout({ children }) {
             <span className="w-2 h-2 rounded-full bg-emerald-500 block" />
             <span className="text-[11px] text-gray-500 font-medium">{T.systemHealthy}</span>
           </div>
-          <button className="w-full bg-accent-dark hover:opacity-90 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-opacity">
+          <button
+            onClick={exportReportsCSV}
+            className="w-full bg-accent-dark hover:opacity-90 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-opacity"
+          >
             <Download size={14} /> {T.exportReports}
           </button>
         </div>

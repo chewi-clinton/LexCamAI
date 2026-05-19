@@ -1,82 +1,171 @@
 'use client';
+import { useState } from 'react';
 import {
   Plus, SlidersHorizontal, Download, Printer,
-  ChevronDown, X, Eye, Pencil, Ban, Check, Trash2, RotateCcw,
+  X, Eye, Pencil, Ban, Check, Trash2, RotateCcw,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
+function AddLawyerModal({ T, onClose, onAdd }) {
+  const [form, setForm] = useState({ name: '', barId: '', email: '', phone: '', location: '', type: 'Self-registered', status: 'Pending' });
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const initials = form.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+    onAdd({
+      ...form,
+      barId: form.barId || 'Bar ID: Pending',
+      initials,
+      avatarBg: 'bg-slate-200 text-slate-700',
+      statusClass: 'bg-amber-50 text-amber-700 border-amber-200/60',
+      dateJoined: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      actions: ['view', 'edit', 'approve'],
+    });
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200/60 w-full max-w-lg p-8 relative">
+        <button onClick={onClose} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors">
+          <X size={18} />
+        </button>
+        <h3 className="font-serif text-xl font-bold text-gray-900 mb-6">{T.addLawyerTitle}</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.lawyerName}</label>
+              <input required type="text" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                placeholder="Me. Jean Dupont" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">Bar ID</label>
+              <input type="text" value={form.barId} onChange={(e) => setForm((p) => ({ ...p, barId: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                placeholder="CM-2024-001" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.cityLabel}</label>
+              <div className="relative border border-gray-300 rounded-lg overflow-hidden">
+                <select value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
+                  className="w-full appearance-none bg-transparent px-3 py-2.5 text-sm outline-none cursor-pointer pr-8">
+                  <option value="">— Select —</option>
+                  <option value="Douala">Douala</option>
+                  <option value="Yaoundé">Yaoundé</option>
+                  <option value="Bamenda">Bamenda</option>
+                  <option value="Garoua">Garoua</option>
+                  <option value="Buea">Buea</option>
+                </select>
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.emailLabel}</label>
+              <input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                placeholder="lawyer@example.cm" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.phone}</label>
+              <input type="tel" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                placeholder="+237 6XX XX XX XX" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.originType}</label>
+              <div className="relative border border-gray-300 rounded-lg overflow-hidden">
+                <select value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
+                  className="w-full appearance-none bg-transparent px-3 py-2.5 text-sm outline-none cursor-pointer pr-8">
+                  <option value="Self-registered">Self-registered</option>
+                  <option value="Scraped DB">Scraped DB</option>
+                  <option value="Admin Added">Admin Added</option>
+                </select>
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="border border-gray-200 text-gray-700 font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+              {T.cancel}
+            </button>
+            <button type="submit" className="bg-primary hover:bg-primary-dark text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm transition-colors">
+              {T.save}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+const INITIAL_DATA = [
+  { name: 'Me. Ndoumbe Marcel', barId: 'Bar ID: CM-2015-849', email: 'm.ndoumbe@lexfirm.cm', phone: '+237 677 12 34 56', location: 'Douala', type: 'Self-registered', status: 'Verified', dateJoined: 'Oct 12, 2023', initials: 'MN', avatarBg: 'bg-emerald-800/10 text-emerald-800', statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/60', actions: ['view', 'edit', 'ban'] },
+  { name: 'Me. Ekoka Alice', barId: 'Bar ID: CM-2021-112', email: 'alice.e@gmail.com', phone: '+237 699 88 77 66', location: 'Yaoundé', type: 'Self-registered', status: 'Pending', dateJoined: 'Nov 05, 2023', initials: 'EA', avatarBg: 'bg-slate-200 text-slate-700', statusClass: 'bg-amber-50 text-amber-700 border-amber-200/60', actions: ['view', 'edit', 'approve'] },
+  { name: 'Me. Biyong Thomas', barId: 'Bar ID: Unknown', email: 'Not provided', phone: '+237 670 00 11 22', location: 'Bamenda', type: 'Scraped DB', status: 'Unclaimed', dateJoined: 'System Import', initials: 'BT', avatarBg: 'bg-slate-200 text-slate-700', statusClass: 'bg-gray-100 text-gray-600 border-gray-200/80', actions: ['view', 'edit', 'delete'] },
+  { name: 'Me. Siewe Fabrice', barId: 'License Suspended', email: 'f.siewe@avocat.cm', phone: '+237 655 44 33 22', location: 'Buea', type: 'Self-registered', status: 'Suspended', dateJoined: 'Jan 10, 2022', initials: 'SF', avatarBg: 'bg-red-50 text-red-800', statusClass: 'bg-red-50 text-red-600 border-red-200/60', actions: ['view', 'history', 'delete'], isSuspended: true },
+];
+
 export default function AdminLawyerDirectory() {
   const { lang } = useLanguage();
   const T = t[lang].admin;
-  const tableData = [
-    {
-      name: 'Me. Ndoumbe Marcel',
-      barId: 'Bar ID: CM-2015-849',
-      email: 'm.ndoumbe@lexfirm.cm',
-      phone: '+237 677 12 34 56',
-      location: 'Douala',
-      type: 'Self-registered',
-      status: 'Verified',
-      dateJoined: 'Oct 12, 2023',
-      initials: 'MN',
-      avatarBg: 'bg-emerald-800/10 text-emerald-800',
-      statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
-      actions: ['view', 'edit', 'ban'],
-    },
-    {
-      name: 'Me. Ekoka Alice',
-      barId: 'Bar ID: CM-2021-112',
-      email: 'alice.e@gmail.com',
-      phone: '+237 699 88 77 66',
-      location: 'Yaoundé',
-      type: 'Self-registered',
-      status: 'Pending',
-      dateJoined: 'Nov 05, 2023',
-      initials: 'EA',
-      avatarBg: 'bg-slate-200 text-slate-700',
-      statusClass: 'bg-amber-50 text-amber-700 border-amber-200/60',
-      actions: ['view', 'edit', 'approve'],
-    },
-    {
-      name: 'Me. Biyong Thomas',
-      barId: 'Bar ID: Unknown',
-      email: 'Not provided',
-      phone: '+237 670 00 11 22',
-      location: 'Bamenda',
-      type: 'Scraped DB',
-      status: 'Unclaimed',
-      dateJoined: 'System Import',
-      initials: 'BT',
-      avatarBg: 'bg-slate-200 text-slate-700',
-      statusClass: 'bg-gray-100 text-gray-600 border-gray-200/80',
-      actions: ['view', 'edit', 'delete'],
-    },
-    {
-      name: 'Me. Siewe Fabrice',
-      barId: 'License Suspended',
-      email: 'f.siewe@avocat.cm',
-      phone: '+237 655 44 33 22',
-      location: 'Buea',
-      type: 'Self-registered',
-      status: 'Suspended',
-      dateJoined: 'Jan 10, 2022',
-      initials: 'SF',
-      avatarBg: 'bg-red-50 text-red-800',
-      statusClass: 'bg-red-50 text-red-600 border-red-200/60',
-      actions: ['view', 'history', 'delete'],
-      isSuspended: true,
-    },
-  ];
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [tableData, setTableData] = useState(INITIAL_DATA);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [domains, setDomains] = useState(['Corporate Law', 'Family Law']);
+  const [rowsPerPage, setRowsPerPage] = useState('15');
+  const [rowStatuses, setRowStatuses] = useState({});
+
+  function getStatus(row) { return rowStatuses[row.email] ?? row.status; }
+  function getStatusClass(row) {
+    const s = getStatus(row);
+    if (s === 'Verified') return 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
+    if (s === 'Pending') return 'bg-amber-50 text-amber-700 border-amber-200/60';
+    if (s === 'Suspended' || s === 'Banned') return 'bg-red-50 text-red-600 border-red-200/60';
+    return 'bg-gray-100 text-gray-600 border-gray-200/80';
+  }
+
+  function applyRowAction(email, action) {
+    if (action === 'delete') {
+      setTableData((prev) => prev.filter((r) => r.email !== email));
+      return;
+    }
+    const statusMap = { ban: 'Banned', approve: 'Verified' };
+    if (statusMap[action]) setRowStatuses((prev) => ({ ...prev, [email]: statusMap[action] }));
+  }
+
+  function removeDomain(d) { setDomains((prev) => prev.filter((x) => x !== d)); }
+
+  const filtered = tableData.filter((row) => {
+    if (statusFilter && getStatus(row) !== statusFilter) return false;
+    if (cityFilter && row.location !== cityFilter) return false;
+    if (typeFilter && row.type !== typeFilter) return false;
+    return true;
+  });
+
+  const uniqueStatuses = [...new Set(tableData.map((r) => r.status))];
+  const uniqueCities = [...new Set(tableData.map((r) => r.location))];
+  const uniqueTypes = [...new Set(tableData.map((r) => r.type))];
 
   return (
     <div className="p-8 space-y-6">
 
+      {showAddModal && (
+        <AddLawyerModal T={T} onClose={() => setShowAddModal(false)} onAdd={(newRow) => setTableData((prev) => [newRow, ...prev])} />
+      )}
+
       {/* Page header */}
       <div className="flex items-center justify-between">
         <h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">{T.lawyerDirectory}</h2>
-        <button className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-sm px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold text-sm px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm"
+        >
           <Plus size={16} /> {T.addLawyer}
         </button>
       </div>
@@ -85,45 +174,67 @@ export default function AdminLawyerDirectory() {
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4 pb-1">
           <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">{T.filterRecords}</span>
-          <button className="text-xs font-bold text-muted hover:text-gray-600 flex items-center gap-1">
+          <button
+            onClick={() => { setStatusFilter(''); setCityFilter(''); setTypeFilter(''); setDomains([]); }}
+            className="text-xs font-bold text-muted hover:text-gray-600 flex items-center gap-1"
+          >
             <SlidersHorizontal size={12} /> {T.clearAll}
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold text-gray-500">
+
           <div>
             <label className="block mb-1.5 font-bold">{T.status}</label>
-            <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">{T.allStatuses}</span>
-              <ChevronDown size={14} className="text-gray-400" />
+            <div className="relative bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full appearance-none bg-transparent px-3 py-2.5 text-xs font-semibold text-gray-800 outline-none cursor-pointer pr-8">
+                <option value="">{T.allStatuses}</option>
+                {uniqueStatuses.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
           </div>
+
           <div>
             <label className="block mb-1.5 font-bold">{T.cityLabel}</label>
-            <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">{T.allCities}</span>
-              <ChevronDown size={14} className="text-gray-400" />
+            <div className="relative bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}
+                className="w-full appearance-none bg-transparent px-3 py-2.5 text-xs font-semibold text-gray-800 outline-none cursor-pointer pr-8">
+                <option value="">{T.allCities}</option>
+                {uniqueCities.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
           </div>
+
           <div>
             <label className="block mb-1.5 font-bold">{T.practiceDomain}</label>
             <div className="bg-white border border-gray-200 rounded-lg p-1.5 flex flex-wrap items-center gap-1.5 min-h-[38px]">
-              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded flex items-center gap-1 text-[10px] border border-gray-200/40 font-medium">
-                Corporate Law <X size={10} className="mt-0.5 cursor-pointer text-gray-400" />
-              </span>
-              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded flex items-center gap-1 text-[10px] border border-gray-200/40 font-medium">
-                Family Law <X size={10} className="mt-0.5 cursor-pointer text-gray-400" />
-              </span>
+              {domains.map((d) => (
+                <span key={d} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded flex items-center gap-1 text-[10px] border border-gray-200/40 font-medium">
+                  {d}
+                  <button type="button" onClick={() => removeDomain(d)}>
+                    <X size={10} className="mt-0.5 text-gray-400 hover:text-gray-600" />
+                  </button>
+                </span>
+              ))}
               <span className="text-gray-400 font-normal pl-0.5">{T.addDomain}</span>
             </div>
           </div>
+
           <div>
             <label className="block mb-1.5 font-bold">{T.originType}</label>
-            <div className="relative bg-white border border-gray-200 rounded-lg p-2.5 flex items-center justify-between cursor-pointer">
-              <span className="text-gray-800">{T.allTypes}</span>
-              <ChevronDown size={14} className="text-gray-400" />
+            <div className="relative bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full appearance-none bg-transparent px-3 py-2.5 text-xs font-semibold text-gray-800 outline-none cursor-pointer pr-8">
+                <option value="">{T.allTypes}</option>
+                {uniqueTypes.map((tp) => <option key={tp} value={tp}>{tp}</option>)}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -131,7 +242,7 @@ export default function AdminLawyerDirectory() {
       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden">
 
         <div className="px-6 py-4 bg-[#FAFAFA] border-b border-gray-100 flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500">{T.showing} 1-15 of 248 records</span>
+          <span className="text-xs font-bold text-gray-500">{T.showing} 1–{Math.min(Number(rowsPerPage), filtered.length)} of {filtered.length} records</span>
           <div className="flex items-center gap-2">
             <button className="p-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-gray-500">
               <Download size={14} />
@@ -157,75 +268,64 @@ export default function AdminLawyerDirectory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
-              {tableData.map((row, idx) => (
-                <tr key={idx} className="hover:bg-gray-50/40 transition-colors">
-                  <td className="py-4 px-6">
-                    <input type="checkbox" className="rounded border-gray-300 accent-primary" />
-                  </td>
-
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full ${row.avatarBg} font-bold text-[11px] flex items-center justify-center flex-shrink-0`}>
-                        {row.initials}
+              {filtered.map((row) => {
+                const currentStatus = getStatus(row);
+                const isSuspended = currentStatus === 'Suspended' || currentStatus === 'Banned';
+                return (
+                  <tr key={row.email} className="hover:bg-gray-50/40 transition-colors">
+                    <td className="py-4 px-6">
+                      <input type="checkbox" className="rounded border-gray-300 accent-primary" />
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full ${row.avatarBg} font-bold text-[11px] flex items-center justify-center flex-shrink-0`}>
+                          {row.initials}
+                        </div>
+                        <div>
+                          <p className={`font-bold text-sm text-gray-900 ${isSuspended ? 'line-through text-gray-400' : ''}`}>{row.name}</p>
+                          <p className={`text-[10px] mt-0.5 font-bold ${isSuspended ? 'text-red-500' : 'text-gray-400'}`}>{row.barId}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className={`font-bold text-sm text-gray-900 ${row.isSuspended ? 'line-through text-gray-400' : ''}`}>
-                          {row.name}
-                        </p>
-                        <p className={`text-[10px] mt-0.5 font-bold ${row.isSuspended ? 'text-red-500' : 'text-gray-400'}`}>
-                          {row.barId}
-                        </p>
+                    </td>
+                    <td className="py-4 px-6">
+                      <p className={`font-semibold text-gray-800 ${row.email === 'Not provided' ? 'italic font-normal text-gray-400' : ''}`}>{row.email}</p>
+                      <p className="text-gray-400 font-normal mt-0.5">{row.phone}</p>
+                    </td>
+                    <td className="py-4 px-6 text-gray-600 font-semibold">{row.location}</td>
+                    <td className="py-4 px-4">
+                      <span className="bg-gray-100 text-gray-500 border border-gray-200/50 px-2 py-0.5 rounded text-[10px]">{row.type}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusClass(row)}`}>
+                        <span className="text-[14px] leading-none mb-0.5">•</span> {currentStatus}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-gray-500 font-normal">{row.dateJoined}</td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="inline-flex items-center gap-1.5 text-gray-400">
+                        {row.actions.includes('view') && (
+                          <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><Eye size={14} /></button>
+                        )}
+                        {row.actions.includes('edit') && (
+                          <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><Pencil size={14} /></button>
+                        )}
+                        {row.actions.includes('ban') && currentStatus !== 'Banned' && (
+                          <button onClick={() => applyRowAction(row.email, 'ban')} className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded transition-colors"><Ban size={14} /></button>
+                        )}
+                        {row.actions.includes('approve') && currentStatus !== 'Verified' && (
+                          <button onClick={() => applyRowAction(row.email, 'approve')} className="p-1.5 hover:bg-emerald-50 hover:text-emerald-600 rounded transition-colors"><Check size={14} strokeWidth={2.5} /></button>
+                        )}
+                        {row.actions.includes('history') && (
+                          <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><RotateCcw size={14} /></button>
+                        )}
+                        {row.actions.includes('delete') && (
+                          <button onClick={() => applyRowAction(row.email, 'delete')} className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded transition-colors"><Trash2 size={14} /></button>
+                        )}
                       </div>
-                    </div>
-                  </td>
-
-                  <td className="py-4 px-6">
-                    <p className={`font-semibold text-gray-800 ${row.email === 'Not provided' ? 'italic font-normal text-gray-400' : ''}`}>
-                      {row.email}
-                    </p>
-                    <p className="text-gray-400 font-normal mt-0.5">{row.phone}</p>
-                  </td>
-
-                  <td className="py-4 px-6 text-gray-600 font-semibold">{row.location}</td>
-
-                  <td className="py-4 px-4">
-                    <span className="bg-gray-100 text-gray-500 border border-gray-200/50 px-2 py-0.5 rounded text-[10px]">
-                      {row.type}
-                    </span>
-                  </td>
-
-                  <td className="py-4 px-4">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${row.statusClass}`}>
-                      <span className="text-[14px] leading-none mb-0.5">•</span> {row.status}
-                    </span>
-                  </td>
-
-                  <td className="py-4 px-4 text-gray-500 font-normal">{row.dateJoined}</td>
-
-                  <td className="py-4 px-6 text-right">
-                    <div className="inline-flex items-center gap-1.5 text-gray-400">
-                      {row.actions.includes('view') && (
-                        <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><Eye size={14} /></button>
-                      )}
-                      {row.actions.includes('edit') && (
-                        <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><Pencil size={14} /></button>
-                      )}
-                      {row.actions.includes('ban') && (
-                        <button className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded transition-colors"><Ban size={14} /></button>
-                      )}
-                      {row.actions.includes('approve') && (
-                        <button className="p-1.5 hover:bg-emerald-50 hover:text-emerald-600 rounded transition-colors"><Check size={14} strokeWidth={2.5} /></button>
-                      )}
-                      {row.actions.includes('history') && (
-                        <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><RotateCcw size={14} /></button>
-                      )}
-                      {row.actions.includes('delete') && (
-                        <button className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded transition-colors"><Trash2 size={14} /></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -234,11 +334,16 @@ export default function AdminLawyerDirectory() {
         <div className="bg-[#FAFAFA] border-t border-gray-100 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2 font-semibold text-gray-500">
             <span>{T.rowsPerPage}</span>
-            <div className="bg-white border border-gray-200 rounded px-2 py-1 flex items-center gap-2 cursor-pointer text-gray-800">
-              <span>15</span> <ChevronDown size={12} />
+            <div className="relative bg-white border border-gray-200 rounded overflow-hidden">
+              <select value={rowsPerPage} onChange={(e) => setRowsPerPage(e.target.value)}
+                className="appearance-none bg-transparent px-2 py-1 pr-6 text-xs text-gray-800 outline-none cursor-pointer">
+                <option value="15">15</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <svg className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
           </div>
-
           <div className="flex items-center gap-1 select-none font-semibold text-gray-600">
             <button disabled className="p-1.5 border border-gray-200 bg-white rounded disabled:opacity-40 cursor-not-allowed">
               <ChevronLeft size={14} />
