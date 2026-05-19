@@ -1,4 +1,21 @@
-FROM mcr.microsoft.com/devcontainers/python:1-3.11-bookworm
+# Stage 1: convert the HuggingFace model to ONNX
+# PyTorch and optimum are only needed here — they are NOT copied to the final image.
+FROM python:3.11-slim AS converter
+
+ARG MODEL_NAME=intfloat/multilingual-e5-small
+
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir "optimum[onnxruntime]" transformers
+
+RUN HF_HOME=/tmp/hf_cache optimum-cli export onnx \
+        --model ${MODEL_NAME} \
+        --task feature-extraction \
+        /onnx_output/ \
+    && ls /onnx_output/model.onnx
+
+
+# Stage 2: lean runtime image
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,8 +24,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 ARG MODEL_NAME=intfloat/multilingual-e5-small
 ENV MODEL_NAME=${MODEL_NAME}
-ARG MODEL_URL
-ARG MODEL_SHA256=
 
 WORKDIR /app
 
@@ -19,40 +34,8 @@ RUN useradd --create-home appuser \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN python3 - <<'PY'
-import hashlib
-import os
-import pathlib
-import urllib.request
-
-model_url = os.environ.get("MODEL_URL", "").strip()
-if not model_url:
-    raise SystemExit(
-        "MODEL_URL build arg is required. Point it at the externally stored model artifact."
-    )
-
-expected_sha256 = os.environ.get("MODEL_SHA256", "").strip().lower()
-target = pathlib.Path("/cache/model.onnx")
-target.parent.mkdir(parents=True, exist_ok=True)
-
-hasher = hashlib.sha256() if expected_sha256 else None
-with urllib.request.urlopen(model_url) as response, target.open("wb") as output_file:
-    while True:
-        chunk = response.read(1024 * 1024)
-        if not chunk:
-            break
-        output_file.write(chunk)
-        if hasher:
-            hasher.update(chunk)
-
-if hasher and hasher.hexdigest().lower() != expected_sha256:
-    target.unlink(missing_ok=True)
-    raise SystemExit(
-        f"MODEL_SHA256 mismatch for {target}: expected {expected_sha256}, got {hasher.hexdigest().lower()}"
-    )
-
-print(f"Downloaded external model artifact to {target}")
-PY
+# Copy the converted model from the converter stage
+COPY --from=converter /onnx_output/model.onnx /cache/model.onnx
 
 COPY app ./app
 
