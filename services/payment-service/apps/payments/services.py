@@ -65,6 +65,7 @@ def initiate_payment(user_id, document_id, amount, phone_number, operator):
     transaction.save(update_fields=["campay_reference"])
 
     return {
+        "id": internal_reference,
         "internal_reference": internal_reference,
         "campay_reference": data["reference"],
         "payment_url": data["payment_url"],

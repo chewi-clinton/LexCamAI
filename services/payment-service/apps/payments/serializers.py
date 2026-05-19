@@ -11,6 +11,13 @@ class InitiatePaymentSerializer(serializers.Serializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        if obj.status == Transaction.STATUS_CONFIRMED:
+            return "completed"
+        return obj.status
+
     class Meta:
         model = Transaction
         fields = [

@@ -35,8 +35,9 @@ export default function DocumentPaymentStep() {
     try {
       const result = await paymentsApi.initiate({
         document_id: docMeta?.id,
-        provider,
-        phone_number: `237${phone.replace(/\D/g, '')}`,
+        amount: price,
+        operator: provider,
+        phone_number: `+237${phone.replace(/\D/g, '')}`,
       });
       setSubmitting(false);
       setPolling(true);
@@ -186,7 +187,7 @@ export default function DocumentPaymentStep() {
                 {(submitting || polling) ? (
                   <><Loader2 size={16} className="animate-spin" /> {polling ? 'Confirming payment…' : 'Processing…'}</>
                 ) : (
-                  <>{T.payBtn} <ArrowRight size={16} /></>
+                  <>{lang === 'fr' ? 'Payer' : 'Pay'} {price.toLocaleString()} {currency} <ArrowRight size={16} /></>
                 )}
               </button>
               <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-400 select-none">
