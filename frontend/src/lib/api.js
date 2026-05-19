@@ -157,3 +157,50 @@ export const payments = {
   initiate: (data) => post('/api/v1/payments/initiate', data),
   status:   (id)   => get(`/api/v1/payments/${id}/status`),
 };
+
+// ─── Chat API ─────────────────────────────────────────────────────────────────
+export const chat = {
+  conversations: ()         => get('/api/v1/chat/conversations'),
+  getConversation: (id)     => get(`/api/v1/chat/conversations/${id}`),
+  create: ()                => post('/api/v1/chat/conversations', {}),
+  sendMessage: (id, content) => post(`/api/v1/chat/conversations/${id}/messages`, { content }),
+};
+
+export async function streamChatMessage(convId, content, { onChunk, onDone, onError }) {
+  const token = _accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('lexcam_access') : null);
+  try {
+    const res = await fetch(`/api/v1/chat/conversations/${convId}/messages/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ content }),
+    });
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) { onDone(); return; }
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') { onDone(); return; }
+        try {
+          const parsed = JSON.parse(raw);
+          const chunk = parsed.token ?? parsed.text ?? parsed.content ?? '';
+          if (chunk) onChunk(chunk);
+        } catch {
+          if (raw) onChunk(raw);
+        }
+      }
+    }
+  } catch (err) {
+    onError(err);
+  }
+}
