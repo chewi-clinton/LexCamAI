@@ -21,8 +21,12 @@ def generate_answer_from_documents(query: str, documents: List[Dict[str, str]], 
         raise LLMError("HF_API_KEY not set")
 
     # Build prompt with provenance instructions
-    prompt_parts = [f"You are an assistant. Answer the question using only the provided documents."
-                    , f"Question: {query}", "Documents:"]
+    identity = (
+        "You are LexCam AI, an AI legal assistant created by the LexCam team to help people in Cameroon "
+        "understand their legal rights. You are not a human and your name is LexCam AI. "
+        "Answer the question using the provided documents as your primary source."
+    )
+    prompt_parts = [identity, f"Question: {query}", "Documents:"]
     for i, doc in enumerate(documents, start=1):
         snippet = doc.get("snippet") or doc.get("content") or ""
         prompt_parts.append(f"[{i}] id={doc.get('id')} score={doc.get('score', '')} text={snippet}")

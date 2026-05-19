@@ -46,6 +46,15 @@ app = FastAPI(title="rag-service", lifespan=lifespan)
 KB_URL = os.getenv("KNOWLEDGE_BASE_URL", "http://knowledge-base-service:8000")
 EMBED_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://embedding-service:8000")
 
+SYSTEM_IDENTITY = (
+    "You are LexCam AI, an artificial intelligence legal assistant created by the LexCam team to help "
+    "people in Cameroon understand their legal rights and navigate Cameroonian law. "
+    "You are NOT a human, NOT a lawyer, and you do NOT have a personal name like a person — your name is LexCam AI. "
+    "Always introduce yourself as LexCam AI when asked. "
+    "Provide clear, helpful, and accurate general legal information about Cameroonian law. "
+    "Always remind users that your responses are for informational purposes only and do not constitute formal legal advice."
+)
+
 
 
 
@@ -189,7 +198,7 @@ async def query_stream(req: QueryRequest, request: Request):
 
     if documents:
         prompt_parts = [
-            "You are a helpful legal assistant for Cameroon. Answer the question using the provided documents as your primary source.",
+            SYSTEM_IDENTITY + " Answer the question using the provided documents as your primary source.",
             f"Question: {req.query}",
             "Documents:",
         ]
@@ -197,7 +206,7 @@ async def query_stream(req: QueryRequest, request: Request):
             prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
     else:
         prompt_parts = [
-            "You are a helpful legal assistant for Cameroon. Answer the question based on your knowledge of Cameroonian law and general legal principles.",
+            SYSTEM_IDENTITY + " Answer the question based on your knowledge of Cameroonian law and general legal principles.",
             f"Question: {req.query}",
         ]
     prompt = "\n\n".join(prompt_parts)
@@ -372,7 +381,7 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
     sources, documents = _normalize_kb_response(data)
     if documents:
         prompt_parts = [
-            "You are a helpful legal assistant for Cameroon. Answer the question using the provided documents as your primary source.",
+            SYSTEM_IDENTITY + " Answer the question using the provided documents as your primary source.",
             f"Question: {req.content}",
             "Documents:",
         ]
@@ -380,7 +389,7 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
             prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
     else:
         prompt_parts = [
-            "You are a helpful legal assistant for Cameroon. Answer the question based on your knowledge of Cameroonian law and general legal principles.",
+            SYSTEM_IDENTITY + " Answer the question based on your knowledge of Cameroonian law and general legal principles.",
             f"Question: {req.content}",
         ]
     prompt = "\n\n".join(prompt_parts)
