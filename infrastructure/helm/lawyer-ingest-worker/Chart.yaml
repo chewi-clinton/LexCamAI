@@ -1,0 +1,6 @@
+apiVersion: v2
+name: lawyer-ingest-worker
+description: LexCam Lawyer Ingest Worker — consumes scraped lawyers and ingests into Lawyer Service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lawyer-ingest-worker.name" . }}
+  labels:
+    {{- include "lawyer-ingest-worker.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "lawyer-ingest-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lawyer-ingest-worker.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: lawyer-ingest-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "worker.py"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "lawyer-ingest-worker.name" . }}-config
+            - secretRef:
+                name: {{ include "lawyer-ingest-worker.name" . }}-secret
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
