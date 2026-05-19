@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { Mail, ArrowLeft, MailCheck } from 'lucide-react';
+import { Mail, ArrowLeft, MailCheck, Loader2 } from 'lucide-react';
 import GavelIcon from '@/components/ui/GavelIcon';
+import { auth } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -18,7 +19,25 @@ function Branding({ tagline }) {
 }
 
 function ForgotPasswordForm({ T, onSubmit }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]   = useState('');
+  const [error, setError]   = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await auth.forgotPassword(email);
+      sessionStorage.setItem('reset_email', email);
+      onSubmit(email);
+    } catch (err) {
+      setError(err.message ?? 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Branding tagline={T.tagline} />
@@ -27,7 +46,7 @@ function ForgotPasswordForm({ T, onSubmit }) {
           <h2 className="font-serif text-2xl font-bold text-primary mb-1">{T.title}</h2>
           <p className="text-sm text-muted leading-relaxed">{T.desc}</p>
         </div>
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); onSubmit(email); }}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.emailAddress}</label>
             <div className="relative flex items-center border border-gray-300 rounded-lg bg-white shadow-sm focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-shadow">
@@ -42,8 +61,9 @@ function ForgotPasswordForm({ T, onSubmit }) {
               />
             </div>
           </div>
-          <button type="submit" className="w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold py-3.5 px-6 rounded-xl text-sm shadow-sm">
-            {T.sendResetLink}
+          {error && <p className="text-xs font-semibold text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
+          <button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-white font-bold py-3.5 px-6 rounded-xl text-sm shadow-sm flex items-center justify-center gap-2">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : T.sendResetLink}
           </button>
         </form>
         <div className="mt-6 text-center">
@@ -72,6 +92,12 @@ function CheckInbox({ T, email }) {
           className="w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold py-3.5 px-6 rounded-xl text-sm shadow-sm flex items-center justify-center gap-2"
         >
           <MailCheck size={16} /> {T.openEmailApp}
+        </a>
+        <a
+          href="/reset-password"
+          className="w-full mt-3 border border-primary text-primary font-bold py-3.5 px-6 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
+        >
+          {T.enterCode ?? 'Enter the code I received'}
         </a>
         <p className="text-xs text-gray-400 font-medium mt-5">
           {T.didntReceive}{' '}

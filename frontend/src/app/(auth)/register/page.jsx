@@ -1,7 +1,9 @@
 'use client';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, MapPin, Lock, ChevronDown, ArrowRight } from 'lucide-react';
+import { User, Mail, MapPin, Lock, ChevronDown, ArrowRight, Loader2 } from 'lucide-react';
 import GavelIcon from '@/components/ui/GavelIcon';
+import { auth } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -9,6 +11,37 @@ export default function SignUp() {
   const router = useRouter();
   const { lang, setLang } = useLanguage();
   const T = t[lang].register;
+
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail]       = useState('');
+  const [city, setCity]         = useState('');
+  const [password, setPassword] = useState('');
+  const [consent, setConsent]   = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!consent) { setError('You must agree to the terms to continue.'); return; }
+    setError('');
+    setLoading(true);
+    try {
+      await auth.register({
+        full_name: fullName,
+        email,
+        city,
+        password,
+        preferred_language: lang,
+        consent_given: true,
+      });
+      sessionStorage.setItem('pending_verify_email', email);
+      router.push('/verify-email');
+    } catch (err) {
+      setError(err.data?.email?.[0] ?? err.message ?? 'Registration failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -24,7 +57,7 @@ export default function SignUp() {
       <div className="bg-surface w-full max-w-md rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10">
         <h2 className="font-serif text-2xl font-bold text-primary mb-8">{T.createAccount}</h2>
 
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); router.push('/verify-email'); }}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">{T.fullName}</label>
@@ -34,7 +67,10 @@ export default function SignUp() {
               </div>
               <input
                 type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Jean Dupont"
+                required
                 className="block w-full pl-11 pr-4 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none"
               />
             </div>
@@ -48,7 +84,10 @@ export default function SignUp() {
               </div>
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
+                required
                 className="block w-full pl-11 pr-4 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none"
               />
             </div>
@@ -61,15 +100,16 @@ export default function SignUp() {
                 <MapPin size={18} />
               </div>
               <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
                 className="block w-full pl-11 pr-10 py-3 bg-transparent rounded-lg text-sm text-gray-700 appearance-none outline-none cursor-pointer"
-                defaultValue=""
               >
-                <option value="" disabled>{T.selectCity}</option>
-                <option value="yaounde">Yaoundé</option>
-                <option value="douala">Douala</option>
-                <option value="bamenda">Bamenda</option>
-                <option value="bafoussam">Bafoussam</option>
-                <option value="garoua">Garoua</option>
+                <option value="">{T.selectCity}</option>
+                <option value="Yaoundé">Yaoundé</option>
+                <option value="Douala">Douala</option>
+                <option value="Bamenda">Bamenda</option>
+                <option value="Bafoussam">Bafoussam</option>
+                <option value="Garoua">Garoua</option>
               </select>
               <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
                 <ChevronDown size={16} />
@@ -85,7 +125,11 @@ export default function SignUp() {
               </div>
               <input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                required
+                minLength={8}
                 className="block w-full pl-11 pr-4 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none tracking-widest"
               />
             </div>
@@ -94,20 +138,8 @@ export default function SignUp() {
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">{T.preferredLanguage}</label>
             <div className="bg-gray-100 p-1 rounded-lg grid grid-cols-2 text-center text-xs font-bold border border-gray-200/40">
-              <button
-                type="button"
-                onClick={() => setLang('fr')}
-                className={`py-2.5 rounded-md transition-all ${lang === 'fr' ? 'bg-white text-accent-dark shadow-sm' : 'text-muted hover:text-gray-800'}`}
-              >
-                FR
-              </button>
-              <button
-                type="button"
-                onClick={() => setLang('en')}
-                className={`py-2.5 rounded-md transition-all ${lang === 'en' ? 'bg-white text-accent-dark shadow-sm' : 'text-muted hover:text-gray-800'}`}
-              >
-                EN
-              </button>
+              <button type="button" onClick={() => setLang('fr')} className={`py-2.5 rounded-md transition-all ${lang === 'fr' ? 'bg-white text-accent-dark shadow-sm' : 'text-muted hover:text-gray-800'}`}>FR</button>
+              <button type="button" onClick={() => setLang('en')} className={`py-2.5 rounded-md transition-all ${lang === 'en' ? 'bg-white text-accent-dark shadow-sm' : 'text-muted hover:text-gray-800'}`}>EN</button>
             </div>
           </div>
 
@@ -115,6 +147,8 @@ export default function SignUp() {
             <input
               id="terms"
               type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
               className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary cursor-pointer"
             />
             <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer select-none">
@@ -125,12 +159,18 @@ export default function SignUp() {
             </label>
           </div>
 
+          {error && (
+            <p className="text-xs font-semibold text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3.5 px-4 rounded-lg font-medium text-sm md:text-base flex items-center justify-center gap-2 shadow-sm"
+            disabled={loading}
+            className="w-full bg-primary hover:bg-primary-light disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-white py-3.5 px-4 rounded-lg font-medium text-sm md:text-base flex items-center justify-center gap-2 shadow-sm"
           >
-            {T.createAccount}
-            <ArrowRight size={16} />
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <>{T.createAccount} <ArrowRight size={16} /></>}
           </button>
 
         </form>

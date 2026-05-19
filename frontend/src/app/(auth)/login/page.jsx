@@ -1,14 +1,38 @@
 'use client';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import GavelIcon from '@/components/ui/GavelIcon';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
+const REDIRECT = { admin: '/admin', lawyer: '/lawyer-dashboard', user: '/dashboard' };
+
 export default function Login() {
   const router = useRouter();
+  const { login } = useAuth();
   const { lang } = useLanguage();
   const T = t[lang].login;
+
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const user = await login(email, password);
+      router.push(REDIRECT[user.role] ?? '/dashboard');
+    } catch (err) {
+      setError(err.message ?? 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -24,7 +48,7 @@ export default function Login() {
       <div className="bg-surface w-full max-w-md rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10">
         <h2 className="font-serif text-2xl font-bold text-primary mb-8">{T.welcomeBack}</h2>
 
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); router.push('/dashboard'); }}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">{T.emailAddress}</label>
@@ -34,7 +58,10 @@ export default function Login() {
               </div>
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
+                required
                 className="block w-full pl-11 pr-4 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none"
               />
             </div>
@@ -53,18 +80,27 @@ export default function Login() {
               </div>
               <input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                required
                 className="block w-full pl-11 pr-4 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none tracking-widest"
               />
             </div>
           </div>
 
+          {error && (
+            <p className="text-xs font-semibold text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3.5 px-4 rounded-lg font-medium text-sm md:text-base flex items-center justify-center gap-2 shadow-sm"
+            disabled={loading}
+            className="w-full bg-primary hover:bg-primary-light disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-white py-3.5 px-4 rounded-lg font-medium text-sm md:text-base flex items-center justify-center gap-2 shadow-sm"
           >
-            {T.logIn}
-            <ArrowRight size={16} />
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <>{T.logIn} <ArrowRight size={16} /></>}
           </button>
 
         </form>

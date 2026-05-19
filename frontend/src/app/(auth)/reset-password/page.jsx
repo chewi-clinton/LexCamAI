@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
-import { RotateCcw, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { RotateCcw, Check, Loader2 } from 'lucide-react';
 import GavelIcon from '@/components/ui/GavelIcon';
+import { auth } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -18,12 +19,36 @@ function Branding({ tagline }) {
 }
 
 function SetNewPassword({ T, onSubmit }) {
+  const [code, setCode]         = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+  const [confirm, setConfirm]   = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const emailRef = useRef('');
+
+  useEffect(() => {
+    emailRef.current = sessionStorage.getItem('reset_email') ?? '';
+  }, []);
 
   const strength = Math.min(4, Math.floor(password.length / 3));
   const strengthLabels = ['', T.strengthWeak, T.strengthFair, T.strengthGood, T.strengthStrong];
   const strengthColors = ['bg-gray-200', 'bg-red-400', 'bg-yellow-400', 'bg-emerald-400', 'bg-emerald-600'];
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (password !== confirm) return;
+    setError('');
+    setLoading(true);
+    try {
+      await auth.resetPassword(emailRef.current, code, password);
+      sessionStorage.removeItem('reset_email');
+      onSubmit();
+    } catch (err) {
+      setError(err.message ?? 'Invalid or expired code.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -33,7 +58,21 @@ function SetNewPassword({ T, onSubmit }) {
           <h2 className="font-serif text-2xl font-bold text-primary mb-1">{T.title}</h2>
           <p className="text-sm text-muted leading-relaxed">{T.desc}</p>
         </div>
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); if (password && password === confirm) onSubmit(); }}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.resetCode ?? '6-digit reset code'}</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              required
+              className="w-full border border-gray-300 rounded-lg px-4 py-3.5 text-sm font-medium text-gray-800 tracking-widest text-center outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 bg-white shadow-sm"
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.newPassword}</label>
             <div className="relative flex items-center border border-gray-300 rounded-lg bg-white shadow-sm focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-shadow">
@@ -44,6 +83,7 @@ function SetNewPassword({ T, onSubmit }) {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={T.newPasswordPlaceholder}
                 required
+                minLength={8}
                 className="w-full pl-10 pr-4 py-3.5 text-sm font-medium text-gray-800 outline-none bg-transparent placeholder:text-gray-300"
               />
             </div>
@@ -77,12 +117,14 @@ function SetNewPassword({ T, onSubmit }) {
             )}
           </div>
 
+          {error && <p className="text-xs font-semibold text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
+
           <button
             type="submit"
-            disabled={!password || password !== confirm}
-            className="w-full bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white font-bold py-3.5 px-6 rounded-xl text-sm shadow-sm"
+            disabled={loading || !password || password !== confirm || code.length < 6}
+            className="w-full bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white font-bold py-3.5 px-6 rounded-xl text-sm shadow-sm flex items-center justify-center gap-2"
           >
-            {T.updatePassword}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : T.updatePassword}
           </button>
         </form>
       </div>
