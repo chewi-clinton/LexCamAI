@@ -149,6 +149,7 @@ export const documents = {
   get:      (id)        => get(`/api/v1/documents/${id}`),
   generate: (slug, data) => post(`/api/v1/documents/${slug}/generate`, data),
   myDocs:   ()          => get('/api/v1/documents/my'),
+  download: (id)        => get(`/api/v1/documents/${id}/download`),
 };
 
 // ─── Payments API ─────────────────────────────────────────────────────────────

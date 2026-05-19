@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ShieldCheck, Clock, FileText,
-  ArrowLeft, ArrowRight, Calendar,
+  ArrowLeft, ArrowRight, Calendar, Loader2,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { documents as documentsApi } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -78,6 +80,8 @@ function DocumentPreview({ form }) {
 }
 
 export default function DocumentGenerationDetails() {
+  const { slug } = useParams();
+  const router = useRouter();
   const { lang } = useLanguage();
   const T = t[lang].documentDetails;
 
@@ -91,12 +95,35 @@ export default function DocumentGenerationDetails() {
     contractType: '',
     additionalContext: '',
   });
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState('');
 
   function set(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
   }
 
   const hasContent = Object.values(form).some((v) => v.trim() !== '');
+
+  async function handleContinue(e) {
+    e.preventDefault();
+    setGenError('');
+    setGenerating(true);
+    try {
+      const doc = await documentsApi.generate(slug, form);
+      sessionStorage.setItem('pending_payment_doc', JSON.stringify({
+        id: doc.id,
+        title: doc.title,
+        price: doc.price ?? 5000,
+        currency: doc.currency ?? 'XAF',
+        slug,
+      }));
+      router.push(`/documents/${slug}/pay`);
+    } catch (err) {
+      setGenError(err.message ?? 'Failed to prepare document. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col justify-between">
@@ -251,10 +278,16 @@ export default function DocumentGenerationDetails() {
           <ArrowLeft size={16} />
           {T.backToTemplates}
         </a>
-        <a href="/documents/unpaid-wages/pay" className="bg-primary hover:bg-primary-dark transition-colors text-white font-bold py-3.5 px-6 rounded-lg text-sm flex items-center gap-2 shadow-sm">
-          {T.continueToPayment}
-          <ArrowRight size={16} />
-        </a>
+        <div className="flex flex-col items-end gap-2">
+          {genError && <p className="text-xs font-semibold text-red-500">{genError}</p>}
+          <button
+            onClick={handleContinue}
+            disabled={generating}
+            className="bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white font-bold py-3.5 px-6 rounded-lg text-sm flex items-center gap-2 shadow-sm"
+          >
+            {generating ? <Loader2 size={16} className="animate-spin" /> : <>{T.continueToPayment} <ArrowRight size={16} /></>}
+          </button>
+        </div>
       </div>
 
     </div>
