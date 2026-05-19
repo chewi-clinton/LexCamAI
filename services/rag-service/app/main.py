@@ -36,8 +36,15 @@ class QueryResponse(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure DB tables exist (local dev default: sqlite)
     Base.metadata.create_all(bind=engine)
+    # Add user_id column to existing deployments that predate it
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE conversations ADD COLUMN user_id VARCHAR(64)"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
     yield
 
 
@@ -49,8 +56,8 @@ EMBED_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://embedding-service:8000")
 SYSTEM_IDENTITY = (
     "You are LexCam AI, an artificial intelligence legal assistant created by the LexCam team to help "
     "people in Cameroon understand their legal rights and navigate Cameroonian law. "
-    "You are NOT a human, NOT a lawyer, and you do NOT have a personal name like a person — your name is LexCam AI. "
-    "Always introduce yourself as LexCam AI when asked. "
+    "You are NOT a human and NOT a lawyer. "
+    "Only identify yourself as LexCam AI when the user directly asks about your name or identity — do NOT introduce yourself at the start of every response. "
     "When citing legal sources, always reference the specific law and article number, for example: "
     "'According to Art. 34 of the Cameroon Labour Code...' or 'Under Art. 69 of Law No. 92/007...'. "
     "Never say 'the documents provided' or 'the provided documents' — cite the law by name instead. "
@@ -207,23 +214,23 @@ async def query_stream(req: QueryRequest, request: Request):
 
     if documents:
         prompt_parts = [
-            SYSTEM_IDENTITY + " Answer the question using the provided documents as your primary source.",
+            "Answer the user's question using the legal articles below. When citing them, use the law name and article number shown — do NOT say 'document [N]'.",
             f"Question: {req.query}",
-            "Documents:",
+            "Legal Articles:",
         ]
-        for i, d in enumerate(documents, start=1):
-            prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
+        for d in documents:
+            law_ref = f"{d.get('article_number', '')} of {d.get('law_name', 'Cameroonian Law')}".strip(" of")
+            prompt_parts.append(f"• {law_ref}: {d.get('snippet', '')}")
     else:
         prompt_parts = [
-            SYSTEM_IDENTITY + " Answer the question based on your knowledge of Cameroonian law and general legal principles.",
+            "Answer the user's question based on your knowledge of Cameroonian law and general legal principles.",
             f"Question: {req.query}",
         ]
     prompt = "\n\n".join(prompt_parts)
 
     async def event_generator():
-        # stream_generate is an async generator; yield SSE 'data:' frames
         try:
-            async for chunk in stream_generate(prompt, documents):
+            async for chunk in stream_generate(prompt, documents, system_prompt=SYSTEM_IDENTITY):
                 if not chunk:
                     continue
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
@@ -264,10 +271,11 @@ def _conv_dict(conv: Conversation, include_messages: bool = False) -> Dict:
 
 
 @app.post("/api/v1/chat/conversations")
-def create_conversation():
+def create_conversation(request: Request):
+    user_id = request.headers.get("X-User-Id") or None
     db = SessionLocal()
     try:
-        conv = Conversation(title=None, domain=None, message_count=0)
+        conv = Conversation(title=None, domain=None, message_count=0, user_id=user_id)
         db.add(conv)
         db.commit()
         db.refresh(conv)
@@ -277,15 +285,16 @@ def create_conversation():
 
 
 @app.get("/api/v1/chat/conversations")
-def list_conversations():
+def list_conversations(request: Request):
+    user_id = request.headers.get("X-User-Id") or None
     db = SessionLocal()
     try:
-        convs = (
-            db.query(Conversation)
-            .order_by(Conversation.updated_at.desc())
-            .limit(50)
-            .all()
-        )
+        q = db.query(Conversation)
+        if user_id:
+            q = q.filter(Conversation.user_id == user_id)
+        else:
+            return []  # not logged in — no history shown
+        convs = q.order_by(Conversation.updated_at.desc()).limit(50).all()
         return [_conv_dict(c) for c in convs]
     finally:
         db.close()
@@ -320,7 +329,7 @@ async def send_chat_message(conv_id: int, req: ChatMessageRequest):
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
-            resp = await client.post(f"{KB_URL}/api/v1/search", json={"query": req.content, "k": 5})
+            resp = await client.post(f"{KB_URL}/api/v1/search", json={"query": req.content, "k": 3})
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPError:
@@ -381,7 +390,7 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
-            resp = await client.post(f"{KB_URL}/api/v1/search", json={"query": req.content, "k": 5})
+            resp = await client.post(f"{KB_URL}/api/v1/search", json={"query": req.content, "k": 3})
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPError:
@@ -390,15 +399,16 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
     sources, documents = _normalize_kb_response(data)
     if documents:
         prompt_parts = [
-            SYSTEM_IDENTITY + " Answer the question using the provided documents as your primary source.",
+            "Answer the user's question using the legal articles below. When citing them, use the law name and article number shown — do NOT say 'document [N]'.",
             f"Question: {req.content}",
-            "Documents:",
+            "Legal Articles:",
         ]
-        for i, d in enumerate(documents, start=1):
-            prompt_parts.append(f"[{i}] id={d.get('id')} score={d.get('score')} text={d.get('snippet')}")
+        for d in documents:
+            law_ref = f"{d.get('article_number', '')} of {d.get('law_name', 'Cameroonian Law')}".strip(" of")
+            prompt_parts.append(f"• {law_ref}: {d.get('snippet', '')}")
     else:
         prompt_parts = [
-            SYSTEM_IDENTITY + " Answer the question based on your knowledge of Cameroonian law and general legal principles.",
+            "Answer the user's question based on your knowledge of Cameroonian law and general legal principles.",
             f"Question: {req.content}",
         ]
     prompt = "\n\n".join(prompt_parts)
@@ -406,16 +416,15 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
     collected: List[str] = []
 
     async def event_generator():
-        # Send source metadata first so the frontend can show citations immediately
         display_sources = [
             {"id": s["id"], "article_number": s["article_number"],
              "law_name": s["law_name"], "title": s["title"]}
-            for s in sources if s.get("id")
+            for s in sources[:3] if s.get("id")
         ]
         if display_sources:
             yield f"data: {json.dumps({'sources': display_sources})}\n\n"
         try:
-            async for chunk in stream_generate(prompt, documents):
+            async for chunk in stream_generate(prompt, documents, system_prompt=SYSTEM_IDENTITY):
                 if not chunk:
                     continue
                 collected.append(chunk)

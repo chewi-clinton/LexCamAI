@@ -12,7 +12,7 @@ def generate(prompt: str, documents: List[Dict], max_tokens: int = 256) -> str:
     return generate_answer_from_documents(prompt, documents, max_tokens=max_tokens)
 
 
-async def stream_generate(prompt: str, documents: List[Dict], max_tokens: int = 256) -> AsyncGenerator[str, None]:
+async def stream_generate(prompt: str, documents: List[Dict], max_tokens: int = 256, system_prompt: str = None) -> AsyncGenerator[str, None]:
     """
     Stream tokens from a configured Groq console streaming endpoint.
 
@@ -49,9 +49,13 @@ async def stream_generate(prompt: str, documents: List[Dict], max_tokens: int = 
     groq_model = os.getenv("GROQ_MODEL", "llama3-8b-8192")
     headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
     # OpenAI-compatible format required by Groq /openai/v1/chat/completions
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
     payload = {
         "model": groq_model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": messages,
         "max_tokens": max_tokens,
         "stream": True,
     }

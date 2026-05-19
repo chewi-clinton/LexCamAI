@@ -21,6 +21,7 @@ class Conversation(Base):
     __tablename__ = "conversations"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(64), nullable=True, index=True)
     title = Column(String(255), nullable=True)
     domain = Column(String(64), nullable=True)
     message_count = Column(Integer, default=0)
