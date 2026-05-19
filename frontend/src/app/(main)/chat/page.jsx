@@ -46,7 +46,17 @@ export default function AIAssistant() {
     loadConversations();
     const params = new URLSearchParams(window.location.search);
     const convId = params.get('c');
-    if (convId) selectConversation(convId);
+    const q = params.get('q');
+    if (convId) {
+      selectConversation(convId);
+    } else if (q) {
+      setInput(q);
+      // auto-send after a short delay to let the component mount
+      setTimeout(() => {
+        setInput('');
+        sendMessageText(q);
+      }, 300);
+    }
   }, []);
 
   useEffect(() => {
@@ -104,10 +114,8 @@ export default function AIAssistant() {
     }, 60);
   }
 
-  async function sendMessage() {
-    const text = input.trim();
+  async function sendMessageText(text) {
     if (!text || isTyping || isStreaming) return;
-    setInput('');
 
     let convId = activeConvId;
     if (!convId) {
@@ -133,6 +141,9 @@ export default function AIAssistant() {
     let accumulated = '';
 
     await streamChatMessage(convId, text, {
+      onSources: (srcs) => {
+        setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, tags: srcs } : m));
+      },
       onChunk: (chunk) => {
         accumulated += chunk;
         if (!botAddedRef.current) {
@@ -165,6 +176,13 @@ export default function AIAssistant() {
         }
       },
     });
+  }
+
+  function sendMessage() {
+    const text = input.trim();
+    if (!text) return;
+    setInput('');
+    sendMessageText(text);
   }
 
   function handleKeyDown(e) {
@@ -301,12 +319,22 @@ export default function AIAssistant() {
                         </div>
                         {hasTags && !msg.streaming && (
                           <>
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              {msg.tags.map((tag) => (
-                                <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs font-medium text-gray-600">
-                                  <BookOpen size={14} /> {tag}
-                                </span>
-                              ))}
+                            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 mt-2">
+                              {msg.tags.map((src) => {
+                                const label = src.article_number
+                                  ? `${src.article_number} — ${src.law_name ?? ''}`
+                                  : (typeof src === 'string' ? src : JSON.stringify(src));
+                                return src.id ? (
+                                  <a key={src.id} href={`/laws/${src.id}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors">
+                                    <BookOpen size={12} /> {label}
+                                  </a>
+                                ) : (
+                                  <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs font-medium text-gray-600">
+                                    <BookOpen size={12} /> {label}
+                                  </span>
+                                );
+                              })}
                             </div>
                             <div className="mt-2 bg-[#EDF5F0] border border-primary/20 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                               <div className="flex gap-3 items-start">

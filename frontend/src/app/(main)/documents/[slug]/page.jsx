@@ -16,8 +16,9 @@ function Field({ children }) {
     : <span className="inline-block bg-gray-100 rounded w-32 h-3.5 align-middle" />;
 }
 
-function DocumentPreview({ form }) {
-  const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+function DocumentPreview({ form, lang }) {
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
+  const today = new Date().toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
   const hasAny = Object.values(form).some((v) => v.trim() !== '');
 
   if (!hasAny) {
@@ -29,48 +30,80 @@ function DocumentPreview({ form }) {
     );
   }
 
+  if (lang === 'en') {
+    return (
+      <div className="font-serif text-[13px] text-gray-800 leading-relaxed space-y-4 p-2">
+        <div className="text-right text-xs text-gray-500 mb-6">{form.yourAddress || '...'}, {today}</div>
+        <div className="mb-6">
+          <p className="font-bold">{form.yourFullName || '...'}</p>
+          <p className="text-gray-600">{form.yourAddress || '...'}</p>
+        </div>
+        <div className="mb-8">
+          <p className="font-bold">{form.employerName || '...'}</p>
+          <p className="text-gray-600">{form.employerAddress || '...'}</p>
+        </div>
+        <p className="font-bold uppercase underline tracking-wide text-sm mb-4">Re: Formal Notice — Unpaid Wages</p>
+        <p>Dear Sir / Madam,</p>
+        <p>
+          I, the undersigned <Field>{form.yourFullName}</Field>, residing at <Field>{form.yourAddress}</Field>,
+          was employed by your company <Field>{form.employerName}</Field>
+          {form.contractType ? ` under a ${form.contractType} contract` : ''}.
+        </p>
+        <p>
+          My last day of work was <Field>{form.lastDayWorked}</Field>.
+          As of today, you remain indebted to me in the amount of{' '}
+          <Field>{form.amountOwed ? `${form.amountOwed} FCFA` : ''}</Field> in unpaid wages.
+        </p>
+        <p>
+          I hereby formally demand that you settle the amount owed within{' '}
+          <strong>eight (8) days</strong> of receiving this letter.
+          Failing this, I shall be compelled to initiate all necessary legal proceedings to obtain satisfaction,
+          including but not limited to a complaint before the Labour Inspectorate.
+        </p>
+        {form.additionalContext && (
+          <p className="text-gray-600 italic border-l-2 border-gray-200 pl-3">{form.additionalContext}</p>
+        )}
+        <p>Yours faithfully,</p>
+        <div className="mt-8">
+          <p>{form.yourFullName || '...'}</p>
+          <p className="text-gray-500 text-xs">{today}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="font-serif text-[13px] text-gray-800 leading-relaxed space-y-4 p-2">
       <div className="text-right text-xs text-gray-500 mb-6">{form.yourAddress || '...'}, le {today}</div>
-
       <div className="mb-6">
         <p className="font-bold">{form.yourFullName || '...'}</p>
         <p className="text-gray-600">{form.yourAddress || '...'}</p>
       </div>
-
       <div className="mb-8">
         <p className="font-bold">{form.employerName || '...'}</p>
         <p className="text-gray-600">{form.employerAddress || '...'}</p>
       </div>
-
       <p className="font-bold uppercase underline tracking-wide text-sm mb-4">Objet : Mise en Demeure — Paiement de Salaire Impayé</p>
-
       <p>Monsieur / Madame,</p>
-
       <p>
         Je soussigné(e), <Field>{form.yourFullName}</Field>, demeurant à <Field>{form.yourAddress}</Field>,
         ai été employé(e) au sein de votre entreprise <Field>{form.employerName}</Field>
         {form.contractType ? ` dans le cadre d'un contrat de type ${form.contractType}` : ''}.
       </p>
-
       <p>
         Mon dernier jour travaillé était le <Field>{form.lastDayWorked}</Field>.
         À ce jour, vous restez redevable d&apos;une somme de{' '}
         <Field>{form.amountOwed ? `${form.amountOwed} FCFA` : ''}</Field> correspondant aux salaires impayés.
       </p>
-
       <p>
         En conséquence, je vous mets en demeure de procéder au règlement de la somme due dans un délai de{' '}
         <strong>huit (8) jours</strong> à compter de la réception du présent courrier.
         À défaut, je me verrai contraint(e) d&apos;engager toutes les procédures légales nécessaires pour obtenir satisfaction.
       </p>
-
       {form.additionalContext && (
         <p className="text-gray-600 italic border-l-2 border-gray-200 pl-3">{form.additionalContext}</p>
       )}
-
       <p>Dans l&apos;attente d&apos;une réponse favorable de votre part, veuillez agréer, Madame, Monsieur, l&apos;expression de mes salutations distinguées.</p>
-
       <div className="mt-8">
         <p>{form.yourFullName || '...'}</p>
         <p className="text-gray-500 text-xs">{today}</p>
@@ -250,7 +283,7 @@ export default function DocumentGenerationDetails() {
           {/* Right: Live Preview + trust badges */}
           <div className="lg:col-span-5 space-y-4">
             <div className={`rounded-2xl border-2 p-6 min-h-[465px] shadow-inner transition-all ${hasContent ? 'bg-white border-gray-200 overflow-y-auto' : 'bg-white/40 border-dashed border-gray-300/80 flex flex-col items-center justify-center'}`}>
-              <DocumentPreview form={form} />
+              <DocumentPreview form={form} lang={lang} />
             </div>
 
             <div className="grid grid-cols-3 gap-3">

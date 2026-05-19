@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.urls import path
 
 from .views import (
+    DocumentGenerateBySlugView,
     TemplateDetailView,
     TemplateListView,
     UserDocumentDetailView,
@@ -14,6 +15,7 @@ urlpatterns = [
     path("templates/", TemplateListView.as_view(), name="template-list"),
     path("templates/<uuid:pk>/", TemplateDetailView.as_view(), name="template-detail"),
     path("documents/", UserDocumentListCreateView.as_view(), name="document-list-create"),
+    path("documents/generate/<str:slug>/", DocumentGenerateBySlugView.as_view(), name="document-generate-slug"),
     path("documents/<uuid:pk>/", UserDocumentDetailView.as_view(), name="document-detail"),
     path("documents/<uuid:pk>/download/", UserDocumentDownloadView.as_view(), name="document-download"),
 ]

@@ -106,6 +106,36 @@ class UserDocumentDownloadView(APIView):
 # ---------------------------------------------------------------------------
 
 
+# Maps frontend slugs to DB slugs
+_SLUG_ALIASES = {
+    "unpaid-wages": "mise-en-demeure-salaire",
+    "housing-dispute": "mise-en-demeure-logement",
+}
+
+
+class DocumentGenerateBySlugView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, slug: str) -> Response:
+        db_slug = _SLUG_ALIASES.get(slug, slug)
+        try:
+            template = DocumentTemplate.objects.get(slug=db_slug, is_active=True)
+        except DocumentTemplate.DoesNotExist:
+            return Response({"detail": f"Template '{slug}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        form_data = request.data.get("form_data", request.data)
+        doc = create_document_request(
+            user_id=request.user.user_id,
+            template=template,
+            form_data=form_data,
+        )
+        data = UserDocumentSerializer(doc).data
+        data["title"] = template.name_en
+        data["price"] = template.price_xaf
+        data["currency"] = "XAF"
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
 class InternalDocumentDetailView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]

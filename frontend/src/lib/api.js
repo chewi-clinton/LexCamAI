@@ -147,8 +147,8 @@ export const lawyers = {
 export const documents = {
   list:     ()          => get('/api/v1/documents'),
   get:      (id)        => get(`/api/v1/documents/${id}`),
-  generate: (slug, data) => post(`/api/v1/documents/${slug}/generate`, data),
-  myDocs:   ()          => get('/api/v1/documents/my'),
+  generate: (slug, data) => post(`/api/v1/documents/documents/generate/${slug}/`, data),
+  myDocs:   ()          => get('/api/v1/documents/documents/'),
   download: (id)        => get(`/api/v1/documents/${id}/download`),
 };
 
@@ -166,7 +166,7 @@ export const chat = {
   sendMessage: (id, content) => post(`/api/v1/chat/conversations/${id}/messages`, { content }),
 };
 
-export async function streamChatMessage(convId, content, { onChunk, onDone, onError }) {
+export async function streamChatMessage(convId, content, { onChunk, onDone, onError, onSources }) {
   const token = _accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('lexcam_access') : null);
   try {
     const res = await fetch(`/api/v1/chat/conversations/${convId}/messages/stream`, {
@@ -193,6 +193,7 @@ export async function streamChatMessage(convId, content, { onChunk, onDone, onEr
         if (raw === '[DONE]') { onDone(); return; }
         try {
           const parsed = JSON.parse(raw);
+          if (parsed.sources) { onSources?.(parsed.sources); continue; }
           const chunk = parsed.token ?? parsed.text ?? parsed.content ?? '';
           if (chunk) onChunk(chunk);
         } catch {

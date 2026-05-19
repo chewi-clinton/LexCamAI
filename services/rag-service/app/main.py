@@ -51,6 +51,9 @@ SYSTEM_IDENTITY = (
     "people in Cameroon understand their legal rights and navigate Cameroonian law. "
     "You are NOT a human, NOT a lawyer, and you do NOT have a personal name like a person — your name is LexCam AI. "
     "Always introduce yourself as LexCam AI when asked. "
+    "When citing legal sources, always reference the specific law and article number, for example: "
+    "'According to Art. 34 of the Cameroon Labour Code...' or 'Under Art. 69 of Law No. 92/007...'. "
+    "Never say 'the documents provided' or 'the provided documents' — cite the law by name instead. "
     "Provide clear, helpful, and accurate general legal information about Cameroonian law. "
     "Always remind users that your responses are for informational purposes only and do not constitute formal legal advice."
 )
@@ -74,12 +77,18 @@ def _normalize_kb_response(data: Any) -> List[Dict[str, Any]]:
     if isinstance(results_raw, list):
         for r in results_raw:
             if isinstance(r, dict):
-                sid = str(r.get("id") or r.get("qdrant_id") or r.get("doc_id") or r.get("source_id") or "")
+                sid = str(r.get("article_id") or r.get("id") or r.get("qdrant_id") or r.get("doc_id") or "")
                 score = r.get("score") if "score" in r else r.get("_score")
                 snippet = r.get("snippet") or r.get("text") or r.get("content") or r.get("text_preview")
                 language = r.get("language") or r.get("lang")
-                sources.append({"id": sid, "score": score, "snippet": snippet, "language": language})
-                documents.append({"id": sid, "score": score, "snippet": snippet, "language": language})
+                article_number = r.get("article_number", "")
+                law_name = r.get("law_name", "")
+                title = r.get("title", "")
+                src = {"id": sid, "score": score, "snippet": snippet, "language": language,
+                       "article_number": article_number, "law_name": law_name, "title": title}
+                sources.append(src)
+                documents.append({"id": sid, "score": score, "snippet": snippet, "language": language,
+                                   "article_number": article_number, "law_name": law_name})
     return sources, documents
 
 
@@ -397,6 +406,14 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
     collected: List[str] = []
 
     async def event_generator():
+        # Send source metadata first so the frontend can show citations immediately
+        display_sources = [
+            {"id": s["id"], "article_number": s["article_number"],
+             "law_name": s["law_name"], "title": s["title"]}
+            for s in sources if s.get("id")
+        ]
+        if display_sources:
+            yield f"data: {json.dumps({'sources': display_sources})}\n\n"
         try:
             async for chunk in stream_generate(prompt, documents):
                 if not chunk:
