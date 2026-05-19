@@ -1,15 +1,102 @@
 'use client';
+import { useState } from 'react';
 import {
-  Lock, ShieldCheck, Clock, FileText,
+  ShieldCheck, Clock, FileText,
   ArrowLeft, ArrowRight, Calendar,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
+function Field({ children }) {
+  return children
+    ? <span className="font-semibold text-gray-900">{children}</span>
+    : <span className="inline-block bg-gray-100 rounded w-32 h-3.5 align-middle" />;
+}
+
+function DocumentPreview({ form }) {
+  const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const hasAny = Object.values(form).some((v) => v.trim() !== '');
+
+  if (!hasAny) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+        <FileText size={32} className="text-gray-300 mb-3" />
+        <p className="text-sm text-gray-400 font-medium">Fill in the form to see the live preview</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="font-serif text-[13px] text-gray-800 leading-relaxed space-y-4 p-2">
+      <div className="text-right text-xs text-gray-500 mb-6">{form.yourAddress || '...'}, le {today}</div>
+
+      <div className="mb-6">
+        <p className="font-bold">{form.yourFullName || '...'}</p>
+        <p className="text-gray-600">{form.yourAddress || '...'}</p>
+      </div>
+
+      <div className="mb-8">
+        <p className="font-bold">{form.employerName || '...'}</p>
+        <p className="text-gray-600">{form.employerAddress || '...'}</p>
+      </div>
+
+      <p className="font-bold uppercase underline tracking-wide text-sm mb-4">Objet : Mise en Demeure — Paiement de Salaire Impayé</p>
+
+      <p>Monsieur / Madame,</p>
+
+      <p>
+        Je soussigné(e), <Field>{form.yourFullName}</Field>, demeurant à <Field>{form.yourAddress}</Field>,
+        ai été employé(e) au sein de votre entreprise <Field>{form.employerName}</Field>
+        {form.contractType ? ` dans le cadre d'un contrat de type ${form.contractType}` : ''}.
+      </p>
+
+      <p>
+        Mon dernier jour travaillé était le <Field>{form.lastDayWorked}</Field>.
+        À ce jour, vous restez redevable d&apos;une somme de{' '}
+        <Field>{form.amountOwed ? `${form.amountOwed} FCFA` : ''}</Field> correspondant aux salaires impayés.
+      </p>
+
+      <p>
+        En conséquence, je vous mets en demeure de procéder au règlement de la somme due dans un délai de{' '}
+        <strong>huit (8) jours</strong> à compter de la réception du présent courrier.
+        À défaut, je me verrai contraint(e) d&apos;engager toutes les procédures légales nécessaires pour obtenir satisfaction.
+      </p>
+
+      {form.additionalContext && (
+        <p className="text-gray-600 italic border-l-2 border-gray-200 pl-3">{form.additionalContext}</p>
+      )}
+
+      <p>Dans l&apos;attente d&apos;une réponse favorable de votre part, veuillez agréer, Madame, Monsieur, l&apos;expression de mes salutations distinguées.</p>
+
+      <div className="mt-8">
+        <p>{form.yourFullName || '...'}</p>
+        <p className="text-gray-500 text-xs">{today}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function DocumentGenerationDetails() {
   const { lang } = useLanguage();
   const T = t[lang].documentDetails;
+
+  const [form, setForm] = useState({
+    employerName: '',
+    employerAddress: '',
+    yourFullName: '',
+    yourAddress: '',
+    amountOwed: '',
+    lastDayWorked: '',
+    contractType: '',
+    additionalContext: '',
+  });
+
+  function set(field) {
+    return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  }
+
+  const hasContent = Object.values(form).some((v) => v.trim() !== '');
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col justify-between">
@@ -22,25 +109,18 @@ export default function DocumentGenerationDetails() {
         <div className="w-full max-w-xl mx-auto mb-12 relative flex items-center justify-between select-none">
           <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 -z-10" />
           <div className="absolute top-4 left-0 w-1/2 h-0.5 bg-primary -z-10" />
-
           <div className="flex flex-col items-center text-center">
             <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center border-2 border-primary shadow-sm text-xs">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
             </div>
             <span className="text-[11px] font-bold text-gray-400 mt-2">{T.stepTemplate}</span>
           </div>
-
           <div className="flex flex-col items-center text-center">
-            <div className="w-9 h-9 rounded-full bg-white border-4 border-white ring-2 ring-primary text-gray-900 flex items-center justify-center shadow-sm font-bold text-xs">
-              2
-            </div>
+            <div className="w-9 h-9 rounded-full bg-white border-4 border-white ring-2 ring-primary text-gray-900 flex items-center justify-center shadow-sm font-bold text-xs">2</div>
             <span className="text-[11px] font-bold text-gray-900 mt-2">{T.stepDetails}</span>
           </div>
-
           <div className="flex flex-col items-center text-center">
-            <div className="w-8 h-8 rounded-full bg-white text-gray-300 border-2 border-gray-200 flex items-center justify-center font-bold text-xs">
-              3
-            </div>
+            <div className="w-8 h-8 rounded-full bg-white text-gray-300 border-2 border-gray-200 flex items-center justify-center font-bold text-xs">3</div>
             <span className="text-[11px] font-bold text-gray-300 mt-2">{T.stepPayment}</span>
           </div>
         </div>
@@ -72,11 +152,11 @@ export default function DocumentGenerationDetails() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold text-gray-700">
                 <div>
                   <label className="block mb-1.5">{T.employerName}</label>
-                  <input type="text" placeholder={T.employerNamePlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
+                  <input type="text" value={form.employerName} onChange={set('employerName')} placeholder={T.employerNamePlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
                 </div>
                 <div>
                   <label className="block mb-1.5">{T.employerAddress}</label>
-                  <input type="text" placeholder={T.employerAddressPlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
+                  <input type="text" value={form.employerAddress} onChange={set('employerAddress')} placeholder={T.employerAddressPlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
                 </div>
               </div>
             </div>
@@ -86,11 +166,11 @@ export default function DocumentGenerationDetails() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold text-gray-700">
                 <div>
                   <label className="block mb-1.5">{T.yourFullName}</label>
-                  <input type="text" placeholder={T.yourFullNamePlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
+                  <input type="text" value={form.yourFullName} onChange={set('yourFullName')} placeholder={T.yourFullNamePlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
                 </div>
                 <div>
                   <label className="block mb-1.5">{T.yourAddress}</label>
-                  <input type="text" placeholder={T.yourAddressPlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
+                  <input type="text" value={form.yourAddress} onChange={set('yourAddress')} placeholder={T.yourAddressPlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
                 </div>
               </div>
             </div>
@@ -100,12 +180,12 @@ export default function DocumentGenerationDetails() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold text-gray-700">
                 <div>
                   <label className="block mb-1.5">{T.amountOwed}</label>
-                  <input type="text" placeholder={T.amountOwedPlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
+                  <input type="text" value={form.amountOwed} onChange={set('amountOwed')} placeholder={T.amountOwedPlaceholder} className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow placeholder:text-gray-300" />
                 </div>
                 <div>
                   <label className="block mb-1.5">{T.lastDayWorked}</label>
-                  <div className="relative bg-white border border-gray-300 rounded-lg flex items-center justify-between focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-shadow">
-                    <input type="text" placeholder="mm/dd/yyyy" className="w-full bg-transparent px-4 py-3 text-sm font-medium text-gray-800 outline-none placeholder:text-gray-300" />
+                  <div className="relative bg-white border border-gray-300 rounded-lg flex items-center focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/50 transition-shadow">
+                    <input type="date" value={form.lastDayWorked} onChange={set('lastDayWorked')} className="w-full bg-transparent px-4 py-3 text-sm font-medium text-gray-800 outline-none pr-10" />
                     <Calendar size={16} className="text-gray-400 absolute right-4 pointer-events-none" />
                   </div>
                 </div>
@@ -114,11 +194,11 @@ export default function DocumentGenerationDetails() {
               <div className="text-xs font-bold text-gray-700">
                 <label className="block mb-1.5">{T.contractType}</label>
                 <div className="relative bg-white border border-gray-300 rounded-lg">
-                  <select className="w-full bg-transparent px-4 py-3 text-sm font-medium text-gray-700 outline-none appearance-none cursor-pointer focus:ring-1 focus:ring-primary/30 focus:border-primary/50 rounded-lg">
+                  <select value={form.contractType} onChange={set('contractType')} className="w-full bg-transparent px-4 py-3 text-sm font-medium text-gray-700 outline-none appearance-none cursor-pointer focus:ring-1 focus:ring-primary/30 focus:border-primary/50 rounded-lg">
                     <option value="">{T.selectContractType}</option>
-                    <option value="cdi">CDI (Indefinite)</option>
-                    <option value="cdd">CDD (Fixed-term)</option>
-                    <option value="oral">Oral Agreement</option>
+                    <option value="CDI (Contrat à Durée Indéterminée)">CDI (Indefinite)</option>
+                    <option value="CDD (Contrat à Durée Déterminée)">CDD (Fixed-term)</option>
+                    <option value="Contrat Verbal">Oral Agreement</option>
                   </select>
                   <svg className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
@@ -131,6 +211,8 @@ export default function DocumentGenerationDetails() {
                 </label>
                 <textarea
                   rows={3}
+                  value={form.additionalContext}
+                  onChange={set('additionalContext')}
                   placeholder={T.additionalContextPlaceholder}
                   className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-shadow resize-none leading-relaxed placeholder:text-gray-300"
                 />
@@ -138,14 +220,10 @@ export default function DocumentGenerationDetails() {
             </div>
           </form>
 
-          {/* Right: Preview + trust badges */}
+          {/* Right: Live Preview + trust badges */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="bg-white/40 border-2 border-dashed border-gray-300/80 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[465px] text-center shadow-inner">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-gray-800 border border-gray-200/60 shadow-sm mb-4">
-                <Lock size={18} />
-              </div>
-              <h3 className="font-serif text-xl font-bold text-gray-900 mb-2">{T.previewTitle}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-xs">{T.previewDesc}</p>
+            <div className={`rounded-2xl border-2 p-6 min-h-[465px] shadow-inner transition-all ${hasContent ? 'bg-white border-gray-200 overflow-y-auto' : 'bg-white/40 border-dashed border-gray-300/80 flex flex-col items-center justify-center'}`}>
+              <DocumentPreview form={form} />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
