@@ -184,12 +184,14 @@ services:
       API_PREFIX: /v1
       DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
       REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F
-      CELERY_RESULT_BACKEND: rpc://
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
       MINIO_URL: http://minio:9000
       MINIO_ACCESS_KEY: lexcam
       MINIO_SECRET_KEY: lexcam_dev123
       LOG_LEVEL: INFO
+      LAWYER_SERVICE_URL: http://lexcam-lawyer-service:8002
+      INTERNAL_SERVICE_KEY: dev-internal-key
     ports:
       - "8012:8000"
     depends_on:
@@ -234,10 +236,18 @@ services:
   scraper-worker:
     image: lexcam-scraper-service
     container_name: lexcam-scraper-worker
+    environment:
+      DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      LAWYER_SERVICE_URL: http://lexcam-lawyer-service:8002
+      INTERNAL_SERVICE_KEY: dev-internal-key
+      KB_SERVICE_URL: http://lexcam-knowledge-base-service:8000
     depends_on:
       - scraper-service
       - redis
-    command: celery -A app.tasks.celery_app worker -l info -Q default
+      - postgres
+    command: celery -A app.tasks.celery_app worker -l info -Q celery
 
   user-management:
     build:
@@ -271,12 +281,19 @@ services:
       REDIS_URL: redis://redis:6379/0
       USER_MANAGEMENT_URL: http://user-management:8001
       INTERNAL_SERVICE_KEY: dev-internal-key
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: lexcam
+      MINIO_SECRET_KEY: lexcam_dev123
+      MINIO_DOCUMENTS_BUCKET: lexcam-lawyer-docs
+      MINIO_USE_SSL: "false"
     ports:
       - "8002:8002"
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
     depends_on:
       - postgres
       - redis
+      - minio
       - user-management
 
   document-service:

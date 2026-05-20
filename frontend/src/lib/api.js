@@ -171,7 +171,70 @@ export const admin = {
     const q = new URLSearchParams(params).toString();
     return get(`/api/v1/admin/lawyers${q ? `?${q}` : ''}`);
   },
-  verifyLawyer: (id, status) => patch(`/api/v1/admin/lawyers/${id}/verify`, { status }),
+  verifyLawyer:    (id, status) => patch(`/api/v1/admin/lawyers/${id}/verify`, { status }),
+  lawyerDocuments: (id)        => get(`/api/v1/admin/lawyers/${id}/documents`),
+  stats: () => Promise.all([
+    get('/api/v1/users/admin/stats'),
+    get('/api/v1/documents/admin/stats'),
+    get('/api/v1/payments/admin/stats'),
+  ]).then(([users, docs, payments]) => ({
+    total_users:       users.total_users,
+    total_documents:   docs.total_documents,
+    total_revenue_xaf: payments.total_revenue_xaf,
+  })),
+  userList:       ()        => get('/api/v1/users/admin/list'),
+  templates:      ()        => get('/api/v1/documents/admin/templates'),
+  toggleTemplate: (id)      => patch(`/api/v1/documents/admin/templates/${id}/toggle`, {}),
+  editTemplate:   (id, data) => patch(`/api/v1/documents/admin/templates/${id}/edit`, data),
+};
+
+// ─── Scraper API ──────────────────────────────────────────────────────────────
+export const scraper = {
+  jobs:         (limit = 50) => get(`/api/v1/scraper/scrape?limit=${limit}`),
+  runJob:       (url)        => post('/api/v1/scraper/scrape', { url }),
+  getJob:       (id)         => get(`/api/v1/scraper/scrape/${id}`),
+  lawJobs:      (limit = 50) => get(`/api/v1/scraper/scrape-laws?limit=${limit}`),
+  runLawJob:    (data)       => post('/api/v1/scraper/scrape-laws', data),
+  getLawJob:    (id)         => get(`/api/v1/scraper/scrape-laws/${id}`),
+};
+
+// ─── Feedback / AI Monitoring API ────────────────────────────────────────────
+export const feedback = {
+  flagged:        (status = '')  => get(`/api/v1/feedback/admin/feedback${status ? `?review_status=${status}` : ''}`),
+  stats:          ()             => get('/api/v1/feedback/admin/feedback/stats'),
+  submitFeedback: (data)         => post('/api/v1/feedback/feedback', data),
+  flag:           (id)           => post(`/api/v1/feedback/feedback/${id}/flag`, {}),
+  review:         (id, action)   => patch(`/api/v1/feedback/admin/feedback/${id}/review`, { action }),
+};
+
+// ─── Knowledge Base API ───────────────────────────────────────────────────────
+export const kb = {
+  ingestPdf: ({ file, code, name, domain = 'general', language = 'fr', jurisdiction = 'cameroon' }) => {
+    const { access } = getTokens();
+    const form = new FormData();
+    form.append('file', file);
+    form.append('code', code);
+    form.append('name', name);
+    form.append('domain', domain);
+    form.append('language', language);
+    form.append('jurisdiction', jurisdiction);
+    return fetch('/api/v1/kb/ingest/pdf', {
+      method: 'POST',
+      headers: { ...(access ? { Authorization: `Bearer ${access}` } : {}) },
+      body: form,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw Object.assign(new Error(data?.detail ?? 'Upload failed'), { status: r.status, data });
+      return data;
+    });
+  },
+  laws:    () => get('/api/v1/kb/laws'),
+  search:  (q, domain, language) => {
+    const body = { query: q, limit: 20 };
+    if (domain) body.domain = domain;
+    if (language) body.language = language;
+    return post('/api/v1/kb/search', body);
+  },
 };
 
 // ─── Documents API ────────────────────────────────────────────────────────────
