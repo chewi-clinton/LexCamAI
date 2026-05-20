@@ -1,0 +1,97 @@
+---
+# Playbook 2: Install K3s, Helm, and kubectl on Contabo VPS
+# Run: ansible-playbook -i inventory/hosts.ini playbooks/deploy-k3s.yml
+# Idempotent — safe to run multiple times.
+
+- name: Deploy K3s and tooling on LexCam VPS
+  hosts: vps
+  become: true
+
+  vars:
+    k3s_version: "v1.29.4+k3s1"
+    helm_version: "v3.14.4"
+    lexcam_namespace: lexcam
+    kubeconfig_local: "~/.kube/lexcam-config"
+
+  tasks:
+
+    # ── K3s ──────────────────────────────────────────────────────────────────
+    - name: Check if K3s is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_bin
+
+    - name: Install K3s
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} sh -
+      when: not k3s_bin.stat.exists
+
+    - name: Wait for K3s to be ready
+      wait_for:
+        path: /etc/rancher/k3s/k3s.yaml
+        state: present
+        timeout: 60
+
+    - name: Ensure K3s service is running and enabled
+      service:
+        name: k3s
+        state: started
+        enabled: true
+
+    # ── kubeconfig ───────────────────────────────────────────────────────────
+    - name: Copy kubeconfig to root home
+      copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /root/.kube/config
+        remote_src: true
+        mode: "0600"
+
+    - name: Set KUBECONFIG in /root/.bashrc
+      lineinfile:
+        path: /root/.bashrc
+        line: 'export KUBECONFIG=/root/.kube/config'
+        state: present
+
+    # ── Helm ─────────────────────────────────────────────────────────────────
+    - name: Check if Helm is already installed
+      stat:
+        path: /usr/local/bin/helm
+      register: helm_bin
+
+    - name: Download and install Helm
+      shell: |
+        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | \
+          DESIRED_VERSION={{ helm_version }} bash
+      when: not helm_bin.stat.exists
+
+    # ── kubectl (symlink from K3s) ────────────────────────────────────────────
+    - name: Create kubectl symlink
+      file:
+        src: /usr/local/bin/k3s
+        dest: /usr/local/bin/kubectl
+        state: link
+      ignore_errors: true
+
+    # ── Kubernetes namespace ──────────────────────────────────────────────────
+    - name: Create lexcam namespace
+      shell: kubectl create namespace {{ lexcam_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+      environment:
+        KUBECONFIG: /root/.kube/config
+
+    # ── Verify cluster ────────────────────────────────────────────────────────
+    - name: Verify node is Ready
+      shell: kubectl get nodes
+      environment:
+        KUBECONFIG: /root/.kube/config
+      register: nodes_output
+
+    - name: Print node status
+      debug:
+        msg: "{{ nodes_output.stdout_lines }}"
+
+    # ── Fetch kubeconfig locally ──────────────────────────────────────────────
+    - name: Fetch kubeconfig to local machine
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "{{ kubeconfig_local }}"
+        flat: true

@@ -1,0 +1,40 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/rag-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8004
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "150m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+config:
+  DB_HOST: postgres-rag-svc
+  DB_PORT: "5432"
+  DB_NAME: lexcam_rag
+  DB_USER: lexcam
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  EMBEDDING_SERVICE_URL: http://embedding-service-svc:8005
+  KB_SERVICE_URL: http://knowledge-base-service-svc:8003
+  USER_MANAGEMENT_URL: http://user-management-svc:8001
+  LAWYER_SERVICE_URL: http://lawyer-service-svc:8002
+  REDIS_URL: redis://redis-svc:6379/1
+
+secrets:
+  DB_PASSWORD: "lexcam_dev"
+  GROQ_API_KEY: "change-me"
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70

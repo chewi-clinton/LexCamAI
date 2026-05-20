@@ -1,0 +1,135 @@
+---
+# Playbook 1: Provision Contabo VPS
+# Run: ansible-playbook -i inventory/hosts.ini playbooks/provision-vps.yml
+# Idempotent — safe to run multiple times.
+
+- name: Provision LexCam VPS
+  hosts: vps
+  become: true
+
+  vars:
+    allowed_ports:
+      - "22"
+      - "80"
+      - "443"
+      - "6443"   # K3s API server
+    docker_gpg_url: https://download.docker.com/linux/ubuntu/gpg
+    docker_repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+
+  tasks:
+
+    # ── System Update ────────────────────────────────────────────────────────
+    - name: Update apt cache and upgrade packages
+      apt:
+        update_cache: true
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - vim
+          - htop
+          - ufw
+          - fail2ban
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - apt-transport-https
+          - unzip
+          - python3-pip
+        state: present
+
+    # ── SSH Hardening ────────────────────────────────────────────────────────
+    - name: Disable password-based SSH login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        state: present
+      notify: Restart SSH
+
+    - name: Disable root password login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin prohibit-password"
+        state: present
+      notify: Restart SSH
+
+    # ── UFW Firewall ─────────────────────────────────────────────────────────
+    - name: Set UFW default policies
+      ufw:
+        direction: "{{ item.direction }}"
+        policy: "{{ item.policy }}"
+      loop:
+        - { direction: incoming, policy: deny }
+        - { direction: outgoing, policy: allow }
+
+    - name: Allow required ports through UFW
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ allowed_ports }}"
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+
+    # ── Docker ───────────────────────────────────────────────────────────────
+    - name: Add Docker GPG key
+      apt_key:
+        url: "{{ docker_gpg_url }}"
+        state: present
+
+    - name: Add Docker apt repository
+      apt_repository:
+        repo: "{{ docker_repo }}"
+        state: present
+
+    - name: Install Docker Engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Ensure Docker service is running and enabled
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    # ── fail2ban ─────────────────────────────────────────────────────────────
+    - name: Ensure fail2ban is running
+      service:
+        name: fail2ban
+        state: started
+        enabled: true
+
+    # ── Sysctl tuning ────────────────────────────────────────────────────────
+    - name: Set sysctl for K3s / Kubernetes networking
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: true
+        state: present
+        reload: true
+      loop:
+        - { key: net.bridge.bridge-nf-call-iptables,  value: "1" }
+        - { key: net.bridge.bridge-nf-call-ip6tables, value: "1" }
+        - { key: net.ipv4.ip_forward,                 value: "1" }
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted

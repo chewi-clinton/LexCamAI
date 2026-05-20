@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rag-service
+description: LexCam RAG Service — AI Legal Assistant pipeline with SSE streaming
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

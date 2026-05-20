@@ -1,0 +1,35 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/chewi-clinton/lexcamai/knowledge-base-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8003
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "300m"
+
+config:
+  DB_HOST: postgres-knowledge-svc
+  DB_PORT: "5432"
+  DB_NAME: lexcam_knowledge
+  DB_USER: lexcam
+  QDRANT_URL: http://qdrant-svc:6333
+  EMBEDDING_SERVICE_URL: http://embedding-service-svc:8005
+  REDIS_URL: redis://redis-svc:6379/2
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+
+secrets:
+  DB_PASSWORD: "lexcam_dev"
+  GROQ_API_KEY: "change-me"
+
+hpa:
+  enabled: false
