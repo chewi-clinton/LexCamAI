@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import Header from '@/components/layout/Header';
 import { chat as chatApi, streamChatMessage, feedback as feedbackApi, lawyers as lawyersApi } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import t from '@/translations';
 
 function getDocumentPromo(tags, lang) {
@@ -74,6 +75,7 @@ function normalizeMessages(apiMessages) {
 export default function AIAssistant() {
   const { lang, setLang } = useLanguage();
   const T = t[lang].chat;
+  const { user } = useAuth();
 
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
@@ -155,26 +157,19 @@ export default function AIAssistant() {
     window.history.replaceState({}, '', '/chat');
   }
 
-  function initLawyerSearch(msgId) {
-    setLawyerSearch((prev) => ({ ...prev, [msgId]: { step: 'form', city: '', results: [] } }));
-  }
-
-  function setLawyerCity(msgId, city) {
-    setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], city } }));
-  }
-
-  async function runLawyerSearch(msgId, tags, city) {
-    setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], step: 'loading' } }));
+  async function runLawyerSearch(msgId, tags) {
+    setLawyerSearch((prev) => ({ ...prev, [msgId]: { step: 'loading', results: [] } }));
     const spec = inferSpecialization(tags);
     try {
       const params = {};
       if (spec) params.specialization = spec;
-      if (city.trim()) params.city = city.trim();
+      const city = user?.city?.trim();
+      if (city) params.city = city;
       const data = await lawyersApi.list(params);
       const list = Array.isArray(data) ? data : (data.results ?? []);
-      setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], step: 'results', results: list.slice(0, 4) } }));
+      setLawyerSearch((prev) => ({ ...prev, [msgId]: { step: 'results', results: list.slice(0, 4) } }));
     } catch {
-      setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], step: 'error' } }));
+      setLawyerSearch((prev) => ({ ...prev, [msgId]: { step: 'error', results: [] } }));
     }
   }
 
@@ -476,44 +471,24 @@ export default function AIAssistant() {
                                     </a>
                                   </div>
 
-                                  {/* Lawyer recommendation divider */}
+                                  {/* Lawyer recommendation strip */}
                                   {!ls && (
                                     <div className="border-t border-primary/10 px-5 py-3 flex items-center justify-between gap-4 bg-[#EDF5F0]/60">
                                       <div className="flex items-center gap-2 text-sm text-primary/80">
                                         <User size={14} className="flex-shrink-0" />
-                                        <span>{lang === 'fr' ? 'Besoin d\'un avocat dans ce domaine ?' : 'Need a lawyer in this domain?'}</span>
+                                        <span>
+                                          {lang === 'fr' ? 'Besoin d\'un avocat dans ce domaine ?' : 'Need a lawyer in this domain?'}
+                                          {user?.city && (
+                                            <span className="ml-1 text-primary/60 text-xs">({user.city})</span>
+                                          )}
+                                        </span>
                                       </div>
                                       <button
-                                        onClick={() => initLawyerSearch(msg.id)}
+                                        onClick={() => runLawyerSearch(msg.id, msg.tags)}
                                         className="flex-shrink-0 text-xs font-semibold text-primary border border-primary/40 bg-white hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                                       >
                                         {lang === 'fr' ? 'Trouver un avocat' : 'Find a Lawyer'}
                                       </button>
-                                    </div>
-                                  )}
-
-                                  {/* City form */}
-                                  {ls?.step === 'form' && (
-                                    <div className="border-t border-primary/10 px-5 py-4 bg-white">
-                                      <p className="text-xs font-semibold text-gray-600 mb-2">
-                                        {lang === 'fr' ? 'Votre ville (facultatif) :' : 'Your city (optional):'}
-                                      </p>
-                                      <div className="flex gap-2">
-                                        <input
-                                          type="text"
-                                          value={ls.city}
-                                          onChange={(e) => setLawyerCity(msg.id, e.target.value)}
-                                          onKeyDown={(e) => { if (e.key === 'Enter') runLawyerSearch(msg.id, msg.tags, ls.city); }}
-                                          placeholder={lang === 'fr' ? 'ex. Yaoundé' : 'e.g. Yaoundé'}
-                                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
-                                        />
-                                        <button
-                                          onClick={() => runLawyerSearch(msg.id, msg.tags, ls.city)}
-                                          className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap"
-                                        >
-                                          {lang === 'fr' ? 'Rechercher' : 'Search'}
-                                        </button>
-                                      </div>
                                     </div>
                                   )}
 
