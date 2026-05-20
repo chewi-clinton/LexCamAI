@@ -4,7 +4,7 @@ from typing import List
 
 from ...db import get_session
 from ...models import Feedback
-from ...schemas import FeedbackCreate, FeedbackRead
+from ...schemas import FeedbackCreate, FeedbackRead, FeedbackReviewAction
 from ...tasks import process_feedback_async
 from ...events import publish_event
 
@@ -42,6 +42,48 @@ def flag_feedback(feedback_id: int, session: Session = Depends(get_session)):
     session.add(fb)
     session.commit()
     return {"flagged": fb.flagged, "flag_count": fb.flag_count}
+
+
+@router.get("/admin/feedback", response_model=List[FeedbackRead])
+def admin_list_flagged(
+    review_status: str = "",
+    limit: int = 100,
+    session: Session = Depends(get_session),
+):
+    stmt = select(Feedback).where(Feedback.flagged == True)
+    if review_status:
+        stmt = stmt.where(Feedback.review_status == review_status)
+    stmt = stmt.order_by(Feedback.id.desc()).limit(limit)
+    return session.exec(stmt).all()
+
+
+@router.get("/admin/feedback/stats")
+def admin_feedback_stats(session: Session = Depends(get_session)):
+    from sqlmodel import func
+    total = session.exec(select(func.count()).where(Feedback.flagged == True)).one()
+    pending = session.exec(select(func.count()).where(Feedback.flagged == True, Feedback.review_status == "pending")).one()
+    dismissed = session.exec(select(func.count()).where(Feedback.review_status == "dismissed")).one()
+    escalated = session.exec(select(func.count()).where(Feedback.review_status == "escalated")).one()
+    return {"total_flagged": total, "pending": pending, "dismissed": dismissed, "escalated": escalated}
+
+
+@router.patch("/admin/feedback/{feedback_id}/review", response_model=FeedbackRead)
+def admin_review_feedback(
+    feedback_id: int,
+    payload: FeedbackReviewAction,
+    session: Session = Depends(get_session),
+):
+    fb = session.get(Feedback, feedback_id)
+    if not fb:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    action = payload.action.lower()
+    if action not in ("dismiss", "escalate", "block"):
+        raise HTTPException(status_code=400, detail="action must be dismiss, escalate, or block")
+    fb.review_status = {"dismiss": "dismissed", "escalate": "escalated", "block": "blocked"}[action]
+    session.add(fb)
+    session.commit()
+    session.refresh(fb)
+    return fb
 
 
 @router.get("/feedback", response_model=List[FeedbackRead])

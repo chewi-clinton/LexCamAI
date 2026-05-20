@@ -13,3 +13,5 @@ class Feedback(SQLModel, table=True):
     message_index: Optional[int] = None
     flag_count: int = Field(default=0)
     flagged: bool = Field(default=False)
+    flag_reason: Optional[str] = None
+    review_status: str = Field(default="pending")
