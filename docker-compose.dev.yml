@@ -179,6 +179,9 @@ services:
       context: ./services/scraper-service
     image: lexcam-scraper-service
     container_name: lexcam-scraper-service
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       SERVICE_NAME: scraper-service
       API_PREFIX: /v1
@@ -236,6 +239,9 @@ services:
   scraper-worker:
     image: lexcam-scraper-service
     container_name: lexcam-scraper-worker
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
       CELERY_BROKER_URL: redis://redis:6379/1
