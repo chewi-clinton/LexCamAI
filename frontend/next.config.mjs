@@ -19,6 +19,7 @@ const nextConfig = {
       { source: '/api/v1/users/admin/:path*',     destination: `${um}/api/v1/users/admin/:path*` },
       { source: '/api/v1/documents/admin/:path*', destination: `${ds}/api/v1/documents/admin/:path*` },
       { source: '/api/v1/payments/admin/:path*',  destination: `${ps}/api/v1/payments/admin/:path*` },
+      { source: '/api/v1/specializations',   destination: `${ls}/api/v1/specializations` },
       { source: '/api/v1/lawyers/:path*',   destination: `${ls}/api/v1/lawyers/:path*` },
       { source: '/api/v1/referrals/:path*', destination: `${ls}/api/v1/referrals/:path*` },
       { source: '/api/v1/documents/:path*', destination: `${ds}/api/v1/documents/:path*` },

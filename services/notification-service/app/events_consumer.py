@@ -44,6 +44,7 @@ def _send_email(to_email: str, subject: str, html_body: str) -> None:
 def on_message(ch, method, properties, body):
     payload = json.loads(body)
     routing_key = method.routing_key
+    user_email = ""
 
     with Session(engine) as session:
         if routing_key == "feedback.flagged":

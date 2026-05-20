@@ -25,11 +25,19 @@ export default function LawyerDirectory() {
   const [lawyerList, setLawyerList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [allDomains, setAllDomains] = useState([]);
 
   const CITIES = useMemo(() => [...new Set(lawyerList.map((l) => l.city).filter(Boolean))].sort(), [lawyerList]);
-  const DOMAINS = useMemo(() => [...new Set(lawyerList.flatMap((l) => l.specializations.map((s) => s.name)))].sort(), [lawyerList]);
+  // Use DB-seeded domains for the filter; fall back to whatever lawyers have set
+  const DOMAINS = useMemo(() => {
+    if (allDomains.length) return allDomains.map((d) => d.name);
+    return [...new Set(lawyerList.flatMap((l) => l.specializations.map((s) => s.name)))].sort();
+  }, [allDomains, lawyerList]);
 
-  useEffect(() => { load({}); }, []);
+  useEffect(() => {
+    load({});
+    lawyersApi.specializations().then(setAllDomains).catch(() => {});
+  }, []);
 
   async function load(params) {
     setLoading(true);
@@ -235,10 +243,12 @@ export default function LawyerDirectory() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        {specs.map((s) => (
+                      <div className="flex flex-wrap gap-2 mb-6 min-h-[28px] items-start">
+                        {specs.length > 0 ? specs.map((s) => (
                           <span key={s.id ?? s.name} className={`px-3 py-1 rounded-full text-xs font-medium ${applied.domain === s.name ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600'}`}>{s.name}</span>
-                        ))}
+                        )) : (
+                          <span className="text-xs text-gray-400 italic font-medium">No specializations listed</span>
+                        )}
                       </div>
                       <p className="text-muted text-sm leading-relaxed mb-8 line-clamp-3">{lawyer.bio}</p>
                     </div>

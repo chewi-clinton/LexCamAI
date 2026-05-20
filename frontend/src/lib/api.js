@@ -143,6 +143,21 @@ export const lawyers = {
     return get(`/api/v1/lawyers${q ? `?${q}` : ''}`);
   },
   get:            (id)          => get(`/api/v1/lawyers/${id}`),
+  specializations: ()           => get('/api/v1/specializations'),
+  uploadPhoto: (file) => {
+    const { access } = getTokens();
+    const form = new FormData();
+    form.append('file', file);
+    return fetch('/api/v1/lawyers/me/photo', {
+      method: 'POST',
+      headers: { ...(access ? { Authorization: `Bearer ${access}` } : {}) },
+      body: form,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw Object.assign(new Error(data?.error ?? 'Upload failed'), { status: r.status });
+      return data;
+    });
+  },
   register:       (data)        => post('/api/v1/lawyers/register', data),
   me:             ()            => get('/api/v1/lawyers/me'),
   myDocuments:    ()            => get('/api/v1/lawyers/me/documents/list'),

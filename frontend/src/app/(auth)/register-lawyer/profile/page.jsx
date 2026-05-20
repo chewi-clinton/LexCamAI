@@ -1,15 +1,11 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, Search, X, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Check, ChevronDown, Search, X, ArrowLeft, ArrowRight, Plus, Camera, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import GavelIcon from '@/components/ui/GavelIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
-
-const ALL_DOMAINS = [
-  'Family Law', 'Corporate Law', 'Labour Law', 'Criminal Law', 'Real Estate',
-  'Tax Law', 'Civil Rights', 'Human Rights', 'Contracts', 'Constitutional Law',
-];
+import { lawyers as lawyersApi } from '@/lib/api';
 
 const CITIES = ['Douala', 'Yaoundé', 'Bamenda', 'Bafoussam', 'Garoua', 'Maroua', 'Ngaoundéré', 'Buea'];
 
@@ -18,13 +14,20 @@ export default function ProfessionalProfile() {
   const { lang } = useLanguage();
   const T = t[lang].registerLawyer;
 
-  const [city, setCity]           = useState('');
-  const [domains, setDomains]     = useState([]);
-  const [domainSearch, setDomainSearch] = useState('');
+  const [city, setCity]                   = useState('');
+  const [domains, setDomains]             = useState([]);
+  const [domainSearch, setDomainSearch]   = useState('');
   const [showDomainDrop, setShowDomainDrop] = useState(false);
-  const [bio, setBio]             = useState('');
-  const [error, setError]         = useState('');
+  const [bio, setBio]                     = useState('');
+  const [error, setError]                 = useState('');
+  const [allDomains, setAllDomains]       = useState([]);
+  const [photoPreview, setPhotoPreview]   = useState(null);
+  const photoInputRef = useRef(null);
   const dropRef = useRef(null);
+
+  useEffect(() => {
+    lawyersApi.specializations().then(setAllDomains).catch(() => {});
+  }, []);
 
   useEffect(() => {
     function handleClick(e) {
@@ -34,18 +37,44 @@ export default function ProfessionalProfile() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const suggestions = ALL_DOMAINS.filter(
-    (d) => !domains.includes(d) && d.toLowerCase().includes(domainSearch.toLowerCase()),
-  );
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { setError('Photo must be under 2 MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      setPhotoPreview(dataUrl);
+      sessionStorage.setItem('lawyer_photo', dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
 
-  function addDomain(d) {
-    if (domains.length >= 5) return;
-    setDomains((prev) => [...prev, d]);
+  const trimmed = domainSearch.trim();
+  const suggestions = allDomains.filter(
+    (d) => !domains.includes(d.name) && d.name.toLowerCase().includes(trimmed.toLowerCase()),
+  );
+  const canAddCustom = trimmed.length > 1 &&
+    !domains.includes(trimmed) &&
+    !allDomains.some((d) => d.name.toLowerCase() === trimmed.toLowerCase());
+
+  function addDomain(name) {
+    if (domains.length >= 5 || !name.trim()) return;
+    setDomains((prev) => [...prev, name.trim()]);
     setDomainSearch('');
+    setShowDomainDrop(false);
   }
 
   function removeDomain(d) {
     setDomains((prev) => prev.filter((x) => x !== d));
+  }
+
+  function handleDomainKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (suggestions.length === 1) addDomain(suggestions[0].name);
+      else if (canAddCustom) addDomain(trimmed);
+    }
   }
 
   function handleContinue(e) {
@@ -98,6 +127,30 @@ export default function ProfessionalProfile() {
 
           <form className="space-y-6" onSubmit={handleContinue} autoComplete="off">
 
+            {/* Profile Photo — optional */}
+            <div className="flex flex-col items-center gap-3 pb-2">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={32} className="text-gray-300" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-md hover:bg-primary-light transition-colors border-2 border-white"
+                >
+                  <Camera size={14} className="text-white" />
+                </button>
+              </div>
+              <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+              <p className="text-[11px] text-gray-400 font-medium">
+                Profile photo <span className="text-gray-300">· optional · max 2 MB</span>
+              </p>
+            </div>
+
             {/* City */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
@@ -124,7 +177,7 @@ export default function ProfessionalProfile() {
                 <label className="block text-xs font-bold text-gray-700">
                   {T.practiceDomains} <span className="text-red-500">*</span>
                 </label>
-                <span className="text-[10px] text-muted font-medium">{T.selectUpTo5}</span>
+                <span className="text-[10px] text-muted font-medium">{domains.length}/5 · {T.selectUpTo5}</span>
               </div>
               <div className="relative" ref={dropRef}>
                 <div className="rounded-lg border border-gray-300 bg-white p-2 flex flex-wrap items-center gap-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary min-h-[48px]">
@@ -142,24 +195,37 @@ export default function ProfessionalProfile() {
                       value={domainSearch}
                       onChange={(e) => { setDomainSearch(e.target.value); setShowDomainDrop(true); }}
                       onFocus={() => setShowDomainDrop(true)}
-                      placeholder={domains.length === 0 ? T.searchDomains : ''}
-                      className="flex-1 min-w-[140px] bg-transparent text-sm text-gray-800 placeholder:text-gray-400 outline-none px-2 py-1"
+                      onKeyDown={handleDomainKeyDown}
+                      placeholder={domains.length === 0 ? (T.searchDomains ?? 'Search or type a domain…') : ''}
+                      className="flex-1 min-w-[160px] bg-transparent text-sm text-gray-800 placeholder:text-gray-400 outline-none px-2 py-1"
                     />
                   )}
                   <div className="absolute right-3.5 top-3 text-gray-400 pointer-events-none">
                     <Search size={16} />
                   </div>
                 </div>
-                {showDomainDrop && suggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 max-h-48 overflow-y-auto">
+                {showDomainDrop && (suggestions.length > 0 || canAddCustom) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 max-h-52 overflow-y-auto">
                     {suggestions.map((d) => (
-                      <button key={d} type="button" onMouseDown={() => addDomain(d)} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 text-gray-700 transition-colors">
-                        {d}
+                      <button key={d.id} type="button" onMouseDown={() => addDomain(d.name)}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 text-gray-700 transition-colors flex items-center gap-2">
+                        {d.name}
+                        <span className="ml-auto text-[10px] text-gray-400">{d.name_fr}</span>
                       </button>
                     ))}
+                    {canAddCustom && (
+                      <button type="button" onMouseDown={() => addDomain(trimmed)}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-primary/5 text-primary font-semibold transition-colors flex items-center gap-2 border-t border-gray-100">
+                        <Plus size={14} />
+                        Add &ldquo;{trimmed}&rdquo; as custom domain
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
+              <p className="text-[11px] text-gray-400 mt-1.5 font-medium">
+                Don&apos;t see your domain? Type it and press Enter or click &ldquo;Add&rdquo; to create a custom one.
+              </p>
             </div>
 
             {/* Bio */}

@@ -46,12 +46,15 @@ function getDocumentPromo(tags, lang) {
 
 function inferSpecialization(tags) {
   const text = tags.map((t) => `${t.law_name ?? ''} ${t.domain ?? ''}`).join(' ').toLowerCase();
-  if (text.includes('labour') || text.includes('labor') || text.includes('travail') || text.includes('employment')) return 'labour';
-  if (text.includes('penal') || text.includes('criminal') || text.includes('pénal')) return 'penal';
-  if (text.includes('family') || text.includes('famille') || text.includes('civil status')) return 'family';
-  if (text.includes('housing') || text.includes('rent') || text.includes('tenant') || text.includes('logement') || text.includes('locat')) return 'housing';
-  if (text.includes('commercial') || text.includes('ohada') || text.includes('company') || text.includes('société')) return 'commercial';
-  if (text.includes('civil') || text.includes('civil code')) return 'civil';
+  if (text.includes('labour') || text.includes('labor') || text.includes('travail') || text.includes('employment')) return 'Labour Law';
+  if (text.includes('penal') || text.includes('criminal') || text.includes('pénal')) return 'Criminal Law';
+  if (text.includes('family') || text.includes('famille') || text.includes('civil status')) return 'Family Law';
+  if (text.includes('housing') || text.includes('rent') || text.includes('tenant') || text.includes('logement') || text.includes('locat')) return 'Housing & Real Estate';
+  if (text.includes('commercial') || text.includes('ohada') || text.includes('company') || text.includes('société')) return 'Commercial Law';
+  if (text.includes('land') || text.includes('foncier') || text.includes('tenure') || text.includes('property')) return 'Land Law';
+  if (text.includes('tax') || text.includes('fiscal') || text.includes('impôt')) return 'Tax Law';
+  if (text.includes('administrative') || text.includes('administratif')) return 'Administrative Law';
+  if (text.includes('civil code') || text.includes('droit civil')) return 'Civil Law';
   return null;
 }
 
@@ -63,13 +66,25 @@ function relativeDate(iso, lang) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+function filterCitedSources(sources, responseText) {
+  if (!sources?.length) return [];
+  return sources.filter((src) => {
+    if (!src.article_number) return true;
+    return responseText.includes(src.article_number);
+  });
+}
+
 function normalizeMessages(apiMessages) {
-  return (apiMessages ?? []).map((m) => ({
-    id: m.id,
-    role: m.role === 'assistant' ? 'bot' : m.role,
-    text: m.content ?? m.text ?? '',
-    tags: m.sources ?? [],
-  }));
+  return (apiMessages ?? []).map((m) => {
+    const text = m.content ?? m.text ?? '';
+    const rawSources = m.sources ?? [];
+    return {
+      id: m.id,
+      role: m.role === 'assistant' ? 'bot' : m.role,
+      text,
+      tags: m.role === 'assistant' ? filterCitedSources(rawSources, text) : rawSources,
+    };
+  });
 }
 
 export default function AIAssistant() {
@@ -182,7 +197,10 @@ export default function AIAssistant() {
         if (streamDoneRef.current) {
           clearInterval(streamIntervalRef.current);
           setIsStreaming(false);
-          setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, streaming: false } : m));
+          setMessages((prev) => prev.map((m) => {
+            if (m.id !== botMsgId) return m;
+            return { ...m, streaming: false, tags: filterCitedSources(m.tags, m.text) };
+          }));
         }
         return;
       }

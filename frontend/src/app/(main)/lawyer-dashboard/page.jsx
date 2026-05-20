@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  Clock, Handshake, MapPin, FolderOpen, Loader2,
+  Clock, Handshake, MapPin, FolderOpen, Loader2, Check, Briefcase, Plus, Camera,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { lawyers } from '@/lib/api';
@@ -12,18 +12,31 @@ export default function LawyerDashboard() {
   const { lang } = useLanguage();
   const T = t[lang].lawyerDashboard;
 
-  const [profile, setProfile]     = useState(null);
-  const [referrals, setReferrals] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
+  const [profile, setProfile]         = useState(null);
+  const [referrals, setReferrals]     = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState('');
   const [actionLoading, setActionLoading] = useState(null);
+  const [allSpecs, setAllSpecs]           = useState([]);
+  const [selectedSpecs, setSelectedSpecs] = useState([]);
+  const [specsLoading, setSpecsLoading]   = useState(false);
+  const [specsSaved, setSpecsSaved]       = useState(false);
+  const [customDomain, setCustomDomain]   = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [prof, refs] = await Promise.all([lawyers.me(), lawyers.myReferrals()]);
+        const [prof, refs, specs] = await Promise.all([
+          lawyers.me(),
+          lawyers.myReferrals(),
+          lawyers.specializations(),
+        ]);
         setProfile(prof);
         setReferrals(refs);
+        setAllSpecs(specs);
+        setSelectedSpecs((prof.specializations ?? []).map((s) => s.name));
       } catch {
         setError('Failed to load dashboard data.');
       } finally {
@@ -32,6 +45,56 @@ export default function LawyerDashboard() {
     }
     load();
   }, []);
+
+  function toggleSpec(name) {
+    setSelectedSpecs((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+    setSpecsSaved(false);
+  }
+
+  async function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return;
+    setPhotoUploading(true);
+    try {
+      const data = await lawyers.uploadPhoto(file);
+      setProfile((p) => ({ ...p, profile_photo_url: data.profile_photo_url }));
+    } catch { /* silent */ } finally {
+      setPhotoUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  function addCustomDomain() {
+    const name = customDomain.trim();
+    if (!name || selectedSpecs.includes(name)) return;
+    setSelectedSpecs((prev) => [...prev, name]);
+    if (!allSpecs.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+      setAllSpecs((prev) => [...prev, { id: name, name, name_fr: name }]);
+    }
+    setCustomDomain('');
+    setSpecsSaved(false);
+  }
+
+  async function saveSpecializations() {
+    setSpecsLoading(true);
+    setSpecsSaved(false);
+    try {
+      const token = localStorage.getItem('lexcam_access');
+      const res = await fetch('/api/v1/lawyers/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ specializations: selectedSpecs }),
+      });
+      const updated = await res.json();
+      setProfile((p) => ({ ...p, specializations: updated.specializations }));
+      setSpecsSaved(true);
+    } catch { /* silent */ } finally {
+      setSpecsLoading(false);
+    }
+  }
 
   async function toggleAvailability() {
     if (!profile) return;
@@ -101,6 +164,26 @@ export default function LawyerDashboard() {
 
           {/* Profile & Availability Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+            <div className="flex items-center gap-5">
+              {/* Avatar with photo change */}
+              <div className="relative flex-shrink-0">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
+                  {profile.profile_photo_url ? (
+                    <img src={profile.profile_photo_url} alt={profile.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    (profile.full_name ?? '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={photoUploading}
+                  className="absolute bottom-0 right-0 w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-white shadow-md hover:bg-primary-light transition-colors disabled:opacity-60"
+                  title="Change photo"
+                >
+                  {photoUploading ? <Loader2 size={12} className="text-white animate-spin" /> : <Camera size={12} className="text-white" />}
+                </button>
+                <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+              </div>
             <div>
               <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold mb-2 ${
                 profile.verification_status === 'verified'
@@ -121,6 +204,7 @@ export default function LawyerDashboard() {
                 )}
               </p>
             </div>
+            </div>{/* end flex items-center gap-5 */}
 
             <div className="flex items-center gap-3">
               <span className="text-xs font-bold text-gray-500">{T.availabilityStatus}</span>
@@ -161,6 +245,65 @@ export default function LawyerDashboard() {
               );
             })}
           </div>
+
+          {/* Specializations */}
+          {allSpecs.length > 0 && (
+            <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Briefcase size={16} className="text-primary" />
+                  <h2 className="font-serif text-lg font-bold text-gray-900">Areas of Practice</h2>
+                </div>
+                <button
+                  onClick={saveSpecializations}
+                  disabled={specsLoading}
+                  className="flex items-center gap-1.5 text-xs font-bold bg-primary hover:bg-primary-light disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  {specsLoading ? <Loader2 size={12} className="animate-spin" /> : specsSaved ? <Check size={12} /> : null}
+                  {specsSaved ? 'Saved!' : 'Save'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mb-4">Select your legal domains. Don&apos;t see yours? Type it below and press Enter.</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {allSpecs.map((s) => {
+                  const active = selectedSpecs.includes(s.name);
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => toggleSpec(s.name)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors flex items-center gap-1.5 ${
+                        active
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40 hover:bg-primary/5'
+                      }`}
+                    >
+                      {active && <Check size={11} />}
+                      {s.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Custom domain input */}
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomDomain(); } }}
+                  placeholder="Type a custom domain…"
+                  className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-gray-50 text-gray-700 placeholder:text-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomDomain}
+                  disabled={!customDomain.trim()}
+                  className="flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors border border-primary/20"
+                >
+                  <Plus size={13} /> Add
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Pending Referrals */}
           <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm overflow-hidden">

@@ -102,6 +102,17 @@ export default function VerifyCode() {
                   bio: profile.bio ?? '',
                   specializations: profile.specializations ?? [],
                 }).catch(() => {});
+                // Upload profile photo if one was selected
+                const photoDataUrl = sessionStorage.getItem('lawyer_photo');
+                sessionStorage.removeItem('lawyer_photo');
+                if (photoDataUrl) {
+                  try {
+                    const res = await fetch(photoDataUrl);
+                    const blob = await res.blob();
+                    const file = new File([blob], 'profile.jpg', { type: blob.type || 'image/jpeg' });
+                    await lawyers.uploadPhoto(file).catch(() => {});
+                  } catch { /* non-fatal */ }
+                }
                 router.push('/register-lawyer/documents');
               } else {
                 router.push(user.role === 'lawyer' ? '/lawyer-dashboard' : user.role === 'admin' ? '/admin' : '/dashboard');

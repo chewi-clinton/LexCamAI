@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import {
-  ArrowLeft, MapPin, Globe, IdCard,
-  Building, Send, MessageSquare, CheckCircle2, Clock, Loader2,
+  ArrowLeft, MapPin, Send, MessageSquare, CheckCircle2, Clock, Loader2,
+  Phone, Mail,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -135,20 +135,6 @@ export default function LawyerProfileView() {
                 </div>
               )}
 
-              {/* Areas of Practice */}
-              {specs.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm p-6 md:p-8 space-y-4">
-                  <h3 className="font-serif text-xl font-bold text-gray-900">{T.areasOfPractice}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {specs.map((s) => (
-                      <span key={s.id ?? s.name} className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-semibold">
-                        {s.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Reviews placeholder */}
               <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm p-10 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-xl bg-gray-50 text-gray-400 border border-gray-100 flex items-center justify-center mb-4 shadow-inner">
@@ -169,19 +155,42 @@ export default function LawyerProfileView() {
                 <div className="space-y-3 text-xs font-medium text-gray-700">
                   {(lawyer.city || lawyer.region) && (
                     <div className="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3.5 flex items-center gap-3">
-                      <MapPin size={16} className="text-gray-400" />
+                      <MapPin size={16} className="text-gray-400 flex-shrink-0" />
                       <span className="text-gray-800 font-bold">{lawyer.city}{lawyer.region ? `, ${lawyer.region}` : ''}</span>
                     </div>
                   )}
-                  {lawyer.type && (
-                    <div className="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3.5 flex items-center gap-3">
-                      <Building size={16} className="text-gray-400" />
-                      <span className="text-gray-700 font-semibold">{lawyer.type}</span>
-                    </div>
+                  {lawyer.phone && (
+                    <a href={`tel:${lawyer.phone}`} className="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3.5 flex items-center gap-3 hover:border-primary/40 hover:bg-primary/5 transition-colors group">
+                      <Phone size={16} className="text-gray-400 flex-shrink-0 group-hover:text-primary transition-colors" />
+                      <span className="text-gray-800 font-bold group-hover:text-primary transition-colors">{lawyer.phone}</span>
+                    </a>
+                  )}
+                  {lawyer.email && (
+                    <a href={`mailto:${lawyer.email}`} className="bg-[#FAFAFA] border border-gray-200 rounded-lg p-3.5 flex items-center gap-3 hover:border-primary/40 hover:bg-primary/5 transition-colors group">
+                      <Mail size={16} className="text-gray-400 flex-shrink-0 group-hover:text-primary transition-colors" />
+                      <span className="text-gray-800 font-bold truncate group-hover:text-primary transition-colors">{lawyer.email}</span>
+                    </a>
                   )}
                 </div>
+
+                {/* Domains in sidebar */}
+                <div className="pt-1">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Practice Areas</p>
+                  {specs.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {specs.map((s) => (
+                        <span key={s.id ?? s.name} className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-semibold">
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">No domains listed yet.</p>
+                  )}
+                </div>
+
                 {verified && (
-                  <div className="pt-2 space-y-3">
+                  <div className="pt-2 space-y-3 border-t border-gray-100">
                     <a href={`/lawyer/${id}/referral`} className="w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm">
                       <Send size={14} /> {T.sendMessage}
                     </a>

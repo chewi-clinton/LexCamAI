@@ -65,7 +65,7 @@ def register_lawyer(user_id, data):
     specialization_names = data.pop("specializations", [])
     lawyer = Lawyer.objects.create(user_id=user_id, type=Lawyer.TYPE_REGISTERED, **data)
     if specialization_names:
-        specs = Specialization.objects.filter(name__in=specialization_names)
+        specs = [Specialization.objects.get_or_create(name=n, defaults={"name_fr": n})[0] for n in specialization_names]
         lawyer.specializations.set(specs)
     _update_user_role(user_id)
     return lawyer
@@ -78,7 +78,7 @@ def update_lawyer(lawyer, data):
         setattr(lawyer, attr, value)
     lawyer.save()
     if specialization_names is not None:
-        specs = Specialization.objects.filter(name__in=specialization_names)
+        specs = [Specialization.objects.get_or_create(name=n, defaults={"name_fr": n})[0] for n in specialization_names]
         lawyer.specializations.set(specs)
     return lawyer
 
@@ -146,6 +146,36 @@ def upload_document(lawyer, file_obj, document_type, filename):
         document_type=document_type,
         file_url=file_url,
     )
+
+
+def upload_profile_photo(lawyer, file_obj, filename):
+    """
+    Uploads a profile photo to MinIO and updates lawyer.profile_photo_url.
+    Path: lawyers/{lawyer_id}/profile/{filename}
+    """
+    client = get_minio_client()
+    bucket = settings.MINIO_DOCUMENTS_BUCKET
+    _ensure_bucket_public(client, bucket)
+    object_name = f"lawyers/{lawyer.id}/profile/{filename}"
+    content_type, _ = mimetypes.guess_type(filename)
+    content_type = content_type or "image/jpeg"
+    try:
+        client.put_object(
+            bucket_name=bucket,
+            object_name=object_name,
+            data=file_obj,
+            length=-1,
+            part_size=10 * 1024 * 1024,
+            content_type=content_type,
+        )
+    except S3Error as exc:
+        logger.error("MinIO photo upload failed: %s", exc)
+        raise
+    public_endpoint = getattr(settings, "MINIO_PUBLIC_ENDPOINT", settings.MINIO_ENDPOINT)
+    url = f"http://{public_endpoint}/{bucket}/{object_name}"
+    lawyer.profile_photo_url = url
+    lawyer.save(update_fields=["profile_photo_url"])
+    return url
 
 
 def ingest_scraped_lawyers(lawyers_data):

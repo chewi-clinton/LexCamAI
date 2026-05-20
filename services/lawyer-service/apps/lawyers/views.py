@@ -6,13 +6,13 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema
 from django.shortcuts import get_object_or_404
 
-from .models import Lawyer, LawyerDocument
+from .models import Lawyer, LawyerDocument, Specialization
 from .serializers import (
     LawyerPublicSerializer, LawyerRegisterSerializer, LawyerUpdateSerializer,
     LawyerMeSerializer, LawyerDocumentSerializer, AdminVerifySerializer,
     AdminLawyerSerializer,
 )
-from .services import get_lawyers, register_lawyer, update_lawyer, verify_lawyer, upload_document
+from .services import get_lawyers, register_lawyer, update_lawyer, verify_lawyer, upload_document, upload_profile_photo
 
 
 class LawyerListView(APIView):
@@ -173,3 +173,26 @@ class AdminLawyerDocumentsView(APIView):
         lawyer = get_object_or_404(Lawyer, id=lawyer_id)
         docs = LawyerDocument.objects.filter(lawyer=lawyer).order_by("uploaded_at")
         return Response(LawyerDocumentSerializer(docs, many=True).data)
+
+
+class SpecializationListView(APIView):
+    """GET /api/v1/specializations — public list of all available specializations."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        specs = Specialization.objects.all().order_by("name")
+        return Response([{"id": str(s.id), "name": s.name, "name_fr": s.name_fr} for s in specs])
+
+
+class LawyerPhotoView(APIView):
+    """POST /api/v1/lawyers/me/photo — upload or replace profile photo."""
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        lawyer = get_object_or_404(Lawyer, user_id=request.user.user_id)
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return Response({"error": "file is required."}, status=status.HTTP_400_BAD_REQUEST)
+        url = upload_profile_photo(lawyer, file_obj, file_obj.name)
+        return Response({"profile_photo_url": url})
