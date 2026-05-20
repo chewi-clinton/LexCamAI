@@ -1,38 +1,42 @@
 'use client';
-import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, UserCheck, Users, Flag, Sliders, FileText,
-  History, Search, Download,
+  Search, Download, Loader2, LogOut,
 } from 'lucide-react';
 import GavelIcon from '@/components/ui/GavelIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import t from '@/translations';
-
-function exportReportsCSV() {
-  const rows = [
-    ['Metric', 'Value'],
-    ['Total Users', '4,821'],
-    ['Verified Lawyers', '312'],
-    ['Docs Generated', '9,140'],
-    ['Revenue (XAF)', '12,450,000'],
-    ['Pending Verification', '24'],
-    ['Flagged AI Sessions', '1,248'],
-    ['Export Date', new Date().toISOString().slice(0, 10)],
-  ];
-  const csv = rows.map((r) => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `lexcam-report-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
+  const router   = useRouter();
   const { lang, setLang } = useLanguage();
+  const { user, loading, logout } = useAuth();
+
+  async function handleLogout() {
+    await logout();
+    router.replace('/login');
+  }
   const T = t[lang].admin;
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user || user.role !== 'admin') router.replace('/login');
+  }, [user, loading, router]);
+
+  if (loading || !user || user.role !== 'admin') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 size={28} className="animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const initials = (user.full_name || user.email || 'AD')
+    .split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
   const navItems = [
     { href: '/admin',               label: T.navDashboard,      icon: LayoutDashboard, exact: true },
@@ -42,7 +46,6 @@ export default function AdminLayout({ children }) {
     { href: '/admin/scrapers',      label: T.navScrapers,       icon: Sliders },
     { href: '/admin/templates',     label: T.navTemplates,      icon: FileText },
     { href: '/admin/users',         label: T.navUsers,          icon: Users },
-    { href: '/admin/audit-log',     label: T.navAuditLog,       icon: History },
   ];
 
   const isActive = (item) =>
@@ -87,12 +90,12 @@ export default function AdminLayout({ children }) {
             <span className="w-2 h-2 rounded-full bg-emerald-500 block" />
             <span className="text-[11px] text-gray-500 font-medium">{T.systemHealthy}</span>
           </div>
-          <button
-            onClick={exportReportsCSV}
+          <a
+            href="/admin/lawyers"
             className="w-full bg-accent-dark hover:opacity-90 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-opacity"
           >
             <Download size={14} /> {T.exportReports}
-          </button>
+          </a>
         </div>
       </aside>
 
@@ -112,8 +115,18 @@ export default function AdminLayout({ children }) {
               <span className="text-accent">|</span>{' '}
               <button onClick={() => setLang('en')} className={`font-bold transition-colors ${lang === 'en' ? 'text-accent' : 'text-gray-400 hover:text-gray-600'}`}>EN</button>
             </div>
-            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center border border-primary/20 select-none">
-              AD
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center border border-primary/20 select-none" title={user.full_name || user.email}>
+                {initials}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 text-xs font-medium text-muted hover:text-red-500 transition-colors"
+                title="Logout"
+              >
+                <LogOut size={15} />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </div>
           </div>
         </header>

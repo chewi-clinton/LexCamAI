@@ -130,6 +130,8 @@ export default function AdminLawyerDirectory() {
   const [actionLoading, setActionLoading] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [domains, setDomains] = useState([]);
   const [rowsPerPage, setRowsPerPage] = useState('15');
 
   useEffect(() => {
@@ -154,7 +156,7 @@ export default function AdminLawyerDirectory() {
     }
   }
 
-  function removeDomain() {}
+  function removeDomain(d) { setDomains((prev) => prev.filter((x) => x !== d)); }
 
   const filtered = tableData.filter((row) => {
     if (statusFilter && row.status !== statusFilter) return false;
