@@ -58,6 +58,7 @@ class RegisterView(APIView):
             phone=data.get("phone") or None,
             city=data.get("city", ""),
             preferred_language=data.get("preferred_language", "fr"),
+            role=data.get("role", "user"),
             consent_given_at=timezone.now(),
         )
         user.password = hash_password(data["password"])

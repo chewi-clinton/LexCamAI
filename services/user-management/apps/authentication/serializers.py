@@ -12,6 +12,7 @@ class RegisterSerializer(serializers.Serializer):
     city = serializers.CharField(max_length=100, required=False, allow_blank=True)
     preferred_language = serializers.ChoiceField(choices=["fr", "en"], default="fr")
     consent_given = serializers.BooleanField()
+    role = serializers.ChoiceField(choices=["user", "lawyer"], default="user", required=False)
 
     def validate_email(self, value):
         if User.objects.filter(email=value.lower()).exists():
