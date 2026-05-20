@@ -102,8 +102,10 @@ export default function VerifyCode() {
                   bio: profile.bio ?? '',
                   specializations: profile.specializations ?? [],
                 }).catch(() => {});
+                router.push('/register-lawyer/documents');
+              } else {
+                router.push(user.role === 'lawyer' ? '/lawyer-dashboard' : user.role === 'admin' ? '/admin' : '/dashboard');
               }
-              router.push(user.role === 'lawyer' ? '/lawyer-dashboard' : user.role === 'admin' ? '/admin' : '/dashboard');
             } else {
               router.push('/login');
             }

@@ -144,6 +144,22 @@ export const lawyers = {
   get:            (id)          => get(`/api/v1/lawyers/${id}`),
   register:       (data)        => post('/api/v1/lawyers/register', data),
   me:             ()            => get('/api/v1/lawyers/me'),
+  myDocuments:    ()            => get('/api/v1/lawyers/me/documents/list'),
+  uploadDocument: (file, documentType) => {
+    const { access } = getTokens();
+    const form = new FormData();
+    form.append('file', file);
+    form.append('document_type', documentType);
+    return fetch('/api/v1/lawyers/me/documents', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${access}` },
+      body: form,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw Object.assign(new Error(data?.error ?? 'Upload failed'), { status: r.status, data });
+      return data;
+    });
+  },
   createReferral: (lawyerId, data) => post(`/api/v1/lawyers/${lawyerId}/referrals`, data),
   myReferrals:    ()            => get('/api/v1/lawyers/me/referrals'),
   actionReferral: (referralId, data) => patch(`/api/v1/lawyers/me/referrals/${referralId}`, data),
