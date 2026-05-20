@@ -34,11 +34,18 @@ export default function Header({ activePage = '' }) {
     window.location.href = '/';
   }
 
-  const links = [
-    { label: T.aiAssistant, href: '/chat', key: 'chat' },
-    { label: T.lawExplorer, href: '/law-explorer', key: 'law-explorer' },
-    { label: T.lawyerDirectory, href: '/lawyer', key: 'lawyer' },
-    { label: T.documents, href: '/documents', key: 'documents' },
+  const isLawyer = currentUser?.role === 'lawyer';
+
+  const links = isLawyer ? [
+    { label: 'Dashboard',   href: '/lawyer-dashboard', key: 'lawyer-dashboard' },
+    { label: 'Referrals',   href: '/lawyer-dashboard', key: 'referrals' },
+    { label: T.aiAssistant, href: '/chat',             key: 'chat' },
+    { label: T.lawExplorer, href: '/law-explorer',     key: 'law-explorer' },
+  ] : [
+    { label: T.aiAssistant,    href: '/chat',        key: 'chat' },
+    { label: T.lawExplorer,    href: '/law-explorer', key: 'law-explorer' },
+    { label: T.lawyerDirectory, href: '/lawyer',     key: 'lawyer' },
+    { label: T.documents,      href: '/documents',   key: 'documents' },
   ];
 
   return (
@@ -76,7 +83,7 @@ export default function Header({ activePage = '' }) {
           {authChecked && (
             currentUser ? (
               <div className="flex items-center gap-3">
-                <a href="/profile" className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-light transition-colors">
+                <a href={isLawyer ? '/lawyer-dashboard' : '/profile'} className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-light transition-colors">
                   <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
                     <User size={15} className="text-primary" />
                   </div>
@@ -119,7 +126,7 @@ export default function Header({ activePage = '' }) {
           {authChecked && (
             currentUser ? (
               <>
-                <a href="/profile" className="text-sm font-medium text-primary py-2 flex items-center gap-2">
+                <a href={isLawyer ? '/lawyer-dashboard' : '/profile'} className="text-sm font-medium text-primary py-2 flex items-center gap-2">
                   <User size={15} /> {currentUser.full_name || currentUser.email}
                 </a>
                 <button onClick={handleLogout} className="text-sm font-medium text-red-500 py-2 flex items-center gap-2 text-left">
