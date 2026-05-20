@@ -100,3 +100,15 @@ class AdminTemplateUpdateSerializer(serializers.ModelSerializer):
         model = DocumentTemplate
         fields = ["name_fr", "name_en", "description_fr", "description_en", "price_xaf", "is_active"]
         extra_kwargs = {f: {"required": False} for f in fields}
+
+
+class AdminTemplateCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentTemplate
+        fields = ["slug", "name_fr", "name_en", "description_fr", "description_en", "price_xaf", "is_active", "template_file"]
+        extra_kwargs = {
+            "description_fr": {"required": False, "default": ""},
+            "description_en": {"required": False, "default": ""},
+            "is_active": {"required": False},
+            "template_file": {"required": False, "default": ""},
+        }

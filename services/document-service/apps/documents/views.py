@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from .models import DocumentTemplate, UserDocument
 from .serializers import (
+    AdminTemplateCreateSerializer,
     AdminTemplateSerializer,
     AdminTemplateUpdateSerializer,
     CreateDocumentSerializer,
@@ -178,6 +179,14 @@ class AdminTemplateListView(APIView):
             return Response({"error": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
         templates = DocumentTemplate.objects.all().order_by("name_en")
         return Response(AdminTemplateSerializer(templates, many=True).data)
+
+    def post(self, request: Request) -> Response:
+        if request.user.role != "admin":
+            return Response({"error": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = AdminTemplateCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        template = serializer.save()
+        return Response(AdminTemplateSerializer(template).data, status=status.HTTP_201_CREATED)
 
 
 class AdminTemplateToggleView(APIView):
