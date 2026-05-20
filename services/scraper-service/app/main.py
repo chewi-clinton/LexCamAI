@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .api.v1 import routes as v1_routes
+from .api.v1 import routes as v1_routes  # importing routes also imports tasks, which installs the DNS resilience patch
 from .api.v1 import auth_routes
 from .db import init_db
 from .config import settings

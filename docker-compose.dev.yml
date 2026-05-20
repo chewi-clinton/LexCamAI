@@ -253,7 +253,7 @@ services:
       - scraper-service
       - redis
       - postgres
-    command: celery -A app.tasks.celery_app worker -l info -Q celery
+    command: sh -c "printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n' > /etc/resolv.conf && celery -A app.tasks.celery_app worker -l info -Q celery --pool=solo"
 
   user-management:
     build:
