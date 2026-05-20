@@ -10,6 +10,8 @@ from rest_framework.views import APIView
 
 from .models import DocumentTemplate, UserDocument
 from .serializers import (
+    AdminTemplateSerializer,
+    AdminTemplateUpdateSerializer,
     CreateDocumentSerializer,
     DocumentTemplateDetailSerializer,
     DocumentTemplateListSerializer,
@@ -157,6 +159,56 @@ class InternalDocumentDetailView(APIView):
             "form_data": doc.form_data,
             "status": doc.status,
         })
+
+
+class AdminStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        return Response({
+            "total_documents": UserDocument.objects.count(),
+        })
+
+
+class AdminTemplateListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        if request.user.role != "admin":
+            return Response({"error": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
+        templates = DocumentTemplate.objects.all().order_by("name_en")
+        return Response(AdminTemplateSerializer(templates, many=True).data)
+
+
+class AdminTemplateToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request: Request, pk: str) -> Response:
+        if request.user.role != "admin":
+            return Response({"error": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            template = DocumentTemplate.objects.get(id=pk)
+        except DocumentTemplate.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        template.is_active = not template.is_active
+        template.save(update_fields=["is_active"])
+        return Response(AdminTemplateSerializer(template).data)
+
+
+class AdminTemplateEditView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request: Request, pk: str) -> Response:
+        if request.user.role != "admin":
+            return Response({"error": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            template = DocumentTemplate.objects.get(id=pk)
+        except DocumentTemplate.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = AdminTemplateUpdateSerializer(template, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(AdminTemplateSerializer(template).data)
 
 
 class InternalMarkReadyView(APIView):

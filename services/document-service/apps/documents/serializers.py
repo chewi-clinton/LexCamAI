@@ -87,3 +87,16 @@ class CreateDocumentSerializer(serializers.Serializer):
 
 class MarkReadySerializer(serializers.Serializer):
     file_url = serializers.CharField(max_length=1024)
+
+
+class AdminTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentTemplate
+        fields = ["id", "slug", "name_fr", "name_en", "description_fr", "description_en", "price_xaf", "is_active"]
+
+
+class AdminTemplateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentTemplate
+        fields = ["name_fr", "name_en", "description_fr", "description_en", "price_xaf", "is_active"]
+        extra_kwargs = {f: {"required": False} for f in fields}
