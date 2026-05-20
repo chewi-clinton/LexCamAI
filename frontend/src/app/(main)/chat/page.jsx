@@ -447,12 +447,12 @@ export default function AIAssistant() {
                     {!msg.streaming && (
                       <div className="pl-14 flex items-center">
                         {flaggedMsgs.has(msg.id) ? (
-                          <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                            <CheckCircle2 size={11} /> {lang === 'fr' ? 'Signalé' : 'Reported'}
+                          <span className="text-xs text-emerald-600 flex items-center gap-1 font-medium">
+                            <CheckCircle2 size={13} /> {lang === 'fr' ? 'Signalé' : 'Reported'}
                           </span>
                         ) : flagMenuMsgId === msg.id ? (
-                          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-sm px-2 py-1">
-                            <span className="text-[10px] text-gray-400 mr-1">{lang === 'fr' ? 'Signaler comme :' : 'Report as:'}</span>
+                          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg shadow-sm px-3 py-1.5">
+                            <span className="text-xs text-gray-500 mr-1 font-medium">{lang === 'fr' ? 'Signaler comme :' : 'Report as:'}</span>
                             {[
                               { key: 'incorrect', fr: 'Incorrect', en: 'Incorrect' },
                               { key: 'harmful',   fr: 'Nuisible',  en: 'Harmful'   },
@@ -462,22 +462,22 @@ export default function AIAssistant() {
                                 key={key}
                                 onClick={() => handleFlag(msg.id, key, idx, msg.text)}
                                 disabled={flaggingMsgId === msg.id}
-                                className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
                               >
                                 {lang === 'fr' ? fr : en}
                               </button>
                             ))}
-                            <button onClick={() => setFlagMenuMsgId(null)} className="ml-1 text-gray-300 hover:text-gray-500 transition-colors">
-                              <X size={11} />
+                            <button onClick={() => setFlagMenuMsgId(null)} className="ml-1 text-gray-400 hover:text-gray-600 transition-colors">
+                              <X size={13} />
                             </button>
                           </div>
                         ) : (
                           <button
                             onClick={() => setFlagMenuMsgId(msg.id)}
-                            className="text-[10px] text-gray-300 hover:text-gray-400 flex items-center gap-1 transition-colors"
+                            className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1.5 transition-colors font-medium"
                             title={lang === 'fr' ? 'Signaler cette réponse' : 'Report this response'}
                           >
-                            <Flag size={11} /> {lang === 'fr' ? 'Signaler' : 'Report'}
+                            <Flag size={13} /> {lang === 'fr' ? 'Signaler' : 'Report'}
                           </button>
                         )}
                       </div>
