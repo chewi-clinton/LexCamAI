@@ -37,10 +37,10 @@ export default function Header({ activePage = '' }) {
   const isLawyer = currentUser?.role === 'lawyer';
 
   const links = isLawyer ? [
-    { label: 'Dashboard',   href: '/lawyer-dashboard', key: 'lawyer-dashboard' },
-    { label: 'Referrals',   href: '/lawyer-dashboard', key: 'referrals' },
-    { label: T.aiAssistant, href: '/chat',             key: 'chat' },
-    { label: T.lawExplorer, href: '/law-explorer',     key: 'law-explorer' },
+    { label: 'Dashboard',    href: '/lawyer-dashboard',          key: 'lawyer-dashboard' },
+    { label: 'Get Verified', href: '/register-lawyer/documents', key: 'verify' },
+    { label: T.aiAssistant,  href: '/chat',                      key: 'chat' },
+    { label: T.lawExplorer,  href: '/law-explorer',              key: 'law-explorer' },
   ] : [
     { label: T.aiAssistant,    href: '/chat',        key: 'chat' },
     { label: T.lawExplorer,    href: '/law-explorer', key: 'law-explorer' },
