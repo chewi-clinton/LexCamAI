@@ -108,9 +108,6 @@ services:
     build:
       context: ./services/rag-service
     container_name: lexcam-rag-service
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     environment:
       SERVICE_NAME: rag-service
       API_PREFIX: /api/v1
@@ -250,7 +247,7 @@ services:
       - scraper-service
       - redis
       - postgres
-    command: celery -A app.tasks.celery_app worker -l info -Q celery --pool=solo
+    command: celery -A app.tasks.celery_app worker -l info -Q celery
 
   user-management:
     build:

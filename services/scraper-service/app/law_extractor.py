@@ -125,58 +125,16 @@ _LAW_LINK_KEYWORDS = {
 _SKIP_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip"}
 
 
-def find_pdf_links(html: str, base_url: str, max_results: int = 5) -> list[str]:
-    """
-    Extract PDF download links from a law portal listing page, same domain only.
-    """
-    soup = BeautifulSoup(html, "lxml")
-    base_domain_bare = urlparse(base_url).netloc.removeprefix("www.")
-    seen: set[str] = set()
-    result: list[str] = []
-
-    for a in soup.find_all("a", href=True):
-        href = a["href"].strip()
-        if not href:
-            continue
-        full_url = urljoin(base_url, href)
-        parsed = urlparse(full_url)
-
-        if parsed.netloc.removeprefix("www.") != base_domain_bare:
-            continue
-        if not parsed.path.lower().endswith(".pdf"):
-            continue
-        if full_url in seen:
-            continue
-
-        # prefer links whose path or anchor text hints at law content
-        path_lower = parsed.path.lower()
-        anchor_lower = (a.get_text() or "").lower()
-        is_law = any(kw in path_lower or kw in anchor_lower for kw in _LAW_LINK_KEYWORDS)
-
-        seen.add(full_url)
-        if is_law:
-            result.insert(0, full_url)  # prioritise law-keyword matches
-        else:
-            result.append(full_url)
-
-        if len(result) >= max_results:
-            break
-
-    return result[:max_results]
-
-
 def find_law_links(html: str, base_url: str) -> list[str]:
     """
     From a law portal listing/index page, extract hrefs that likely point to
     individual law text pages (same domain, law-keyword in path, not binary files).
-    Falls back to any deep internal links when keyword matching finds nothing.
-    Returns deduplicated list capped at 15 candidates.
+    Returns deduplicated list capped at 10 candidates.
     """
     soup = BeautifulSoup(html, "lxml")
-    base_domain_bare = urlparse(base_url).netloc.removeprefix("www.")
+    base_domain = urlparse(base_url).netloc
     seen: set[str] = set()
-    keyword_matches: list[str] = []
-    fallback_links: list[str] = []
+    result: list[str] = []
 
     for a in soup.find_all("a", href=True):
         href = a["href"].strip()
@@ -185,26 +143,21 @@ def find_law_links(html: str, base_url: str) -> list[str]:
         full_url = urljoin(base_url, href)
         parsed = urlparse(full_url)
 
-        # same domain (ignore www. prefix difference)
-        if parsed.netloc.removeprefix("www.") != base_domain_bare:
+        # same domain only
+        if parsed.netloc != base_domain:
             continue
         # skip binary file links
         if any(parsed.path.lower().endswith(ext) for ext in _SKIP_EXTENSIONS):
             continue
-
+        # must have at least one law-related keyword in the path or anchor text
         path_lower = parsed.path.lower()
         anchor_lower = (a.get_text() or "").lower()
-
-        if full_url in seen:
+        if not any(kw in path_lower or kw in anchor_lower for kw in _LAW_LINK_KEYWORDS):
             continue
-        seen.add(full_url)
+        if full_url not in seen:
+            seen.add(full_url)
+            result.append(full_url)
+        if len(result) >= 10:
+            break
 
-        if any(kw in path_lower or kw in anchor_lower for kw in _LAW_LINK_KEYWORDS):
-            keyword_matches.append(full_url)
-        elif len(path_lower.split("/")) >= 3 and len(path_lower) > 4:
-            # deep internal link — potential content page (used as fallback)
-            fallback_links.append(full_url)
-
-    # prefer keyword matches; fall back to all deep internal links when 0 found
-    result = keyword_matches if keyword_matches else fallback_links
-    return result[:15]
+    return result

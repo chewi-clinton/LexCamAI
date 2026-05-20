@@ -10,7 +10,6 @@ from sqlalchemy.orm import sessionmaker
 from .config import settings
 from .extractor import extract
 
-
 logger = get_task_logger(__name__)
 
 celery_app = Celery(
@@ -84,8 +83,19 @@ def run_scrape(self, job_id: int):
             url = job.url
 
         # Fetch the target URL
-        html = _fetch(url)
-        lawyers = extract(html, "text/html", url)
+        resp = http_client.get(
+            url,
+            timeout=30,
+            headers={
+                "User-Agent": "LexCamBot/1.0 (+https://lexcam.cm/bot)",
+                "Accept": "text/html,application/xhtml+xml,application/json,*/*",
+            },
+            allow_redirects=True,
+        )
+        resp.raise_for_status()
+
+        content_type = resp.headers.get("content-type", "text/html")
+        lawyers = extract(resp.text, content_type, url)
         logger.info("Job %s: extracted %d lawyer profiles", job_id, len(lawyers))
 
         if lawyers:
@@ -125,50 +135,15 @@ run_scrape_async = run_scrape
 
 
 _FETCH_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Cache-Control": "max-age=0",
+    "User-Agent": "LexCamBot/1.0 (+https://lexcam.cm/bot)",
+    "Accept": "text/html,application/xhtml+xml,*/*",
 }
 
 
-def _fetch(url: str, referer: str = "https://www.google.fr/") -> str:
-    headers = {**_FETCH_HEADERS, "Referer": referer}
-    resp = http_client.get(url, timeout=30, headers=headers, allow_redirects=True)
+def _fetch(url: str) -> str:
+    resp = http_client.get(url, timeout=30, headers=_FETCH_HEADERS, allow_redirects=True)
     resp.raise_for_status()
     return resp.text
-
-
-def _fetch_bytes(url: str, referer: str = "https://www.google.fr/") -> bytes:
-    headers = {**_FETCH_HEADERS, "Referer": referer}
-    resp = http_client.get(url, timeout=60, headers=headers, allow_redirects=True)
-    resp.raise_for_status()
-    return resp.content
-
-
-def _ingest_pdf_to_kb(pdf_bytes: bytes, code: str, name: str,
-                       domain: str, language: str) -> dict:
-    resp = http_client.post(
-        f"{settings.KB_SERVICE_URL}/api/v1/ingest/pdf",
-        files={"file": ("law.pdf", pdf_bytes, "application/pdf")},
-        data={
-            "code": code,
-            "name": name,
-            "domain": domain or "general",
-            "language": language or "fr",
-            "jurisdiction": "cameroon",
-        },
-        timeout=120,
-    )
-    resp.raise_for_status()
-    return resp.json()
 
 
 @celery_app.task(bind=True, max_retries=0, name="app.tasks.run_law_scrape")
@@ -187,108 +162,64 @@ def run_law_scrape(self, job_id: int):
                 return
             url, code, name, domain, language = job.url, job.code, job.name, job.domain, job.language
 
-        # ── Direct PDF URL ────────────────────────────────────────────────────
-        if url.lower().endswith(".pdf"):
-            logger.info("Law job %s: direct PDF URL detected, ingesting via KB", job_id)
-            pdf_bytes = _fetch_bytes(url)
-            data = _ingest_pdf_to_kb(pdf_bytes, code, name, domain, language)
-            ingested = data.get("articles_ingested", 0)
-            summary = f"PDF ingested directly — {ingested} articles indexed"
-            _update_job_model(LawScrapeJob, job_id,
-                              status="done",
-                              result=summary,
-                              articles_ingested=ingested,
-                              finished_at=datetime.now(timezone.utc))
-            logger.info("Law job %s done: %s", job_id, summary)
-            return
-
-        # ── HTML scraping path ────────────────────────────────────────────────
-        html = _fetch(url, referer="https://www.google.fr/")
+        html = _fetch(url)
         articles = extract_law(html, source_url=url, domain=domain,
                                language=language, law_name=name)
         pages_scraped = 1
         logger.info("Law job %s: extracted %d articles from %s", job_id, len(articles), url)
 
-        # If this looks like a listing page (no articles), follow HTML law links
+        # If this looks like a listing page (no articles), follow law links up to 5 sub-pages
         if not articles:
             law_links = find_law_links(html, base_url=url)
-            logger.info("Law job %s: listing page, following %d HTML law links", job_id, len(law_links))
-            for link in law_links[:10]:
+            logger.info("Law job %s: listing page detected, following %d law links", job_id, len(law_links))
+            for link in law_links[:5]:
                 try:
-                    sub_html = _fetch(link, referer=url)
+                    sub_html = _fetch(link)
                     sub_articles = extract_law(sub_html, source_url=link, domain=domain,
                                                language=language, law_name=name)
                     if sub_articles:
                         logger.info("Law job %s: got %d articles from %s", job_id, len(sub_articles), link)
                         articles.extend(sub_articles)
                         pages_scraped += 1
-                    if len(articles) >= 1000:
+                    # cap total articles to avoid flooding the KB
+                    if len(articles) >= 500:
                         break
                 except Exception as sub_exc:
                     logger.warning("Law job %s: failed to fetch sub-page %s — %s", job_id, link, sub_exc)
 
-        # ── HTML found articles → ingest as articles ──────────────────────────
-        if articles:
-            logger.info("Law job %s: total %d articles across %d page(s), sending to KB",
-                        job_id, len(articles), pages_scraped)
-            kb_resp = http_client.post(
-                f"{settings.KB_SERVICE_URL}/api/v1/ingest",
-                json={
-                    "code": code,
-                    "name": name,
-                    "jurisdiction": "cameroon",
-                    "language": language,
-                    "articles": articles,
-                },
-                timeout=120,
-            )
-            kb_resp.raise_for_status()
-            data = kb_resp.json()
-            ingested = data.get("articles_ingested", 0)
-            summary = f"Scraped {pages_scraped} page(s), extracted {len(articles)} articles, ingested {ingested} into KB"
+        if not articles:
+            result_msg = "No articles detected (listing page with no followable law links)"
             _update_job_model(LawScrapeJob, job_id,
                               status="done",
-                              result=summary,
-                              articles_ingested=ingested,
+                              result=result_msg,
                               finished_at=datetime.now(timezone.utc))
-            logger.info("Law job %s done: %s", job_id, summary)
+            logger.info("Law job %s: %s", job_id, result_msg)
             return
 
-        # ── No HTML articles → fall back to PDF links on the same page ────────
-        from .law_extractor import find_pdf_links
-        pdf_links = find_pdf_links(html, base_url=url)
-        logger.info("Law job %s: 0 HTML articles, found %d PDF link(s) as fallback",
-                    job_id, len(pdf_links))
+        logger.info("Law job %s: total %d articles across %d page(s), sending to KB",
+                    job_id, len(articles), pages_scraped)
 
-        ingested_total = 0
-        pdfs_tried = 0
-        for pdf_url in pdf_links[:3]:
-            try:
-                pdf_bytes = _fetch_bytes(pdf_url, referer=url)
-                data = _ingest_pdf_to_kb(pdf_bytes, code, name, domain, language)
-                n = data.get("articles_ingested", 0)
-                ingested_total += n
-                pdfs_tried += 1
-                logger.info("Law job %s: PDF %s → %d articles", job_id, pdf_url, n)
-            except Exception as pdf_exc:
-                logger.warning("Law job %s: PDF ingest failed for %s — %s", job_id, pdf_url, pdf_exc)
-
-        if ingested_total > 0:
-            summary = f"PDF fallback: ingested {pdfs_tried} PDF(s), {ingested_total} articles indexed"
-            _update_job_model(LawScrapeJob, job_id,
-                              status="done",
-                              result=summary,
-                              articles_ingested=ingested_total,
-                              finished_at=datetime.now(timezone.utc))
-            logger.info("Law job %s done: %s", job_id, summary)
-            return
-
-        result_msg = "No articles found (no HTML text or accessible PDFs on this page)"
+        kb_resp = http_client.post(
+            f"{settings.KB_SERVICE_URL}/api/v1/ingest",
+            json={
+                "code": code,
+                "name": name,
+                "jurisdiction": "cameroon",
+                "language": language,
+                "articles": articles,
+            },
+            timeout=120,
+        )
+        kb_resp.raise_for_status()
+        data = kb_resp.json()
+        ingested = data.get("articles_ingested", 0)
+        summary = f"Scraped {pages_scraped} page(s), extracted {len(articles)} articles, ingested {ingested} into KB"
         _update_job_model(LawScrapeJob, job_id,
                           status="done",
-                          result=result_msg,
+                          result=summary,
+                          articles_ingested=ingested,
                           finished_at=datetime.now(timezone.utc))
-        logger.info("Law job %s: %s", job_id, result_msg)
+        logger.info("Law job %s done: %s", job_id, summary)
 
     except http_client.exceptions.ConnectionError as exc:
         msg = f"Connection error: {exc}"
