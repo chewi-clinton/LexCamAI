@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, SlidersHorizontal, Download, Printer,
   X, Eye, Pencil, Ban, Check, Trash2, RotateCcw,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Loader2,
 } from 'lucide-react';
+import { admin } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -101,50 +102,63 @@ function AddLawyerModal({ T, onClose, onAdd }) {
   );
 }
 
-const INITIAL_DATA = [
-  { name: 'Me. Ndoumbe Marcel', barId: 'Bar ID: CM-2015-849', email: 'm.ndoumbe@lexfirm.cm', phone: '+237 677 12 34 56', location: 'Douala', type: 'Self-registered', status: 'Verified', dateJoined: 'Oct 12, 2023', initials: 'MN', avatarBg: 'bg-emerald-800/10 text-emerald-800', statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/60', actions: ['view', 'edit', 'ban'] },
-  { name: 'Me. Ekoka Alice', barId: 'Bar ID: CM-2021-112', email: 'alice.e@gmail.com', phone: '+237 699 88 77 66', location: 'Yaoundé', type: 'Self-registered', status: 'Pending', dateJoined: 'Nov 05, 2023', initials: 'EA', avatarBg: 'bg-slate-200 text-slate-700', statusClass: 'bg-amber-50 text-amber-700 border-amber-200/60', actions: ['view', 'edit', 'approve'] },
-  { name: 'Me. Biyong Thomas', barId: 'Bar ID: Unknown', email: 'Not provided', phone: '+237 670 00 11 22', location: 'Bamenda', type: 'Scraped DB', status: 'Unclaimed', dateJoined: 'System Import', initials: 'BT', avatarBg: 'bg-slate-200 text-slate-700', statusClass: 'bg-gray-100 text-gray-600 border-gray-200/80', actions: ['view', 'edit', 'delete'] },
-  { name: 'Me. Siewe Fabrice', barId: 'License Suspended', email: 'f.siewe@avocat.cm', phone: '+237 655 44 33 22', location: 'Buea', type: 'Self-registered', status: 'Suspended', dateJoined: 'Jan 10, 2022', initials: 'SF', avatarBg: 'bg-red-50 text-red-800', statusClass: 'bg-red-50 text-red-600 border-red-200/60', actions: ['view', 'history', 'delete'], isSuspended: true },
-];
+function toRow(l) {
+  const s = l.verification_status;
+  return {
+    id: l.id,
+    name: l.full_name,
+    email: l.email,
+    phone: l.phone || '—',
+    location: l.city,
+    type: l.type === 'scraped' ? 'Scraped DB' : 'Self-registered',
+    status: s === 'verified' ? 'Verified' : s === 'rejected' ? 'Rejected' : s === 'suspended' ? 'Suspended' : 'Pending',
+    dateJoined: l.created_at ? new Date(l.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+    initials: (l.full_name || '').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
+    avatarBg: s === 'verified' ? 'bg-emerald-800/10 text-emerald-800' : s === 'suspended' ? 'bg-red-50 text-red-800' : 'bg-slate-200 text-slate-700',
+    statusClass: s === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' : s === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200/60' : s === 'suspended' || s === 'rejected' ? 'bg-red-50 text-red-600 border-red-200/60' : 'bg-gray-100 text-gray-600 border-gray-200/80',
+    actions: s === 'pending' ? ['approve', 'ban'] : s === 'verified' ? ['ban'] : ['approve'],
+  };
+}
 
 export default function AdminLawyerDirectory() {
   const { lang } = useLanguage();
   const T = t[lang].admin;
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [tableData, setTableData] = useState(INITIAL_DATA);
+  const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [domains, setDomains] = useState(['Corporate Law', 'Family Law']);
   const [rowsPerPage, setRowsPerPage] = useState('15');
-  const [rowStatuses, setRowStatuses] = useState({});
 
-  function getStatus(row) { return rowStatuses[row.email] ?? row.status; }
-  function getStatusClass(row) {
-    const s = getStatus(row);
-    if (s === 'Verified') return 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
-    if (s === 'Pending') return 'bg-amber-50 text-amber-700 border-amber-200/60';
-    if (s === 'Suspended' || s === 'Banned') return 'bg-red-50 text-red-600 border-red-200/60';
-    return 'bg-gray-100 text-gray-600 border-gray-200/80';
-  }
+  useEffect(() => {
+    admin.lawyers()
+      .then((data) => setTableData(data.map(toRow)))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  function applyRowAction(email, action) {
-    if (action === 'delete') {
-      setTableData((prev) => prev.filter((r) => r.email !== email));
-      return;
+  async function applyRowAction(id, action) {
+    setActionLoading(id + action);
+    try {
+      if (action === 'approve') {
+        await admin.verifyLawyer(id, 'verified');
+        setTableData((prev) => prev.map((r) => r.id === id ? { ...r, status: 'Verified', statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/60', actions: ['ban'] } : r));
+      } else if (action === 'ban') {
+        await admin.verifyLawyer(id, 'suspended');
+        setTableData((prev) => prev.map((r) => r.id === id ? { ...r, status: 'Suspended', statusClass: 'bg-red-50 text-red-600 border-red-200/60', actions: ['approve'] } : r));
+      }
+    } catch { /* silent */ } finally {
+      setActionLoading(null);
     }
-    const statusMap = { ban: 'Banned', approve: 'Verified' };
-    if (statusMap[action]) setRowStatuses((prev) => ({ ...prev, [email]: statusMap[action] }));
   }
 
-  function removeDomain(d) { setDomains((prev) => prev.filter((x) => x !== d)); }
+  function removeDomain() {}
 
   const filtered = tableData.filter((row) => {
-    if (statusFilter && getStatus(row) !== statusFilter) return false;
+    if (statusFilter && row.status !== statusFilter) return false;
     if (cityFilter && row.location !== cityFilter) return false;
-    if (typeFilter && row.type !== typeFilter) return false;
     return true;
   });
 
@@ -224,12 +238,12 @@ export default function AdminLawyerDirectory() {
           </div>
 
           <div>
-            <label className="block mb-1.5 font-bold">{T.originType}</label>
+            <label className="block mb-1.5 font-bold">{T.cityLabel}</label>
             <div className="relative bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+              <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}
                 className="w-full appearance-none bg-transparent px-3 py-2.5 text-xs font-semibold text-gray-800 outline-none cursor-pointer pr-8">
-                <option value="">{T.allTypes}</option>
-                {uniqueTypes.map((tp) => <option key={tp} value={tp}>{tp}</option>)}
+                <option value="">{T.allCities}</option>
+                {uniqueCities.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
@@ -254,6 +268,11 @@ export default function AdminLawyerDirectory() {
         </div>
 
         <div className="overflow-x-auto">
+          {loading ? (
+            <div className="flex justify-center py-16"><Loader2 size={28} className="animate-spin text-primary" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-muted text-sm">No lawyers found.</div>
+          ) : (
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-white">
@@ -269,10 +288,9 @@ export default function AdminLawyerDirectory() {
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
               {filtered.map((row) => {
-                const currentStatus = getStatus(row);
-                const isSuspended = currentStatus === 'Suspended' || currentStatus === 'Banned';
+                const isSuspended = row.status === 'Suspended';
                 return (
-                  <tr key={row.email} className="hover:bg-gray-50/40 transition-colors">
+                  <tr key={row.id} className="hover:bg-gray-50/40 transition-colors">
                     <td className="py-4 px-6">
                       <input type="checkbox" className="rounded border-gray-300 accent-primary" />
                     </td>
@@ -283,12 +301,12 @@ export default function AdminLawyerDirectory() {
                         </div>
                         <div>
                           <p className={`font-bold text-sm text-gray-900 ${isSuspended ? 'line-through text-gray-400' : ''}`}>{row.name}</p>
-                          <p className={`text-[10px] mt-0.5 font-bold ${isSuspended ? 'text-red-500' : 'text-gray-400'}`}>{row.barId}</p>
+                          <p className="text-[10px] mt-0.5 font-bold text-gray-400">{row.type}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <p className={`font-semibold text-gray-800 ${row.email === 'Not provided' ? 'italic font-normal text-gray-400' : ''}`}>{row.email}</p>
+                      <p className="font-semibold text-gray-800">{row.email}</p>
                       <p className="text-gray-400 font-normal mt-0.5">{row.phone}</p>
                     </td>
                     <td className="py-4 px-6 text-gray-600 font-semibold">{row.location}</td>
@@ -296,30 +314,22 @@ export default function AdminLawyerDirectory() {
                       <span className="bg-gray-100 text-gray-500 border border-gray-200/50 px-2 py-0.5 rounded text-[10px]">{row.type}</span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusClass(row)}`}>
-                        <span className="text-[14px] leading-none mb-0.5">•</span> {currentStatus}
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${row.statusClass}`}>
+                        <span className="text-[14px] leading-none mb-0.5">•</span> {row.status}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-gray-500 font-normal">{row.dateJoined}</td>
                     <td className="py-4 px-6 text-right">
                       <div className="inline-flex items-center gap-1.5 text-gray-400">
-                        {row.actions.includes('view') && (
-                          <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><Eye size={14} /></button>
+                        {row.actions.includes('ban') && (
+                          <button onClick={() => applyRowAction(row.id, 'ban')} disabled={!!actionLoading} className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded transition-colors disabled:opacity-40">
+                            {actionLoading === row.id + 'ban' ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                          </button>
                         )}
-                        {row.actions.includes('edit') && (
-                          <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><Pencil size={14} /></button>
-                        )}
-                        {row.actions.includes('ban') && currentStatus !== 'Banned' && (
-                          <button onClick={() => applyRowAction(row.email, 'ban')} className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded transition-colors"><Ban size={14} /></button>
-                        )}
-                        {row.actions.includes('approve') && currentStatus !== 'Verified' && (
-                          <button onClick={() => applyRowAction(row.email, 'approve')} className="p-1.5 hover:bg-emerald-50 hover:text-emerald-600 rounded transition-colors"><Check size={14} strokeWidth={2.5} /></button>
-                        )}
-                        {row.actions.includes('history') && (
-                          <button className="p-1.5 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"><RotateCcw size={14} /></button>
-                        )}
-                        {row.actions.includes('delete') && (
-                          <button onClick={() => applyRowAction(row.email, 'delete')} className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded transition-colors"><Trash2 size={14} /></button>
+                        {row.actions.includes('approve') && (
+                          <button onClick={() => applyRowAction(row.id, 'approve')} disabled={!!actionLoading} className="p-1.5 hover:bg-emerald-50 hover:text-emerald-600 rounded transition-colors disabled:opacity-40">
+                            {actionLoading === row.id + 'approve' ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.5} />}
+                          </button>
                         )}
                       </div>
                     </td>
@@ -328,6 +338,7 @@ export default function AdminLawyerDirectory() {
               })}
             </tbody>
           </table>
+          )}
         </div>
 
         {/* Pagination */}

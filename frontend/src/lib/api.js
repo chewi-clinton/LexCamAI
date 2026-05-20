@@ -149,6 +149,15 @@ export const lawyers = {
   actionReferral: (referralId, data) => patch(`/api/v1/lawyers/me/referrals/${referralId}`, data),
 };
 
+// ─── Admin API ────────────────────────────────────────────────────────────────
+export const admin = {
+  lawyers:      (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return get(`/api/v1/admin/lawyers${q ? `?${q}` : ''}`);
+  },
+  verifyLawyer: (id, status) => patch(`/api/v1/admin/lawyers/${id}/verify`, { status }),
+};
+
 // ─── Documents API ────────────────────────────────────────────────────────────
 export const documents = {
   list:     ()          => get('/api/v1/documents'),

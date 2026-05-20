@@ -1,17 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  CheckCircle2,
-  Clock,
-  Briefcase,
-  Handshake,
-  MapPin,
-  FolderOpen,
-  FileText,
-  Lightbulb,
-  X,
+  Clock, Handshake, MapPin, FolderOpen, Loader2,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { lawyers } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -19,53 +12,85 @@ export default function LawyerDashboard() {
   const { lang } = useLanguage();
   const T = t[lang].lawyerDashboard;
 
-  const [status, setStatus] = useState('accepting');
-  const [referrals, setReferrals] = useState([
-    {
-      client: 'M. Jean D.',
-      domain: 'Labour Law',
-      location: 'Douala',
-      time: '2 hours ago',
-      description: 'Seeking representation for an unfair dismissal case from a logistics firm. Employment contract was terminated without prior notice or severance pay after 4 years of service.',
-    },
-    {
-      client: 'Mme. Sarah E.',
-      domain: 'Family Law',
-      location: 'Yaoundé',
-      time: '5 hours ago',
-      description: 'Requires legal consultation regarding property division and child custody arrangements following a separation. Needs immediate guidance on filing initial documentation.',
-    },
-  ]);
+  const [profile, setProfile]     = useState(null);
+  const [referrals, setReferrals] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+  const [actionLoading, setActionLoading] = useState(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [prof, refs] = await Promise.all([lawyers.me(), lawyers.myReferrals()]);
+        setProfile(prof);
+        setReferrals(refs);
+      } catch {
+        setError('Failed to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  async function toggleAvailability() {
+    if (!profile) return;
+    try {
+      const token = localStorage.getItem('lexcam_access');
+      const res = await fetch('/api/v1/lawyers/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ is_accepting_cases: !profile.is_accepting_cases }),
+      });
+      const updated = await res.json();
+      setProfile((p) => ({ ...p, is_accepting_cases: updated.is_accepting_cases }));
+    } catch { /* silent */ }
+  }
+
+  async function handleReferralAction(referralId, action) {
+    setActionLoading(referralId + action);
+    try {
+      await lawyers.actionReferral(referralId, { action });
+      setReferrals((prev) => prev.filter((r) => r.id !== referralId));
+    } catch { /* silent */ } finally {
+      setActionLoading(null);
+    }
+  }
+
+  const pendingReferrals  = referrals.filter((r) => r.status === 'pending');
+  const acceptedReferrals = referrals.filter((r) => r.status === 'accepted');
+  const resolvedReferrals = referrals.filter((r) => r.status === 'resolved');
+
   const stats = [
-    { label: T.pendingReferrals, value: '4', icon: Clock, badge: T.actionRequired, iconBg: 'bg-orange-50 text-orange-600' },
-    { label: T.acceptedCases, value: '12', icon: FolderOpen, badge: null, iconBg: 'bg-emerald-50 text-emerald-700' },
-    { label: T.completedConsultations, value: '48', icon: Handshake, badge: null, iconBg: 'bg-teal-50 text-teal-700' },
+    { label: T.pendingReferrals,       value: pendingReferrals.length,  icon: Clock,      badge: pendingReferrals.length > 0 ? T.actionRequired : null, iconBg: 'bg-orange-50 text-orange-600' },
+    { label: T.acceptedCases,          value: acceptedReferrals.length, icon: FolderOpen, badge: null, iconBg: 'bg-emerald-50 text-emerald-700' },
+    { label: T.completedConsultations, value: resolvedReferrals.length, icon: Handshake,  badge: null, iconBg: 'bg-teal-50 text-teal-700' },
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 size={32} className="animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
-  const activities = [
-    {
-      title: 'Case Accepted: Civil Dispute',
-      ref: '(Ref: #4492)',
-      time: 'Yesterday',
-      icon: CheckCircle2,
-      color: 'bg-emerald-50 text-emerald-700',
-    },
-    {
-      title: 'Consultation Finished: Mme. Alima C.',
-      ref: '',
-      time: 'Oct 24, 2024',
-      icon: FileText,
-      color: 'bg-orange-50 text-orange-600',
-    },
-    {
-      title: 'Document Uploaded: Contract Review Notes',
-      ref: '',
-      time: 'Oct 22, 2024',
-      icon: FileText,
-      color: 'bg-teal-50 text-teal-700',
-    },
-  ];
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center text-center px-6">
+          <div>
+            <p className="text-red-500 font-semibold mb-2">{error || 'Profile not found.'}</p>
+            <p className="text-sm text-muted">Make sure your lawyer profile has been created.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col">
@@ -77,170 +102,121 @@ export default function LawyerDashboard() {
           {/* Profile & Availability Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-[11px] font-bold text-emerald-800 mb-2">
-                <CheckCircle2 size={12} className="fill-emerald-800 text-white" />
-                {T.verifiedBadge}
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold mb-2 ${
+                profile.verification_status === 'verified'
+                  ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                  : profile.verification_status === 'pending'
+                  ? 'bg-amber-50 border-amber-100 text-amber-800'
+                  : 'bg-red-50 border-red-100 text-red-800'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${profile.verification_status === 'verified' ? 'bg-emerald-500' : profile.verification_status === 'pending' ? 'bg-amber-500' : 'bg-red-500'}`} />
+                {profile.verification_status === 'verified' ? 'Verified Lawyer' : profile.verification_status === 'pending' ? 'Pending Verification' : 'Not Verified'}
               </div>
-              <h1 className="font-serif text-3xl font-bold text-primary">
-                {T.welcome}
-              </h1>
-              <p className="text-muted text-sm mt-1">
-                {T.subtitle}
+              <h1 className="font-serif text-3xl font-bold text-gray-900">{profile.full_name}</h1>
+              <p className="text-muted text-sm flex items-center gap-1 mt-1">
+                <MapPin size={14} />
+                {profile.city}
+                {profile.specializations?.length > 0 && (
+                  <span className="ml-2 text-gray-400">· {profile.specializations.map((s) => s.name).join(', ')}</span>
+                )}
               </p>
             </div>
 
-            {/* Status Pill Controls */}
-            <div className="bg-surface rounded-xl shadow-sm border border-gray-200/60 p-1.5 flex items-center gap-1 text-sm font-medium self-start md:self-auto">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-gray-500">{T.availabilityStatus}</span>
               <button
-                onClick={() => setStatus('accepting')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-xs md:text-sm font-semibold transition-colors ${status === 'accepting' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-gray-900'}`}
+                onClick={toggleAvailability}
+                className={`relative w-12 h-6 rounded-full transition-colors ${profile.is_accepting_cases ? 'bg-emerald-500' : 'bg-gray-300'}`}
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-400 block animate-pulse" />
-                {T.acceptingCases}
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${profile.is_accepting_cases ? 'translate-x-6' : ''}`} />
               </button>
-              <button
-                onClick={() => setStatus('capacity')}
-                className={`px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-colors ${status === 'capacity' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-gray-900'}`}
-              >
-                • {T.atCapacity}
-              </button>
+              <span className={`text-xs font-bold ${profile.is_accepting_cases ? 'text-emerald-600' : 'text-gray-500'}`}>
+                {profile.is_accepting_cases ? T.accepting : T.notAccepting}
+              </span>
             </div>
           </div>
 
+          {/* Pending verification banner */}
+          {profile.verification_status === 'pending' && (
+            <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 font-medium">
+              Your profile is under review. You will be notified once an admin verifies your account.
+            </div>
+          )}
+
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {stats.map((stat, i) => {
-              const Icon = stat.icon;
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+            {stats.map((s, i) => {
+              const Icon = s.icon;
               return (
-                <div key={i} className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 relative flex flex-col justify-between">
-                  {stat.badge && (
-                    <span className="absolute top-6 right-6 bg-orange-100/60 text-orange-800 text-[10px] font-bold px-2.5 py-1 rounded-md">
-                      {stat.badge}
-                    </span>
-                  )}
-                  <div className={`w-10 h-10 ${stat.iconBg} rounded-xl flex items-center justify-center mb-6`}>
-                    <Icon size={20} />
+                <div key={i} className="bg-white border border-gray-200/60 rounded-xl p-5 flex items-center gap-4 shadow-sm">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${s.iconBg}`}>
+                    <Icon size={18} />
                   </div>
                   <div>
-                    <div className="text-4xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                    <div className="text-muted text-sm font-medium">{stat.label}</div>
+                    <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+                    <p className="text-xs text-muted font-medium">{s.label}</p>
+                    {s.badge && <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">{s.badge}</span>}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Two-Column Workspace */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-
-            {/* Incoming Referrals */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="flex justify-between items-baseline mb-2">
-                <h2 className="font-serif text-2xl font-bold text-primary">
-                  {T.incomingReferrals}
-                </h2>
-                <a href="/lawyer-dashboard" className="text-sm font-bold text-primary hover:underline">
-                  {T.viewAll}
-                </a>
-              </div>
-
-              {referrals.length === 0 && (
-                <div className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-10 text-center text-gray-400 text-sm font-medium">
-                  {T.noPendingReferrals}
-                </div>
+          {/* Pending Referrals */}
+          <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="font-serif text-lg font-bold text-gray-900">{T.pendingReferrals}</h2>
+              {pendingReferrals.length > 0 && (
+                <span className="text-xs font-bold bg-orange-50 text-orange-700 border border-orange-100 px-2.5 py-1 rounded-full">
+                  {pendingReferrals.length} new
+                </span>
               )}
-
-              {referrals.map((referral, index) => (
-                <div key={index} className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 md:p-8">
-                  <div className="flex justify-between items-start gap-4 mb-4">
-                    <div>
-                      <h3 className="font-serif text-2xl font-bold text-primary mb-1.5">
-                        {referral.client}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted font-medium">
-                        <span className="flex items-center gap-1">
-                          <Briefcase size={14} className="text-gray-400" />
-                          {referral.domain}
-                        </span>
-                        <span className="text-gray-300 hidden sm:inline">|</span>
-                        <span className="flex items-center gap-1">
-                          <MapPin size={14} className="text-gray-400" />
-                          {referral.location}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-xs text-gray-400 font-medium whitespace-nowrap pt-1">
-                      {referral.time}
-                    </span>
-                  </div>
-
-                  <p className="text-muted text-sm leading-relaxed mb-6 border-t border-gray-100 pt-4">
-                    {referral.description}
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setReferrals(prev => prev.filter((_, i) => i !== index))}
-                      className="bg-primary hover:bg-primary-light transition-colors text-white py-3 px-4 rounded-xl font-bold text-sm shadow-sm flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 size={16} /> {T.acceptCase}
-                    </button>
-                    <button
-                      onClick={() => setReferrals(prev => prev.filter((_, i) => i !== index))}
-                      className="border border-primary text-primary hover:bg-primary/5 transition-colors py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
-                    >
-                      <X size={16} /> {T.decline}
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <h2 className="font-serif text-2xl font-bold text-primary mb-2">
-                {T.recentActivity}
-              </h2>
-
-              <div className="bg-surface border border-gray-100 shadow-sm rounded-2xl p-6 space-y-6">
-                {activities.map((activity, i) => {
-                  const ActIcon = activity.icon;
-                  return (
-                    <div key={i} className="flex gap-4 items-start">
-                      <div className={`w-9 h-9 rounded-full ${activity.color} flex items-center justify-center flex-shrink-0`}>
-                        <ActIcon size={16} />
+            {pendingReferrals.length === 0 ? (
+              <div className="px-6 py-12 text-center text-muted text-sm">No pending referrals.</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {pendingReferrals.map((ref) => (
+                  <div key={ref.id} className="px-6 py-5 flex flex-col sm:flex-row sm:items-start gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-gray-900 text-sm">{ref.client_name || 'Client'}</span>
+                        {(ref.domain || ref.specialization) && (
+                          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {ref.domain || ref.specialization}
+                          </span>
+                        )}
                       </div>
-                      <div className="border-b border-gray-100 pb-4 last:border-0 last:pb-0 w-full">
-                        <p className="text-xs font-bold text-gray-900 leading-normal">
-                          {activity.title}{' '}
-                          <span className="text-gray-500 font-normal">{activity.ref}</span>
+                      {ref.city && (
+                        <p className="text-xs text-muted flex items-center gap-1 mb-2">
+                          <MapPin size={11} /> {ref.city}
                         </p>
-                        <p className="text-[11px] text-gray-400 font-medium mt-1">
-                          {activity.time}
-                        </p>
-                      </div>
+                      )}
+                      {ref.message && <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{ref.message}</p>}
                     </div>
-                  );
-                })}
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleReferralAction(ref.id, 'accept')}
+                        disabled={!!actionLoading}
+                        className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-light disabled:opacity-60 transition-colors flex items-center gap-1"
+                      >
+                        {actionLoading === ref.id + 'accept' ? <Loader2 size={12} className="animate-spin" /> : 'Accept'}
+                      </button>
+                      <button
+                        onClick={() => handleReferralAction(ref.id, 'decline')}
+                        disabled={!!actionLoading}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-200 disabled:opacity-60 transition-colors flex items-center gap-1"
+                      >
+                        {actionLoading === ref.id + 'decline' ? <Loader2 size={12} className="animate-spin" /> : 'Decline'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              {/* Tip Block */}
-              <div className="bg-[#F4F6F4] rounded-xl p-5 border border-gray-200/40 flex gap-3.5 items-start">
-                <div className="text-primary mt-0.5 flex-shrink-0">
-                  <Lightbulb size={18} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-gray-900 mb-1">
-                    {T.tipTitle}
-                  </h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {T.tipBody}
-                  </p>
-                </div>
-              </div>
-            </div>
-
+            )}
           </div>
+
         </div>
       </div>
     </div>
