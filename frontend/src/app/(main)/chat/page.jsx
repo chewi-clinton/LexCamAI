@@ -83,7 +83,7 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [lawyerRecs, setLawyerRecs] = useState({});
+  const [lawyerSearch, setLawyerSearch] = useState({});
   const [flaggedMsgs, setFlaggedMsgs] = useState(new Set());
   const [flaggingMsgId, setFlaggingMsgId] = useState(null);
   const [flagMenuMsgId, setFlagMenuMsgId] = useState(null);
@@ -155,15 +155,27 @@ export default function AIAssistant() {
     window.history.replaceState({}, '', '/chat');
   }
 
-  async function fetchLawyerRecs(botMsgId, tags) {
+  function initLawyerSearch(msgId) {
+    setLawyerSearch((prev) => ({ ...prev, [msgId]: { step: 'form', city: '', results: [] } }));
+  }
+
+  function setLawyerCity(msgId, city) {
+    setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], city } }));
+  }
+
+  async function runLawyerSearch(msgId, tags, city) {
+    setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], step: 'loading' } }));
     const spec = inferSpecialization(tags);
     try {
-      const params = { limit: 4 };
+      const params = {};
       if (spec) params.specialization = spec;
+      if (city.trim()) params.city = city.trim();
       const data = await lawyersApi.list(params);
       const list = Array.isArray(data) ? data : (data.results ?? []);
-      if (list.length > 0) setLawyerRecs((prev) => ({ ...prev, [botMsgId]: list.slice(0, 4) }));
-    } catch { /* silent — recommendations are best-effort */ }
+      setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], step: 'results', results: list.slice(0, 4) } }));
+    } catch {
+      setLawyerSearch((prev) => ({ ...prev, [msgId]: { ...prev[msgId], step: 'error' } }));
+    }
   }
 
   function startDisplayTimer(botMsgId) {
@@ -176,7 +188,6 @@ export default function AIAssistant() {
           clearInterval(streamIntervalRef.current);
           setIsStreaming(false);
           setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, streaming: false } : m));
-          if (sourcesRef.current.length > 0) fetchLawyerRecs(botMsgId, sourcesRef.current);
         }
         return;
       }
@@ -200,11 +211,7 @@ export default function AIAssistant() {
       const partial = words.slice(0, wordIndex).join(' ');
       const done = wordIndex >= words.length;
       setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, text: partial, streaming: !done } : m));
-      if (done) {
-        clearInterval(streamIntervalRef.current);
-        setIsStreaming(false);
-        if (tags.length > 0) fetchLawyerRecs(botMsgId, tags);
-      }
+      if (done) { clearInterval(streamIntervalRef.current); setIsStreaming(false); }
     }, 60);
   }
 
@@ -452,77 +459,139 @@ export default function AIAssistant() {
                             {(() => {
                               const promo = getDocumentPromo(msg.tags, lang);
                               if (!promo) return null;
+                              const ls = lawyerSearch[msg.id];
                               return (
-                                <div className="mt-2 bg-[#EDF5F0] border border-primary/20 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                  <div className="flex gap-3 items-start">
-                                    <FileText className="text-primary mt-1" size={20} />
-                                    <div>
-                                      <h4 className="font-bold text-primary text-sm">{promo.title}</h4>
-                                      <p className="text-sm text-primary/80 mt-1">{promo.desc}</p>
-                                    </div>
-                                  </div>
-                                  <a href={promo.href} className="bg-primary hover:bg-primary-light transition-colors text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">
-                                    {promo.label}
-                                  </a>
-                                </div>
-                              );
-                            })()}
-                            {(() => {
-                              const recs = lawyerRecs[msg.id];
-                              if (!recs?.length) return null;
-                              return (
-                                <div className="mt-2 border border-gray-200 rounded-xl overflow-hidden">
-                                  <div className="bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex items-center gap-2">
-                                    <User size={14} className="text-gray-500" />
-                                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                                      {lang === 'fr' ? 'Avocats recommandés' : 'Recommended Lawyers'}
-                                    </span>
-                                  </div>
-                                  <div className="divide-y divide-gray-100">
-                                    {recs.map((lawyer) => (
-                                      <div key={lawyer.id} className="p-4 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-semibold text-gray-900 text-sm">{lawyer.full_name}</span>
-                                            {lawyer.city && <span className="text-xs text-gray-400">{lawyer.city}</span>}
-                                            {lawyer.is_accepting_cases && (
-                                              <span className="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
-                                                {lang === 'fr' ? 'Disponible' : 'Available'}
-                                              </span>
-                                            )}
-                                          </div>
-                                          {lawyer.specializations?.length > 0 && (
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                              {lawyer.specializations.slice(0, 3).map((s) => (
-                                                <span key={s.id} className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                                                  {lang === 'fr' ? (s.name_fr || s.name) : s.name}
-                                                </span>
-                                              ))}
-                                            </div>
-                                          )}
-                                          <div className="flex flex-wrap gap-3 mt-2">
-                                            {lawyer.phone && (
-                                              <a href={`tel:${lawyer.phone}`} className="flex items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors">
-                                                <Phone size={12} /> {lawyer.phone}
-                                              </a>
-                                            )}
-                                            {lawyer.email && (
-                                              <a href={`mailto:${lawyer.email}`} className="flex items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors">
-                                                <Mail size={12} /> {lawyer.email}
-                                              </a>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <a
-                                          href={`/lawyer/${lawyer.id}/referral`}
-                                          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
-                                        >
-                                          <ExternalLink size={12} />
-                                          {lang === 'fr' ? 'Envoyer dossier' : 'Send Referral'}
-                                        </a>
+                                <div className="mt-2 bg-[#EDF5F0] border border-primary/20 rounded-xl overflow-hidden">
+                                  {/* Document promo row */}
+                                  <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="flex gap-3 items-start">
+                                      <FileText className="text-primary mt-1" size={20} />
+                                      <div>
+                                        <h4 className="font-bold text-primary text-sm">{promo.title}</h4>
+                                        <p className="text-sm text-primary/80 mt-1">{promo.desc}</p>
                                       </div>
-                                    ))}
+                                    </div>
+                                    <a href={promo.href} className="bg-primary hover:bg-primary-light transition-colors text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">
+                                      {promo.label}
+                                    </a>
                                   </div>
+
+                                  {/* Lawyer recommendation divider */}
+                                  {!ls && (
+                                    <div className="border-t border-primary/10 px-5 py-3 flex items-center justify-between gap-4 bg-[#EDF5F0]/60">
+                                      <div className="flex items-center gap-2 text-sm text-primary/80">
+                                        <User size={14} className="flex-shrink-0" />
+                                        <span>{lang === 'fr' ? 'Besoin d\'un avocat dans ce domaine ?' : 'Need a lawyer in this domain?'}</span>
+                                      </div>
+                                      <button
+                                        onClick={() => initLawyerSearch(msg.id)}
+                                        className="flex-shrink-0 text-xs font-semibold text-primary border border-primary/40 bg-white hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                                      >
+                                        {lang === 'fr' ? 'Trouver un avocat' : 'Find a Lawyer'}
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* City form */}
+                                  {ls?.step === 'form' && (
+                                    <div className="border-t border-primary/10 px-5 py-4 bg-white">
+                                      <p className="text-xs font-semibold text-gray-600 mb-2">
+                                        {lang === 'fr' ? 'Votre ville (facultatif) :' : 'Your city (optional):'}
+                                      </p>
+                                      <div className="flex gap-2">
+                                        <input
+                                          type="text"
+                                          value={ls.city}
+                                          onChange={(e) => setLawyerCity(msg.id, e.target.value)}
+                                          onKeyDown={(e) => { if (e.key === 'Enter') runLawyerSearch(msg.id, msg.tags, ls.city); }}
+                                          placeholder={lang === 'fr' ? 'ex. Yaoundé' : 'e.g. Yaoundé'}
+                                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                                        />
+                                        <button
+                                          onClick={() => runLawyerSearch(msg.id, msg.tags, ls.city)}
+                                          className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap"
+                                        >
+                                          {lang === 'fr' ? 'Rechercher' : 'Search'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Loading */}
+                                  {ls?.step === 'loading' && (
+                                    <div className="border-t border-primary/10 px-5 py-4 bg-white flex items-center gap-2 text-sm text-gray-500">
+                                      <Loader2 size={14} className="animate-spin text-primary" />
+                                      {lang === 'fr' ? 'Recherche d\'avocats...' : 'Finding lawyers…'}
+                                    </div>
+                                  )}
+
+                                  {/* Error */}
+                                  {ls?.step === 'error' && (
+                                    <div className="border-t border-primary/10 px-5 py-3 bg-white text-xs text-red-500 font-medium">
+                                      {lang === 'fr' ? 'Erreur lors de la recherche. Réessayez.' : 'Search failed. Please try again.'}
+                                    </div>
+                                  )}
+
+                                  {/* Results */}
+                                  {ls?.step === 'results' && (
+                                    <div className="border-t border-primary/10 bg-white">
+                                      {ls.results.length === 0 ? (
+                                        <div className="px-5 py-4 text-sm text-gray-500">
+                                          {lang === 'fr' ? 'Aucun avocat trouvé dans ce domaine.' : 'No lawyers found in this domain.'}
+                                          {' '}
+                                          <a href="/lawyer" className="text-primary underline">
+                                            {lang === 'fr' ? 'Voir l\'annuaire complet' : 'Browse full directory'}
+                                          </a>
+                                        </div>
+                                      ) : (
+                                        <div className="divide-y divide-gray-100">
+                                          {ls.results.map((lawyer) => (
+                                            <div key={lawyer.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                  <span className="font-semibold text-gray-900 text-sm">{lawyer.full_name}</span>
+                                                  {lawyer.city && <span className="text-xs text-gray-400">{lawyer.city}</span>}
+                                                  {lawyer.is_accepting_cases && (
+                                                    <span className="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                                                      {lang === 'fr' ? 'Disponible' : 'Available'}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                {lawyer.specializations?.length > 0 && (
+                                                  <div className="flex flex-wrap gap-1 mt-1">
+                                                    {lawyer.specializations.slice(0, 3).map((s) => (
+                                                      <span key={s.id} className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                        {lang === 'fr' ? (s.name_fr || s.name) : s.name}
+                                                      </span>
+                                                    ))}
+                                                  </div>
+                                                )}
+                                                <div className="flex flex-wrap gap-3 mt-2">
+                                                  {lawyer.phone && (
+                                                    <a href={`tel:${lawyer.phone}`} className="flex items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors">
+                                                      <Phone size={12} /> {lawyer.phone}
+                                                    </a>
+                                                  )}
+                                                  {lawyer.email && (
+                                                    <a href={`mailto:${lawyer.email}`} className="flex items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors">
+                                                      <Mail size={12} /> {lawyer.email}
+                                                    </a>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <a
+                                                href={`/lawyer/${lawyer.id}/referral`}
+                                                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+                                              >
+                                                <ExternalLink size={12} />
+                                                {lang === 'fr' ? 'Envoyer dossier' : 'Send Referral'}
+                                              </a>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })()}
