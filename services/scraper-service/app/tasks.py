@@ -1,5 +1,4 @@
 import logging
-import socket
 from datetime import datetime, timezone
 
 import requests as http_client
@@ -11,32 +10,6 @@ from sqlalchemy.orm import sessionmaker
 from .config import settings
 from .extractor import extract
 
-# ── DNS reliability patch ──────────────────────────────────────────────────────
-# Docker Desktop on Mac has an unreliable embedded DNS resolver (127.0.0.11).
-# When the system resolver fails we fall back to resolving via dnspython
-# against 8.8.8.8 directly, so web-scraping tasks can always reach external hosts.
-_original_getaddrinfo = socket.getaddrinfo
-
-
-def _resilient_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-    try:
-        return _original_getaddrinfo(host, port, family, type, proto, flags)
-    except socket.gaierror:
-        try:
-            import dns.resolver as _resolver
-            r = _resolver.Resolver()
-            r.nameservers = ["8.8.8.8", "8.8.4.4"]
-            r.timeout = 5
-            r.lifetime = 10
-            answers = r.resolve(host, "A")
-            ip = str(answers[0])
-            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port)),
-                    (socket.AF_INET, socket.SOCK_DGRAM, 17, "", (ip, port))]
-        except Exception:
-            raise
-
-
-socket.getaddrinfo = _resilient_getaddrinfo
 
 logger = get_task_logger(__name__)
 

@@ -179,9 +179,6 @@ services:
       context: ./services/scraper-service
     image: lexcam-scraper-service
     container_name: lexcam-scraper-service
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     environment:
       SERVICE_NAME: scraper-service
       API_PREFIX: /v1
@@ -239,9 +236,6 @@ services:
   scraper-worker:
     image: lexcam-scraper-service
     container_name: lexcam-scraper-worker
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     environment:
       DATABASE_URL: postgresql://lexcam:lexcam_dev@postgres:5432/lexcam_scraping
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -253,7 +247,7 @@ services:
       - scraper-service
       - redis
       - postgres
-    command: sh -c "printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n' > /etc/resolv.conf && celery -A app.tasks.celery_app worker -l info -Q celery --pool=solo"
+    command: celery -A app.tasks.celery_app worker -l info -Q celery --pool=solo
 
   user-management:
     build:
