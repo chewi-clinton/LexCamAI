@@ -18,11 +18,19 @@ def health():
 
 @router.post("/feedback", response_model=FeedbackRead, status_code=status.HTTP_201_CREATED)
 def create_feedback(payload: FeedbackCreate, session: Session = Depends(get_session)):
-    fb = Feedback.from_orm(payload)
+    fb = Feedback(
+        user_id=payload.user_id,
+        text=payload.text or "",
+        rating=payload.rating,
+        session_id=payload.session_id,
+        message_index=payload.message_index,
+        flag_reason=payload.flag_reason,
+        flagged=payload.flagged,
+        flag_count=3 if payload.flagged else 0,
+    )
     session.add(fb)
     session.commit()
     session.refresh(fb)
-    # enqueue background processing
     process_feedback_async.delay(fb.id)
     return fb
 

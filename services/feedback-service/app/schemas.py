@@ -4,12 +4,13 @@ from pydantic import BaseModel
 
 
 class FeedbackCreate(BaseModel):
-    user_id: Optional[str]
-    text: str
-    rating: Optional[int]
+    user_id: Optional[str] = None
+    text: Optional[str] = None
+    rating: Optional[int] = None
     session_id: Optional[str] = None
     message_index: Optional[int] = None
     flag_reason: Optional[str] = None
+    flagged: bool = False
 
 
 class FeedbackRead(BaseModel):
