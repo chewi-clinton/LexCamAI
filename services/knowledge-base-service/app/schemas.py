@@ -107,3 +107,9 @@ class IngestRequest(BaseModel):
 class IngestResponse(BaseModel):
     document_id: UUID
     articles_ingested: int
+
+
+class PDFIngestResponse(BaseModel):
+    document_id: UUID
+    articles_found: int
+    articles_ingested: int

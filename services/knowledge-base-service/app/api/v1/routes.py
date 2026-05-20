@@ -5,7 +5,7 @@ import uuid as uuid_lib
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from qdrant_client.http import models as rest
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload
@@ -20,6 +20,7 @@ from app.schemas import (
     IngestResponse,
     LawArticleSummary,
     LawDocumentSchema,
+    PDFIngestResponse,
     RetrieveItem,
     RetrieveRequest,
     RetrieveResponse,
@@ -375,3 +376,94 @@ async def ingest_document(
 
     db.commit()
     return IngestResponse(document_id=doc.id, articles_ingested=articles_ingested)
+
+
+@router.post("/ingest/pdf", response_model=PDFIngestResponse)
+async def ingest_pdf(
+    request: Request,
+    file: UploadFile = File(...),
+    code: str = Form(...),
+    name: str = Form(...),
+    domain: str = Form("general"),
+    language: str = Form("fr"),
+    jurisdiction: str = Form("cameroon"),
+    version: str | None = Form(None),
+    db: Session = Depends(get_db),
+    qdrant_client=Depends(get_qdrant),
+    embedding_client: EmbeddingServiceClient = Depends(get_embedding_client),
+) -> PDFIngestResponse:
+    if not (file.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+
+    from app.pdf_parser import parse_pdf
+
+    pdf_bytes = await file.read()
+    raw_articles = parse_pdf(pdf_bytes, domain=domain, language=language)
+
+    if not raw_articles:
+        raise HTTPException(status_code=422, detail="No articles detected in this PDF.")
+
+    # Ensure Qdrant collection exists
+    try:
+        qdrant_client.get_collection(settings.qdrant_collection)
+    except Exception:
+        qdrant_client.create_collection(
+            collection_name=settings.qdrant_collection,
+            vectors_config=rest.VectorParams(size=VECTOR_SIZE, distance=rest.Distance.COSINE),
+        )
+
+    doc = LawDocument(
+        code=code,
+        name=name,
+        jurisdiction=jurisdiction,
+        language=language,
+        version=version,
+    )
+    db.add(doc)
+    db.flush()
+
+    articles_ingested = 0
+    for art in raw_articles:
+        article = LawArticle(
+            document_id=doc.id,
+            article_number=art["article_number"],
+            chapter=art.get("chapter"),
+            title=art.get("title"),
+            full_text=art["full_text"],
+            plain_summary=art.get("plain_summary"),
+            domain=art["domain"],
+            language=art["language"],
+        )
+        db.add(article)
+        db.flush()
+
+        try:
+            vector = await embedding_client.embed(art["full_text"])
+            point_id = str(uuid_lib.uuid4())
+            qdrant_client.upsert(
+                collection_name=settings.qdrant_collection,
+                points=[rest.PointStruct(
+                    id=point_id,
+                    vector=vector,
+                    payload={
+                        "article_id":     str(article.id),
+                        "law_name":       name,
+                        "article_number": art["article_number"],
+                        "title":          art.get("title"),
+                        "domain":         art["domain"],
+                        "language":       art["language"],
+                        "text_preview":   art["full_text"][:300],
+                    },
+                )],
+            )
+            article.qdrant_id = point_id
+            articles_ingested += 1
+        except Exception:
+            pass
+
+    db.commit()
+    return PDFIngestResponse(
+        document_id=doc.id,
+        articles_found=len(raw_articles),
+        articles_ingested=articles_ingested,
+    )
