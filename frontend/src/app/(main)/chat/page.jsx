@@ -2,10 +2,11 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Plus, MessageSquare, Bot, BookOpen, FileText, Paperclip, Send, Loader2,
+  Flag, CheckCircle2, X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Header from '@/components/layout/Header';
-import { chat as chatApi, streamChatMessage } from '@/lib/api';
+import { chat as chatApi, streamChatMessage, feedback as feedbackApi } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -71,6 +72,9 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [flaggedMsgs, setFlaggedMsgs] = useState(new Set());
+  const [flaggingMsgId, setFlaggingMsgId] = useState(null);
+  const [flagMenuMsgId, setFlagMenuMsgId] = useState(null);
   const scrollRef = useRef(null);
   const streamIntervalRef = useRef(null);
   const botAddedRef = useRef(false);
@@ -253,6 +257,22 @@ export default function AIAssistant() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
+  async function handleFlag(msgId, reason, msgIndex, msgText) {
+    setFlaggingMsgId(msgId);
+    setFlagMenuMsgId(null);
+    try {
+      await feedbackApi.submitFeedback({
+        session_id: activeConvId ? String(activeConvId) : null,
+        message_index: msgIndex,
+        flag_reason: reason,
+        text: msgText,
+        flagged: true,
+      });
+      setFlaggedMsgs((prev) => new Set([...prev, msgId]));
+    } catch { /* silent — flag is best-effort */ }
+    finally { setFlaggingMsgId(null); }
+  }
+
   return (
     <div className="h-screen flex flex-col font-sans bg-background overflow-hidden">
       <Header activePage="chat" />
@@ -343,7 +363,7 @@ export default function AIAssistant() {
                 )}
 
                 {/* Messages */}
-                {!msgsLoading && messages.map((msg) => {
+                {!msgsLoading && messages.map((msg, idx) => {
                   if (msg.role === 'user') {
                     return (
                       <div key={msg.id} className="flex gap-4 flex-row-reverse">
@@ -356,7 +376,8 @@ export default function AIAssistant() {
 
                   const hasTags = msg.tags?.length > 0;
                   return (
-                    <div key={msg.id} className="flex gap-4">
+                    <div key={msg.id} className="space-y-1.5">
+                    <div className="flex gap-4">
                       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
                         <Bot size={20} className="text-white" />
                       </div>
@@ -421,6 +442,46 @@ export default function AIAssistant() {
                           </>
                         )}
                       </div>
+                    </div>
+                    {/* Flag button — only for completed bot messages */}
+                    {!msg.streaming && (
+                      <div className="pl-14 flex items-center">
+                        {flaggedMsgs.has(msg.id) ? (
+                          <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                            <CheckCircle2 size={11} /> {lang === 'fr' ? 'Signalé' : 'Reported'}
+                          </span>
+                        ) : flagMenuMsgId === msg.id ? (
+                          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-sm px-2 py-1">
+                            <span className="text-[10px] text-gray-400 mr-1">{lang === 'fr' ? 'Signaler comme :' : 'Report as:'}</span>
+                            {[
+                              { key: 'incorrect', fr: 'Incorrect', en: 'Incorrect' },
+                              { key: 'harmful',   fr: 'Nuisible',  en: 'Harmful'   },
+                              { key: 'off-topic', fr: 'Hors sujet', en: 'Off-topic' },
+                            ].map(({ key, fr, en }) => (
+                              <button
+                                key={key}
+                                onClick={() => handleFlag(msg.id, key, idx, msg.text)}
+                                disabled={flaggingMsgId === msg.id}
+                                className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
+                              >
+                                {lang === 'fr' ? fr : en}
+                              </button>
+                            ))}
+                            <button onClick={() => setFlagMenuMsgId(null)} className="ml-1 text-gray-300 hover:text-gray-500 transition-colors">
+                              <X size={11} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setFlagMenuMsgId(msg.id)}
+                            className="text-[10px] text-gray-300 hover:text-gray-400 flex items-center gap-1 transition-colors"
+                            title={lang === 'fr' ? 'Signaler cette réponse' : 'Report this response'}
+                          >
+                            <Flag size={11} /> {lang === 'fr' ? 'Signaler' : 'Report'}
+                          </button>
+                        )}
+                      </div>
+                    )}
                     </div>
                   );
                 })}

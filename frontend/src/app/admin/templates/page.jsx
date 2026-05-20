@@ -10,19 +10,32 @@ import t from '@/translations';
 
 const ICONS = [Layers, Briefcase, Home, FileSignature];
 
-// ─── Upload modal (new template — form only, no backend upload yet) ────────────
-function UploadModal({ T, onClose }) {
-  const [form, setForm] = useState({ name: '', category: '', slug: '', price: '', status: 'Active', file: null });
-  const [fileName, setFileName] = useState('');
+// ─── Upload modal (create new template) ──────────────────────────────────────
+function UploadModal({ T, onClose, onCreated }) {
+  const [form, setForm] = useState({
+    name_fr: '', name_en: '',
+    description_fr: '', description_en: '',
+    slug: '', price_xaf: '', is_active: true, template_file: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
-  function handleFile(e) {
-    const f = e.target.files[0];
-    if (f) { setFileName(f.name); setForm((p) => ({ ...p, file: f })); }
-  }
-
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    onClose();
+    setSaving(true);
+    setError(null);
+    try {
+      const created = await admin.createTemplate({
+        ...form,
+        price_xaf: Number(form.price_xaf),
+      });
+      onCreated(created);
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to create template');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -31,59 +44,69 @@ function UploadModal({ T, onClose }) {
         <button onClick={onClose} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
         <h3 className="font-serif text-xl font-bold text-gray-900 mb-6">{T.addTemplateTitle}</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.templateName}</label>
-            <input required type="text" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
-              placeholder="e.g. Non-Disclosure Agreement" />
-          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.categoryLabel}</label>
-              <input type="text" value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">Name (FR) <span className="text-red-400">*</span></label>
+              <input required value={form.name_fr} onChange={(e) => setForm((p) => ({ ...p, name_fr: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
-                placeholder="e.g. Corporate" />
+                placeholder="e.g. Mise en demeure" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.internalSlug}</label>
-              <input type="text" value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
-                placeholder="e.g. nda-standard" />
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">Name (EN) <span className="text-red-400">*</span></label>
+              <input required value={form.name_en} onChange={(e) => setForm((p) => ({ ...p, name_en: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                placeholder="e.g. Formal Notice" />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">Description (FR)</label>
+            <textarea rows={2} value={form.description_fr} onChange={(e) => setForm((p) => ({ ...p, description_fr: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 resize-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">Description (EN)</label>
+            <textarea rows={2} value={form.description_en} onChange={(e) => setForm((p) => ({ ...p, description_en: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.price}</label>
-              <input type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.internalSlug} <span className="text-red-400">*</span></label>
+              <input required value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                placeholder="e.g. mise-en-demeure" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.price} (XAF) <span className="text-red-400">*</span></label>
+              <input required type="number" value={form.price_xaf} onChange={(e) => setForm((p) => ({ ...p, price_xaf: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
                 placeholder="25000" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">Template File Path</label>
+              <input value={form.template_file} onChange={(e) => setForm((p) => ({ ...p, template_file: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50"
+                placeholder="templates/filename.docx" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.status}</label>
               <div className="relative border border-gray-300 rounded-lg overflow-hidden">
-                <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
+                <select value={form.is_active ? 'active' : 'disabled'} onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.value === 'active' }))}
                   className="w-full appearance-none bg-transparent px-3 py-2.5 text-sm outline-none cursor-pointer pr-8">
-                  <option value="Active">Active</option>
-                  <option value="Disabled">Disabled</option>
+                  <option value="active">Active</option>
+                  <option value="disabled">Disabled</option>
                 </select>
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
               </div>
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.uploadFile}</label>
-            <label className="flex items-center gap-3 border-2 border-dashed border-gray-300 hover:border-primary/50 rounded-lg px-4 py-4 cursor-pointer transition-colors group">
-              <Upload size={18} className="text-gray-400 group-hover:text-primary transition-colors flex-shrink-0" />
-              <span className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors truncate">
-                {fileName || 'Click to select a .docx or .pdf file'}
-              </span>
-              <input type="file" accept=".docx,.pdf" onChange={handleFile} className="hidden" />
-            </label>
-          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="border border-gray-200 text-gray-700 font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">{T.cancel}</button>
-            <button type="submit" className="bg-primary hover:bg-primary-dark text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm transition-colors flex items-center gap-2">
-              <Upload size={15} /> {T.uploadTemplate}
+            <button type="submit" disabled={saving} className="bg-primary hover:bg-primary-dark disabled:opacity-60 text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+              {saving && <Loader2 size={15} className="animate-spin" />}
+              {saving ? 'Creating…' : T.uploadTemplate}
             </button>
           </div>
         </form>
@@ -287,7 +310,13 @@ export default function DocumentTemplatesAdmin() {
   return (
     <div className="p-8 space-y-6">
 
-      {showUploadModal && <UploadModal T={T} onClose={() => setShowUploadModal(false)} />}
+      {showUploadModal && (
+        <UploadModal
+          T={T}
+          onClose={() => setShowUploadModal(false)}
+          onCreated={(tpl) => setTemplates((prev) => [...prev, tpl])}
+        />
+      )}
       {viewTpl && !editTpl && (
         <ViewModal
           tpl={viewTpl}

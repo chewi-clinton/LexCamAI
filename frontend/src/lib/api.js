@@ -184,6 +184,7 @@ export const admin = {
   })),
   userList:       ()        => get('/api/v1/users/admin/list'),
   templates:      ()        => get('/api/v1/documents/admin/templates'),
+  createTemplate: (data)    => post('/api/v1/documents/admin/templates', data),
   toggleTemplate: (id)      => patch(`/api/v1/documents/admin/templates/${id}/toggle`, {}),
   editTemplate:   (id, data) => patch(`/api/v1/documents/admin/templates/${id}/edit`, data),
 };

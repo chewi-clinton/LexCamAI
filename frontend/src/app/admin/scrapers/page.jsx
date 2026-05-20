@@ -358,9 +358,9 @@ export default function ScraperManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [runningUrls, setRunningUrls] = useState(new Set());
   const [sources, setSources] = useState([
-    { title: 'National Bar Registry', url: 'https://api.barreau.cm/public/lawyers', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'bar' },
-    { title: 'Douala Legal Roster', url: 'https://douala.courts.cm/directory', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'court' },
-    { title: 'Yaoundé Firm Listings', url: 'https://yaounde.legal/firms/export', status: 'Paused', statusColor: 'bg-gray-100 text-gray-600 border-gray-200', type: 'firm' },
+    { title: 'Barreau du Cameroun', url: 'https://barreaucameroun.org/avocats', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'bar' },
+    { title: 'JuriAfrique Cameroun', url: 'https://juriafrica.com/avocats/', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'court' },
+    { title: 'Lex Africa — Cameroon', url: 'https://www.lexafrica.com/members/cameroon/', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'firm' },
   ]);
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(true);
