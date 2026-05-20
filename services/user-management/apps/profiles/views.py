@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from apps.authentication import events
 from apps.authentication.models import RefreshToken, User
-from .serializers import UpdateProfileSerializer, UserProfileSerializer
+from .serializers import UpdateProfileSerializer, UserProfileSerializer, ChangePasswordSerializer
 from .services import anonymise_user
 
 
@@ -44,6 +44,20 @@ class MeView(APIView):
         events.publish_user_deleted(user_id=user_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if not user.check_password(serializer.validated_data["current_password"]):
+            return Response({"error": "Current password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return Response({"detail": "Password updated successfully."})
 
 
 class AdminStatsView(APIView):

@@ -130,9 +130,10 @@ export const auth = {
 
 // ─── Users API ────────────────────────────────────────────────────────────────
 export const users = {
-  me:     ()     => get('/api/v1/users/me'),
-  update: (data) => patch('/api/v1/users/me', data),
-  delete: ()     => del('/api/v1/users/me'),
+  me:             ()     => get('/api/v1/users/me'),
+  update:         (data) => patch('/api/v1/users/me', data),
+  changePassword: (data) => post('/api/v1/users/me/change-password', data),
+  delete:         ()     => del('/api/v1/users/me'),
 };
 
 // ─── Lawyers API ──────────────────────────────────────────────────────────────
@@ -251,6 +252,7 @@ export const documents = {
 export const payments = {
   initiate: (data) => post('/api/v1/payments/initiate', data),
   status:   (id)   => get(`/api/v1/payments/${id}/status`),
+  history:  ()     => get('/api/v1/payments/history'),
 };
 
 // ─── Chat API ─────────────────────────────────────────────────────────────────

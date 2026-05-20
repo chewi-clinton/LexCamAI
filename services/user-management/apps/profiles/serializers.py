@@ -37,3 +37,8 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         if value not in ("fr", "en"):
             raise serializers.ValidationError("Language must be 'fr' or 'en'.")
         return value
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password     = serializers.CharField(write_only=True, min_length=8)
