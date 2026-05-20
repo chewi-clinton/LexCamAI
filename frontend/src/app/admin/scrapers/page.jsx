@@ -409,7 +409,7 @@ export default function ScraperManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [runningUrls, setRunningUrls] = useState(new Set());
   const [sources, setSources] = useState([
-    { title: 'Barreau du Cameroun', url: 'https://barreaucameroun.org/avocats', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'bar' },
+    { title: 'Barreau du Cameroun', url: 'https://barreaucameroun.org', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'bar' },
     { title: 'JuriAfrique Cameroun', url: 'https://juriafrica.com/avocats/', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'court' },
     { title: 'Lex Africa — Cameroon', url: 'https://www.lexafrica.com/members/cameroon/', status: 'Active', statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', type: 'firm' },
   ]);
@@ -442,6 +442,21 @@ export default function ScraperManagement() {
   }, []);
 
   useEffect(() => { loadJobs(); loadLawJobs(); }, [loadJobs, loadLawJobs]);
+
+  // Auto-refresh every 4 seconds while any job is still pending or running
+  useEffect(() => {
+    const active = jobs.some((j) => j.status === 'pending' || j.status === 'running');
+    if (!active) return;
+    const t = setInterval(loadJobs, 4000);
+    return () => clearInterval(t);
+  }, [jobs, loadJobs]);
+
+  useEffect(() => {
+    const active = lawJobs.some((j) => j.status === 'pending' || j.status === 'running');
+    if (!active) return;
+    const t = setInterval(loadLawJobs, 4000);
+    return () => clearInterval(t);
+  }, [lawJobs, loadLawJobs]);
 
   async function handleRun(source) {
     setRunningUrls((prev) => new Set([...prev, source.url]));
