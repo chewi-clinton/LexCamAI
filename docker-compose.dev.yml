@@ -108,6 +108,9 @@ services:
     build:
       context: ./services/rag-service
     container_name: lexcam-rag-service
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       SERVICE_NAME: rag-service
       API_PREFIX: /api/v1
