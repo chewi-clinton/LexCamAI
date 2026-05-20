@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import GavelIcon from '@/components/ui/GavelIcon';
+import { auth } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -10,12 +11,43 @@ export default function LawyerOnboarding() {
   const router = useRouter();
   const { lang } = useLanguage();
   const T = t[lang].registerLawyer;
+
+  const [fullName, setFullName]   = useState('');
+  const [email, setEmail]         = useState('');
+  const [phone, setPhone]         = useState('');
+  const [password, setPassword]   = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await auth.register({
+        full_name: fullName,
+        email,
+        phone,
+        password,
+        preferred_language: lang,
+        consent_given: true,
+        role: 'lawyer',
+      });
+      sessionStorage.setItem('pending_verify_email', email);
+      sessionStorage.setItem('pending_verify_password', password);
+      sessionStorage.setItem('lawyer_step1', JSON.stringify({ full_name: fullName, email, phone }));
+      router.push('/register-lawyer/profile');
+    } catch (err) {
+      setError(err.data?.email?.[0] ?? err.message ?? 'Registration failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col items-center justify-start pb-16">
 
-      {/* Onboarding Header */}
       <header className="w-full bg-white border-b border-gray-200/60 py-4 px-6 md:px-16 flex items-center justify-between sticky top-0 z-20">
         <a href="/" className="text-gray-800 hover:text-gray-600 transition-colors p-1 rounded-lg">
           <ArrowLeft size={20} />
@@ -29,7 +61,6 @@ export default function LawyerOnboarding() {
 
       <main className="max-w-2xl w-full px-6 mt-12 flex flex-col">
 
-        {/* Stepper */}
         <div className="w-full mb-10">
           <div className="flex justify-between items-baseline mb-2">
             <span className="text-xs font-bold text-primary tracking-wider">{T.step1of3}</span>
@@ -45,53 +76,60 @@ export default function LawyerOnboarding() {
           </div>
         </div>
 
-        {/* Intro */}
         <div className="mb-8">
-          <h2 className="font-serif text-2xl font-bold text-primary mb-3">
-            {T.joinTitle}
-          </h2>
-          <p className="text-muted text-sm md:text-base leading-relaxed">
-            {T.joinDesc}
-          </p>
+          <h2 className="font-serif text-2xl font-bold text-primary mb-3">{T.joinTitle}</h2>
+          <p className="text-muted text-sm md:text-base leading-relaxed">{T.joinDesc}</p>
         </div>
 
-        {/* Form Card */}
         <div className="bg-surface w-full rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10">
-          <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); router.push('/register-lawyer/profile'); }}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
 
-            {/* Full Name */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                {T.fullName}
-              </label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.fullName}</label>
               <input
                 type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder={T.fullNamePlaceholder}
+                required
                 className="block w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow"
               />
             </div>
 
-            {/* Email */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                {T.emailAddress}
-              </label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.emailAddress}</label>
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder={T.emailPlaceholder}
+                required
                 className="block w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow"
               />
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                {T.password}
-              </label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">Phone Number</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+237 6XX XXX XXX"
+                required
+                className="block w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{T.password}</label>
               <div className="relative rounded-lg border border-gray-300 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary bg-white transition-shadow">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder={T.passwordPlaceholder}
+                  required
+                  minLength={8}
                   className="block w-full pl-4 pr-11 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none"
                 />
                 <button
@@ -99,35 +137,24 @@ export default function LawyerOnboarding() {
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {/* Bar Association ID */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <label className="block text-xs font-bold text-gray-700">
-                  {T.barId}
-                </label>
-                <span className="text-gray-400 hover:text-gray-600 transition-colors cursor-help">
-                  <HelpCircle size={14} />
-                </span>
-              </div>
-              <input
-                type="text"
-                placeholder={T.barIdPlaceholder}
-                className="block w-full border border-gray-300 rounded-lg px-4 py-3 bg-white text-sm text-gray-800 placeholder:text-gray-400 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow uppercase"
-              />
-            </div>
+            {error && (
+              <p className="text-xs font-semibold text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+                {error}
+              </p>
+            )}
 
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary-light transition-colors text-white py-3.5 px-4 rounded-lg font-bold text-sm md:text-base flex items-center justify-center gap-2 shadow-sm"
+                disabled={loading}
+                className="w-full bg-primary hover:bg-primary-light disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-white py-3.5 px-4 rounded-lg font-bold text-sm md:text-base flex items-center justify-center gap-2 shadow-sm"
               >
-                {T.continueProfile}
-                <ArrowRight size={16} />
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <>{T.continueProfile} <ArrowRight size={16} /></>}
               </button>
             </div>
 
@@ -135,9 +162,7 @@ export default function LawyerOnboarding() {
 
           <p className="text-center text-xs md:text-sm text-muted mt-6">
             {T.alreadyHaveAccount}{' '}
-            <a href="/login" className="font-bold text-accent-dark hover:underline">
-              {T.logIn}
-            </a>
+            <a href="/login" className="font-bold text-accent-dark hover:underline">{T.logIn}</a>
           </p>
         </div>
 
