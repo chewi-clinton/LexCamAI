@@ -2,11 +2,11 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Plus, MessageSquare, Bot, BookOpen, FileText, Paperclip, Send, Loader2,
-  Flag, CheckCircle2, X,
+  Flag, CheckCircle2, X, User, Phone, Mail, ExternalLink,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Header from '@/components/layout/Header';
-import { chat as chatApi, streamChatMessage, feedback as feedbackApi } from '@/lib/api';
+import { chat as chatApi, streamChatMessage, feedback as feedbackApi, lawyers as lawyersApi } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
@@ -43,6 +43,17 @@ function getDocumentPromo(tags, lang) {
   };
 }
 
+function inferSpecialization(tags) {
+  const text = tags.map((t) => `${t.law_name ?? ''} ${t.domain ?? ''}`).join(' ').toLowerCase();
+  if (text.includes('labour') || text.includes('labor') || text.includes('travail') || text.includes('employment')) return 'labour';
+  if (text.includes('penal') || text.includes('criminal') || text.includes('pénal')) return 'penal';
+  if (text.includes('family') || text.includes('famille') || text.includes('civil status')) return 'family';
+  if (text.includes('housing') || text.includes('rent') || text.includes('tenant') || text.includes('logement') || text.includes('locat')) return 'housing';
+  if (text.includes('commercial') || text.includes('ohada') || text.includes('company') || text.includes('société')) return 'commercial';
+  if (text.includes('civil') || text.includes('civil code')) return 'civil';
+  return null;
+}
+
 function relativeDate(iso, lang) {
   if (!iso) return '';
   const diff = Math.floor((Date.now() - new Date(iso)) / 86400000);
@@ -72,6 +83,7 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [lawyerRecs, setLawyerRecs] = useState({});
   const [flaggedMsgs, setFlaggedMsgs] = useState(new Set());
   const [flaggingMsgId, setFlaggingMsgId] = useState(null);
   const [flagMenuMsgId, setFlagMenuMsgId] = useState(null);
@@ -143,6 +155,17 @@ export default function AIAssistant() {
     window.history.replaceState({}, '', '/chat');
   }
 
+  async function fetchLawyerRecs(botMsgId, tags) {
+    const spec = inferSpecialization(tags);
+    try {
+      const params = { limit: 4 };
+      if (spec) params.specialization = spec;
+      const data = await lawyersApi.list(params);
+      const list = Array.isArray(data) ? data : (data.results ?? []);
+      if (list.length > 0) setLawyerRecs((prev) => ({ ...prev, [botMsgId]: list.slice(0, 4) }));
+    } catch { /* silent — recommendations are best-effort */ }
+  }
+
   function startDisplayTimer(botMsgId) {
     clearInterval(streamIntervalRef.current);
     streamIntervalRef.current = setInterval(() => {
@@ -153,6 +176,7 @@ export default function AIAssistant() {
           clearInterval(streamIntervalRef.current);
           setIsStreaming(false);
           setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, streaming: false } : m));
+          if (sourcesRef.current.length > 0) fetchLawyerRecs(botMsgId, sourcesRef.current);
         }
         return;
       }
@@ -176,7 +200,11 @@ export default function AIAssistant() {
       const partial = words.slice(0, wordIndex).join(' ');
       const done = wordIndex >= words.length;
       setMessages((prev) => prev.map((m) => m.id === botMsgId ? { ...m, text: partial, streaming: !done } : m));
-      if (done) { clearInterval(streamIntervalRef.current); setIsStreaming(false); }
+      if (done) {
+        clearInterval(streamIntervalRef.current);
+        setIsStreaming(false);
+        if (tags.length > 0) fetchLawyerRecs(botMsgId, tags);
+      }
     }, 60);
   }
 
@@ -436,6 +464,65 @@ export default function AIAssistant() {
                                   <a href={promo.href} className="bg-primary hover:bg-primary-light transition-colors text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">
                                     {promo.label}
                                   </a>
+                                </div>
+                              );
+                            })()}
+                            {(() => {
+                              const recs = lawyerRecs[msg.id];
+                              if (!recs?.length) return null;
+                              return (
+                                <div className="mt-2 border border-gray-200 rounded-xl overflow-hidden">
+                                  <div className="bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex items-center gap-2">
+                                    <User size={14} className="text-gray-500" />
+                                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                      {lang === 'fr' ? 'Avocats recommandés' : 'Recommended Lawyers'}
+                                    </span>
+                                  </div>
+                                  <div className="divide-y divide-gray-100">
+                                    {recs.map((lawyer) => (
+                                      <div key={lawyer.id} className="p-4 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-semibold text-gray-900 text-sm">{lawyer.full_name}</span>
+                                            {lawyer.city && <span className="text-xs text-gray-400">{lawyer.city}</span>}
+                                            {lawyer.is_accepting_cases && (
+                                              <span className="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                                                {lang === 'fr' ? 'Disponible' : 'Available'}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {lawyer.specializations?.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                              {lawyer.specializations.slice(0, 3).map((s) => (
+                                                <span key={s.id} className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                  {lang === 'fr' ? (s.name_fr || s.name) : s.name}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <div className="flex flex-wrap gap-3 mt-2">
+                                            {lawyer.phone && (
+                                              <a href={`tel:${lawyer.phone}`} className="flex items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors">
+                                                <Phone size={12} /> {lawyer.phone}
+                                              </a>
+                                            )}
+                                            {lawyer.email && (
+                                              <a href={`mailto:${lawyer.email}`} className="flex items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors">
+                                                <Mail size={12} /> {lawyer.email}
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <a
+                                          href={`/lawyer/${lawyer.id}/referral`}
+                                          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+                                        >
+                                          <ExternalLink size={12} />
+                                          {lang === 'fr' ? 'Envoyer dossier' : 'Send Referral'}
+                                        </a>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               );
                             })()}

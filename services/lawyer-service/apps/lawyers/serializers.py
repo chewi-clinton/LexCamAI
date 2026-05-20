@@ -15,8 +15,9 @@ class LawyerPublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lawyer
         fields = [
-            "id", "full_name", "city", "region", "bio", "profile_photo_url",
-            "type", "verification_status", "is_accepting_cases", "specializations",
+            "id", "full_name", "email", "phone", "city", "region", "bio",
+            "profile_photo_url", "type", "verification_status",
+            "is_accepting_cases", "specializations",
         ]
 
 

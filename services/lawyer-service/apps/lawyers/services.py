@@ -35,7 +35,7 @@ def get_lawyers(city=None, region=None, specialization=None, lawyer_type=None):
     if region:
         qs = qs.filter(region__iexact=region)
     if specialization:
-        qs = qs.filter(specializations__name__iexact=specialization)
+        qs = qs.filter(specializations__name__icontains=specialization)
     if lawyer_type:
         qs = qs.filter(type=lawyer_type)
     return qs.distinct()
