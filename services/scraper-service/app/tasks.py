@@ -134,10 +134,22 @@ def run_scrape(self, job_id: int):
 run_scrape_async = run_scrape
 
 
+_FETCH_HEADERS = {
+    "User-Agent": "LexCamBot/1.0 (+https://lexcam.cm/bot)",
+    "Accept": "text/html,application/xhtml+xml,*/*",
+}
+
+
+def _fetch(url: str) -> str:
+    resp = http_client.get(url, timeout=30, headers=_FETCH_HEADERS, allow_redirects=True)
+    resp.raise_for_status()
+    return resp.text
+
+
 @celery_app.task(bind=True, max_retries=0, name="app.tasks.run_law_scrape")
 def run_law_scrape(self, job_id: int):
     from .models import LawScrapeJob
-    from .law_extractor import extract as extract_law
+    from .law_extractor import extract as extract_law, find_law_links
 
     logger.info("Starting law scrape job %s", job_id)
     _update_job_model(LawScrapeJob, job_id, status="running")
@@ -150,27 +162,42 @@ def run_law_scrape(self, job_id: int):
                 return
             url, code, name, domain, language = job.url, job.code, job.name, job.domain, job.language
 
-        resp = http_client.get(
-            url,
-            timeout=30,
-            headers={
-                "User-Agent": "LexCamBot/1.0 (+https://lexcam.cm/bot)",
-                "Accept": "text/html,application/xhtml+xml,*/*",
-            },
-            allow_redirects=True,
-        )
-        resp.raise_for_status()
-
-        articles = extract_law(resp.text, source_url=url, domain=domain,
+        html = _fetch(url)
+        articles = extract_law(html, source_url=url, domain=domain,
                                language=language, law_name=name)
+        pages_scraped = 1
         logger.info("Law job %s: extracted %d articles from %s", job_id, len(articles), url)
 
+        # If this looks like a listing page (no articles), follow law links up to 5 sub-pages
         if not articles:
+            law_links = find_law_links(html, base_url=url)
+            logger.info("Law job %s: listing page detected, following %d law links", job_id, len(law_links))
+            for link in law_links[:5]:
+                try:
+                    sub_html = _fetch(link)
+                    sub_articles = extract_law(sub_html, source_url=link, domain=domain,
+                                               language=language, law_name=name)
+                    if sub_articles:
+                        logger.info("Law job %s: got %d articles from %s", job_id, len(sub_articles), link)
+                        articles.extend(sub_articles)
+                        pages_scraped += 1
+                    # cap total articles to avoid flooding the KB
+                    if len(articles) >= 500:
+                        break
+                except Exception as sub_exc:
+                    logger.warning("Law job %s: failed to fetch sub-page %s — %s", job_id, link, sub_exc)
+
+        if not articles:
+            result_msg = "No articles detected (listing page with no followable law links)"
             _update_job_model(LawScrapeJob, job_id,
                               status="done",
-                              result="No articles detected on page",
+                              result=result_msg,
                               finished_at=datetime.now(timezone.utc))
+            logger.info("Law job %s: %s", job_id, result_msg)
             return
+
+        logger.info("Law job %s: total %d articles across %d page(s), sending to KB",
+                    job_id, len(articles), pages_scraped)
 
         kb_resp = http_client.post(
             f"{settings.KB_SERVICE_URL}/api/v1/ingest",
@@ -181,12 +208,12 @@ def run_law_scrape(self, job_id: int):
                 "language": language,
                 "articles": articles,
             },
-            timeout=60,
+            timeout=120,
         )
         kb_resp.raise_for_status()
         data = kb_resp.json()
         ingested = data.get("articles_ingested", 0)
-        summary = f"Extracted {len(articles)}, ingested {ingested} into KB"
+        summary = f"Scraped {pages_scraped} page(s), extracted {len(articles)} articles, ingested {ingested} into KB"
         _update_job_model(LawScrapeJob, job_id,
                           status="done",
                           result=summary,

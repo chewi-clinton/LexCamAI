@@ -341,9 +341,60 @@ function LawScrapeModal({ prefill, onClose, onDone }) {
 // ─── Law portal source card ───────────────────────────────────────────────────
 
 const LAW_PORTALS = [
-  { title: 'Droit-Afrique', url: 'https://www.droit-afrique.com/pays/cameroun', code: 'droit-afrique-cm', name: 'Lois du Cameroun (Droit-Afrique)', domain: 'general', language: 'fr' },
-  { title: 'OHADA Uniform Acts', url: 'https://www.ohada.com/actes-uniformes.html', code: 'ohada-acts', name: 'Actes Uniformes OHADA', domain: 'commercial', language: 'fr' },
-  { title: 'JuriAfrique', url: 'https://juriafrica.com/lex/cameroun/', code: 'juriafrica-cm', name: 'Legislation Camerounaise (JuriAfrique)', domain: 'general', language: 'fr' },
+  {
+    title: 'Droit-Afrique — Cameroun',
+    url: 'https://www.droit-afrique.com/pays/cameroun',
+    code: 'droit-afrique-cm',
+    name: 'Législation Camerounaise (Droit-Afrique)',
+    domain: 'general',
+    language: 'fr',
+    desc: 'Codes, lois et décrets — index complet',
+  },
+  {
+    title: 'OHADA Actes Uniformes',
+    url: 'https://www.ohada.com/actes-uniformes.html',
+    code: 'ohada-acts',
+    name: 'Actes Uniformes OHADA',
+    domain: 'commercial',
+    language: 'fr',
+    desc: 'Droit commercial, sociétés, sûretés, arbitrage',
+  },
+  {
+    title: 'JuriAfrique — Cameroun',
+    url: 'https://juriafrica.com/lex/cameroun/',
+    code: 'juriafrica-cm',
+    name: 'Législation Camerounaise (JuriAfrique)',
+    domain: 'general',
+    language: 'fr',
+    desc: 'Base de données législative Afrique centrale',
+  },
+  {
+    title: 'ILO NatLex — Cameroun',
+    url: 'https://www.ilo.org/natlex/natlex4.listByCountry?p_lang=fr&p_country=CMR',
+    code: 'ilo-natlex-cm',
+    name: 'Législation du travail — Cameroun (OIT)',
+    domain: 'labor',
+    language: 'fr',
+    desc: 'Base de données OIT — droit du travail et sécurité sociale',
+  },
+  {
+    title: 'Refworld — Cameroun',
+    url: 'https://www.refworld.org/country/LEGISLATION/CMR.html',
+    code: 'refworld-cm',
+    name: 'Législation nationale — Cameroun (Refworld)',
+    domain: 'general',
+    language: 'fr',
+    desc: 'UNHCR — textes législatifs nationaux',
+  },
+  {
+    title: 'WIPO Lex — Cameroun',
+    url: 'https://wipolex.wipo.int/en/legislation/profile/CM',
+    code: 'wipolex-cm',
+    name: 'Propriété intellectuelle — Cameroun (OMPI)',
+    domain: 'commercial',
+    language: 'fr',
+    desc: 'Lois sur la propriété intellectuelle — OMPI/WIPO',
+  },
 ];
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -547,7 +598,8 @@ export default function ScraperManagement() {
                       <BookOpen size={20} />
                     </div>
                     <h4 className="font-serif text-lg font-bold text-gray-900">{portal.title}</h4>
-                    <p className="text-xs text-gray-400 font-mono mt-1 truncate">{portal.url}</p>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{portal.desc}</p>
+                    <p className="text-[10px] text-gray-300 font-mono mt-1 truncate">{portal.url}</p>
                     <div className="flex gap-2 mt-3">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">{portal.domain}</span>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200">{portal.language.toUpperCase()}</span>

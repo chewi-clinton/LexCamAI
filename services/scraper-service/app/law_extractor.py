@@ -5,6 +5,10 @@ Targets:
   - droit-afrique.com  (French Cameroonian law texts)
   - ohada.com          (OHADA uniform acts)
   - juriafrica.com     (West/Central African law)
+  - juriafrica.com     (West/Central African law)
+  - refworld.org       (UNHCR refugee law / national legislation)
+  - ilo.org/natlex     (ILO national labour legislation)
+  - wipolex.wipo.int   (WIPO intellectual property legislation)
   - Generic fallback   (any page with Article N headers)
 
 Returns a list of article dicts matching the KB ingest schema:
@@ -13,6 +17,7 @@ Returns a list of article dicts matching the KB ingest schema:
 from __future__ import annotations
 
 import re
+from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
 # Matches "Article 1", "Art. 1", "ARTICLE 1", "Article 1er" at start of a line
@@ -108,3 +113,51 @@ def extract(html: str, source_url: str, domain: str, language: str, law_name: st
     soup = BeautifulSoup(html, "lxml")
     text = _soup_to_text(soup)
     return _parse_articles(text, domain=domain, language=language, law_name=law_name)
+
+
+# Keywords that suggest a link points to an individual law text (not navigation/search).
+_LAW_LINK_KEYWORDS = {
+    "code", "loi", "decret", "ordonnance", "acte", "arrete", "circulaire",
+    "legislation", "texte", "law", "act", "decree", "statute", "regulation",
+    "penal", "travail", "civil", "foncier", "famille", "commerce", "ohada",
+}
+
+_SKIP_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip"}
+
+
+def find_law_links(html: str, base_url: str) -> list[str]:
+    """
+    From a law portal listing/index page, extract hrefs that likely point to
+    individual law text pages (same domain, law-keyword in path, not binary files).
+    Returns deduplicated list capped at 10 candidates.
+    """
+    soup = BeautifulSoup(html, "lxml")
+    base_domain = urlparse(base_url).netloc
+    seen: set[str] = set()
+    result: list[str] = []
+
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
+        if not href or href.startswith("#") or href.lower().startswith("javascript"):
+            continue
+        full_url = urljoin(base_url, href)
+        parsed = urlparse(full_url)
+
+        # same domain only
+        if parsed.netloc != base_domain:
+            continue
+        # skip binary file links
+        if any(parsed.path.lower().endswith(ext) for ext in _SKIP_EXTENSIONS):
+            continue
+        # must have at least one law-related keyword in the path or anchor text
+        path_lower = parsed.path.lower()
+        anchor_lower = (a.get_text() or "").lower()
+        if not any(kw in path_lower or kw in anchor_lower for kw in _LAW_LINK_KEYWORDS):
+            continue
+        if full_url not in seen:
+            seen.add(full_url)
+            result.append(full_url)
+        if len(result) >= 10:
+            break
+
+    return result
