@@ -1,4 +1,6 @@
+import json
 import logging
+import mimetypes
 import requests
 from django.core.cache import cache
 from django.conf import settings
@@ -95,15 +97,36 @@ def verify_lawyer(lawyer_id, new_status):
     return lawyer
 
 
+def _ensure_bucket_public(client, bucket):
+    try:
+        if not client.bucket_exists(bucket):
+            client.make_bucket(bucket)
+        policy = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": {"AWS": ["*"]},
+                "Action": ["s3:GetObject"],
+                "Resource": [f"arn:aws:s3:::{bucket}/*"],
+            }],
+        })
+        client.set_bucket_policy(bucket, policy)
+    except Exception as exc:
+        logger.warning("Could not set bucket policy for %s: %s", bucket, exc)
+
+
 def upload_document(lawyer, file_obj, document_type, filename):
     """
     Uploads a verification document to MinIO.
     Path: lawyers/{lawyer_id}/{document_type}/{filename}
-    Returns the MinIO object URL.
+    Returns the MinIO object URL (public endpoint for browser access).
     """
     client = get_minio_client()
     bucket = settings.MINIO_DOCUMENTS_BUCKET
+    _ensure_bucket_public(client, bucket)
     object_name = f"lawyers/{lawyer.id}/{document_type}/{filename}"
+    content_type, _ = mimetypes.guess_type(filename)
+    content_type = content_type or "application/octet-stream"
     try:
         client.put_object(
             bucket_name=bucket,
@@ -111,11 +134,13 @@ def upload_document(lawyer, file_obj, document_type, filename):
             data=file_obj,
             length=-1,
             part_size=10 * 1024 * 1024,
+            content_type=content_type,
         )
     except S3Error as exc:
         logger.error("MinIO upload failed: %s", exc)
         raise
-    file_url = f"http://{settings.MINIO_ENDPOINT}/{bucket}/{object_name}"
+    public_endpoint = getattr(settings, "MINIO_PUBLIC_ENDPOINT", settings.MINIO_ENDPOINT)
+    file_url = f"http://{public_endpoint}/{bucket}/{object_name}"
     return LawyerDocument.objects.create(
         lawyer=lawyer,
         document_type=document_type,

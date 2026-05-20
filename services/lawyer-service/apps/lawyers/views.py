@@ -6,7 +6,7 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema
 from django.shortcuts import get_object_or_404
 
-from .models import Lawyer
+from .models import Lawyer, LawyerDocument
 from .serializers import (
     LawyerPublicSerializer, LawyerRegisterSerializer, LawyerUpdateSerializer,
     LawyerMeSerializer, LawyerDocumentSerializer, AdminVerifySerializer,
@@ -161,3 +161,15 @@ class AdminLawyerVerifyView(APIView):
         serializer.is_valid(raise_exception=True)
         lawyer = verify_lawyer(lawyer_id, serializer.validated_data["status"])
         return Response(AdminLawyerSerializer(lawyer).data)
+
+
+class AdminLawyerDocumentsView(APIView):
+    """GET /api/v1/admin/lawyers/{id}/documents — admin views a lawyer's uploaded docs."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lawyer_id):
+        if request.user.role != "admin":
+            return Response({"error": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
+        lawyer = get_object_or_404(Lawyer, id=lawyer_id)
+        docs = LawyerDocument.objects.filter(lawyer=lawyer).order_by("uploaded_at")
+        return Response(LawyerDocumentSerializer(docs, many=True).data)

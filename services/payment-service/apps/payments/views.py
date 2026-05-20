@@ -1,8 +1,9 @@
 import json
 import logging
 
+from django.db.models import Sum
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -111,3 +112,15 @@ class TransactionHistoryView(APIView):
             user_id=request.user.user_id
         ).order_by("-created_at")
         return Response(TransactionSerializer(transactions, many=True).data)
+
+
+class AdminStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        result = Transaction.objects.filter(
+            status=Transaction.STATUS_CONFIRMED
+        ).aggregate(total=Sum("amount"))
+        return Response({
+            "total_revenue_xaf": result["total"] or 0,
+        })
