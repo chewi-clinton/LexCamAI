@@ -27,88 +27,77 @@ pipeline {
         stage('user-management') {
           steps {
             dir('services/user-management') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('lawyer-service') {
           steps {
             dir('services/lawyer-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('document-service') {
           steps {
             dir('services/document-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('payment-service') {
           steps {
             dir('services/payment-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('rag-service') {
           steps {
             dir('services/rag-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('knowledge-base-service') {
           steps {
             dir('services/knowledge-base-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('notification-service') {
           steps {
             dir('services/notification-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('feedback-service') {
           steps {
             dir('services/feedback-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('admin-panel') {
           steps {
             dir('services/admin-panel') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('scraper-service') {
           steps {
             dir('services/scraper-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
         stage('embedding-service') {
           steps {
             dir('services/embedding-service') {
-              sh 'pip install -r requirements.txt -q --break-system-packages'
-              sh 'pytest --tb=short -q'
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
             }
           }
         }
@@ -128,12 +117,12 @@ pipeline {
 
           services.each { svc ->
             dir("services/${svc}") {
-              sh "pip install pytest pytest-cov -q --break-system-packages && pytest --cov=apps --cov-report=term-missing --cov-fail-under=80 -q"
+              sh ".venv/bin/pytest --cov=apps --cov-report=term-missing --cov-fail-under=80 -q"
             }
           }
           fastapi.each { svc ->
             dir("services/${svc}") {
-              sh "pip install pytest pytest-cov -q --break-system-packages && pytest --cov=app --cov-report=term-missing --cov-fail-under=80 -q"
+              sh ".venv/bin/pytest --cov=app --cov-report=term-missing --cov-fail-under=80 -q"
             }
           }
         }
