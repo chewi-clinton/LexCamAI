@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   async rewrites() {
     const um = process.env.USER_MANAGEMENT_URL    || 'http://localhost:8001';
     const ls = process.env.LAWYER_SERVICE_URL     || 'http://localhost:8002';
