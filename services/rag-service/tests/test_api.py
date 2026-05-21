@@ -1,6 +1,9 @@
+import respx
+from httpx import Response as HttpxResponse
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import app, classify_domain
 
 
 def test_health():
@@ -48,3 +51,48 @@ def test_stream_chat_message_not_found():
     with TestClient(app) as client:
         r = client.post("/api/v1/chat/conversations/99999/messages/stream", json={"content": "Hello"})
     assert r.status_code == 404
+
+
+@respx.mock
+def test_query_success():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(200, json={"results": []}))
+    with patch("app.main.generate", return_value="Test answer"), \
+         patch("app.main.publish_matching_requested"):
+        with TestClient(app) as client:
+            r = client.post("/api/v1/query", json={"query": "What is law?", "top_k": 3})
+    assert r.status_code == 200
+    assert r.json()["synthesized_answer"] == "Test answer"
+
+
+@respx.mock
+def test_query_kb_error():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(500))
+    with TestClient(app) as client:
+        r = client.post("/api/v1/query", json={"query": "test", "top_k": 3})
+    assert r.status_code == 502
+
+
+@respx.mock
+def test_send_chat_message_success():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(200, json={"results": []}))
+    with patch("app.main.generate", return_value="Legal answer"):
+        with TestClient(app) as client:
+            conv_r = client.post("/api/v1/chat/conversations")
+            conv_id = conv_r.json()["id"]
+            r = client.post(
+                f"/api/v1/chat/conversations/{conv_id}/messages",
+                json={"content": "What are my rights?"},
+            )
+    assert r.status_code == 200
+    assert r.json()["content"] == "Legal answer"
+
+
+def test_classify_domain_branches():
+    assert classify_domain("my salary is unpaid") == "labor"
+    assert classify_domain("rent house eviction") == "housing"
+    assert classify_domain("family divorce") == "family"
+    assert classify_domain("crime police") == "criminal"
+    assert classify_domain("other question") == "general"

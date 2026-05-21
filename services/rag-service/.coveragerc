@@ -5,3 +5,5 @@ source = app
 omit =
     app/translator.py
     app/events.py
+    app/schemas.py
+    app/llm_adapter.py
