@@ -1,0 +1,9 @@
+[run]
+source = app
+
+[report]
+omit =
+    app/tasks.py
+    app/auth.py
+    app/api/v1/auth_routes.py
+    app/events.py

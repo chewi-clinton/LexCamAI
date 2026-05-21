@@ -111,10 +111,12 @@ pipeline {
         script {
           def services = [
             'user-management', 'lawyer-service', 'document-service',
-            'payment-service', 'notification-service', 'feedback-service',
-            'admin-panel', 'scraper-service'
+            'payment-service', 'admin-panel'
           ]
-          def fastapi = ['rag-service', 'knowledge-base-service', 'embedding-service']
+          def fastapi = [
+            'rag-service', 'knowledge-base-service', 'embedding-service',
+            'notification-service', 'feedback-service', 'scraper-service'
+          ]
 
           services.each { svc ->
             dir("services/${svc}") {
