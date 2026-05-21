@@ -31,7 +31,7 @@ config:
 secrets:
   DB_PASSWORD: "lexcam_dev"
   SECRET_KEY: "change-me-in-production"
-  EMAIL_HOST_USER: "lexcamai@gmail.com"
+  EMAIL_HOST_USER: "your-smtp-email@gmail.com"
   EMAIL_HOST_PASSWORD: "change-me"
 
 hpa:

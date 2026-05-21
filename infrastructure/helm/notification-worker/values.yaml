@@ -20,5 +20,5 @@ config:
 
 secrets:
   INTERNAL_SERVICE_KEY: "dev-internal-key"
-  SMTP_USER: "lexcam@gmail.com"
+  SMTP_USER: "your-smtp-email@gmail.com"
   SMTP_PASSWORD: "change-me-in-production"
