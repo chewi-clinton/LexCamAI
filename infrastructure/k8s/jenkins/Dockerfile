@@ -2,8 +2,10 @@ FROM jenkins/jenkins:lts-jdk17
 
 USER root
 
+ENV PATH="/var/jenkins_home/.local/bin:${PATH}"
+
 RUN apt-get update && \
-    apt-get install -y wget apt-transport-https gnupg python3 python3-pip python3-venv curl && \
+    apt-get install -y wget apt-transport-https gnupg python3 python3-pip python3-venv curl libpq-dev && \
     ln -sf /usr/bin/python3 /usr/local/bin/python && \
     ln -sf /usr/bin/pip3 /usr/local/bin/pip && \
     wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | tee /usr/share/keyrings/trivy.gpg > /dev/null && \

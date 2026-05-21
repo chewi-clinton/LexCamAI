@@ -71,7 +71,7 @@ spec:
               name: agent
           env:
             - name: JAVA_OPTS
-              value: "-Djenkins.install.runSetupWizard=false"
+              value: "-Djenkins.install.runSetupWizard=false -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400"
           volumeMounts:
             - name: data
               mountPath: /var/jenkins_home
@@ -82,11 +82,11 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "200m"
-            limits:
               memory: "1Gi"
-              cpu: "500m"
+              cpu: "300m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
           readinessProbe:
             httpGet:
               path: /login
