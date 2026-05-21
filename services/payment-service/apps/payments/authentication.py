@@ -30,10 +30,10 @@ class RemoteJWTAuthentication(BaseAuthentication):
                 timeout=5,
             )
         except requests.RequestException:
-            return None
+            raise AuthenticationFailed("Authentication service unavailable.")
 
         if response.status_code != 200:
-            return None
+            raise AuthenticationFailed("Invalid or expired token.")
 
         data = response.json()
         user = RemoteUser(user_id=data["user_id"], role=data["role"])

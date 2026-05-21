@@ -70,6 +70,7 @@ def initiate_payment(user_id, document_id, amount, phone_number, operator):
         "id": internal_reference,
         "internal_reference": internal_reference,
         "campay_reference": data["reference"],
+        "payment_url": data.get("payment_url"),
         "ussd_code": data.get("ussd_code"),
         "operator": data.get("operator"),
     }
