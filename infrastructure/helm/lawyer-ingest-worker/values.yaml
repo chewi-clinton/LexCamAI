@@ -1,0 +1,20 @@
+image:
+  repository: chewiclinton/lawyer-ingest-worker
+  tag: latest
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "100m"
+
+config:
+  RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
+  LAWYER_SERVICE_URL: http://lawyer-service-svc:8002
+  REQUEST_TIMEOUT: "10"
+
+secrets:
+  INTERNAL_SERVICE_KEY: "dev-internal-key"

@@ -144,8 +144,14 @@ pipeline {
             'admin-panel', 'scraper-service', 'rag-service',
             'knowledge-base-service', 'embedding-service'
           ]
+          def workers = [
+            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker'
+          ]
           services.each { svc ->
             sh "docker build -t ${DOCKERHUB_REGISTRY}/${svc}:${tag} -t ${DOCKERHUB_REGISTRY}/${svc}:latest services/${svc}/"
+          }
+          workers.each { w ->
+            sh "docker build -t ${DOCKERHUB_REGISTRY}/${w}:${tag} -t ${DOCKERHUB_REGISTRY}/${w}:latest workers/${w}/"
           }
           sh "docker build -t ${DOCKERHUB_REGISTRY}/frontend:${tag} -t ${DOCKERHUB_REGISTRY}/frontend:latest frontend/"
         }
@@ -162,7 +168,9 @@ pipeline {
             'user-management', 'lawyer-service', 'document-service',
             'payment-service', 'notification-service', 'feedback-service',
             'admin-panel', 'scraper-service', 'rag-service',
-            'knowledge-base-service', 'embedding-service', 'frontend'
+            'knowledge-base-service', 'embedding-service',
+            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker',
+            'frontend'
           ]
           images.each { img ->
             sh "trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress ${DOCKERHUB_REGISTRY}/${img}:${tag}"
@@ -187,7 +195,9 @@ pipeline {
               'user-management', 'lawyer-service', 'document-service',
               'payment-service', 'notification-service', 'feedback-service',
               'admin-panel', 'scraper-service', 'rag-service',
-              'knowledge-base-service', 'embedding-service', 'frontend'
+              'knowledge-base-service', 'embedding-service',
+              'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker',
+              'frontend'
             ]
             images.each { img ->
               sh "docker push ${DOCKERHUB_REGISTRY}/${img}:${tag}"
@@ -205,17 +215,21 @@ pipeline {
         script {
           def tag = env.GIT_COMMIT[0..7]
           def charts = [
-            [chart: 'user-management',       release: 'user-management'],
-            [chart: 'lawyer-service',         release: 'lawyer-service'],
-            [chart: 'document-service',       release: 'document-service'],
-            [chart: 'payment-service',        release: 'payment-service'],
-            [chart: 'notification-service',   release: 'notification-service'],
-            [chart: 'feedback-service',       release: 'feedback-service'],
-            [chart: 'admin-panel',            release: 'admin-panel'],
-            [chart: 'scraper-service',        release: 'scraper-service'],
-            [chart: 'rag-service',            release: 'rag-service'],
-            [chart: 'knowledge-base-service', release: 'knowledge-base-service'],
-            [chart: 'embedding-service',      release: 'embedding-service'],
+            [chart: 'user-management',        release: 'user-management'],
+            [chart: 'lawyer-service',          release: 'lawyer-service'],
+            [chart: 'document-service',        release: 'document-service'],
+            [chart: 'payment-service',         release: 'payment-service'],
+            [chart: 'notification-service',    release: 'notification-service'],
+            [chart: 'feedback-service',        release: 'feedback-service'],
+            [chart: 'admin-panel',             release: 'admin-panel'],
+            [chart: 'scraper-service',         release: 'scraper-service'],
+            [chart: 'rag-service',             release: 'rag-service'],
+            [chart: 'knowledge-base-service',  release: 'knowledge-base-service'],
+            [chart: 'embedding-service',       release: 'embedding-service'],
+            [chart: 'doc-worker',              release: 'doc-worker'],
+            [chart: 'notification-worker',     release: 'notification-worker'],
+            [chart: 'indexing-worker',         release: 'indexing-worker'],
+            [chart: 'lawyer-ingest-worker',    release: 'lawyer-ingest-worker'],
           ]
           charts.each { c ->
             sh """
@@ -238,7 +252,8 @@ pipeline {
             'user-management', 'lawyer-service', 'document-service',
             'payment-service', 'notification-service', 'feedback-service',
             'admin-panel', 'scraper-service', 'rag-service',
-            'knowledge-base-service', 'embedding-service'
+            'knowledge-base-service', 'embedding-service',
+            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker'
           ]
           deployments.each { d ->
             sh "kubectl rollout status deployment/${d} -n ${NAMESPACE} --timeout=90s"
