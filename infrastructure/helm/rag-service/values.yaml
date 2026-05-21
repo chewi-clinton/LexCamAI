@@ -30,6 +30,7 @@ config:
   REDIS_URL: redis://redis-svc:6379/1
 
 secrets:
+  RAG_DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-rag-svc:5432/lexcam_rag"
   DB_PASSWORD: "lexcam_dev"
   GROQ_API_KEY: "change-me"
 

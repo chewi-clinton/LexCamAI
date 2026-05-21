@@ -23,12 +23,12 @@ config:
   DB_NAME: lexcam_notif
   DB_USER: lexcam
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
-  DJANGO_SETTINGS_MODULE: config.settings.production
   EMAIL_HOST: smtp.gmail.com
   EMAIL_PORT: "587"
   EMAIL_USE_TLS: "True"
 
 secrets:
+  DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-notif-svc:5432/lexcam_notif"
   DB_PASSWORD: "lexcam_dev"
   SECRET_KEY: "change-me-in-production"
   EMAIL_HOST_USER: "your-smtp-email@gmail.com"

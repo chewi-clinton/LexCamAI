@@ -28,6 +28,7 @@ config:
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
 
 secrets:
+  DATABASE_URL: "postgresql+psycopg://lexcam:lexcam_dev@postgres-knowledge-svc:5432/lexcam_knowledge"
   DB_PASSWORD: "lexcam_dev"
   GROQ_API_KEY: "change-me"
 

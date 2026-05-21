@@ -23,10 +23,10 @@ config:
   DB_NAME: lexcam_feedback
   DB_USER: lexcam
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
-  DJANGO_SETTINGS_MODULE: config.settings.production
   USER_MANAGEMENT_URL: http://user-management-svc:8001
 
 secrets:
+  DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-feedback-svc:5432/lexcam_feedback"
   DB_PASSWORD: "lexcam_dev"
   SECRET_KEY: "change-me-in-production"
 

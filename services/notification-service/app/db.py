@@ -5,7 +5,8 @@ engine = create_engine(str(settings.DATABASE_URL), echo=False)
 
 
 def init_db():
-    return None
+    from . import models  # noqa: F401 — registers SQLModel tables
+    SQLModel.metadata.create_all(engine)
 
 
 def get_session():

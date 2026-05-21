@@ -23,11 +23,11 @@ config:
   DB_NAME: lexcam_scraping
   DB_USER: lexcam
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
-  DJANGO_SETTINGS_MODULE: config.settings.production
   MINIO_ENDPOINT: minio-svc:9000
   MINIO_SCRAPER_BUCKET: lexcam-scraper-html
 
 secrets:
+  DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-scraping-svc:5432/lexcam_scraping"
   DB_PASSWORD: "lexcam_dev"
   SECRET_KEY: "change-me-in-production"
   MINIO_ACCESS_KEY: "minioadmin"
