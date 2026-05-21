@@ -179,7 +179,7 @@ pipeline {
       }
     }
 
-    // ── Stage 7: Push to DockerHub (main branch only) ──────────────────────
+    // ── Stage 6: Push to DockerHub (main branch only) ──────────────────────
     stage('Push') {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
@@ -204,6 +204,31 @@ pipeline {
               sh "docker push ${DOCKERHUB_REGISTRY}/${img}:latest"
             }
           }
+        }
+      }
+    }
+
+    // ── Stage 7: Deploy Infrastructure (main branch only) ─────────────────
+    stage('Deploy Infrastructure') {
+      when { expression { env.GIT_BRANCH == 'origin/main' } }
+      steps {
+        script {
+          sh "kubectl apply -f infrastructure/k8s/namespace.yaml"
+          sh "kubectl apply -f infrastructure/k8s/databases/"
+
+          def dbStatefulSets = [
+            'postgres-users', 'postgres-lawyers', 'postgres-documents',
+            'postgres-payments', 'postgres-rag', 'postgres-knowledge',
+            'postgres-notif', 'postgres-feedback', 'postgres-admin', 'postgres-scraping'
+          ]
+          dbStatefulSets.each { db ->
+            sh "kubectl rollout status statefulset/${db} -n ${NAMESPACE} --timeout=180s"
+          }
+
+          sh "kubectl rollout status statefulset/redis    -n ${NAMESPACE} --timeout=120s"
+          sh "kubectl rollout status statefulset/rabbitmq -n ${NAMESPACE} --timeout=120s"
+          sh "kubectl rollout status statefulset/qdrant   -n ${NAMESPACE} --timeout=120s"
+          sh "kubectl rollout status statefulset/minio    -n ${NAMESPACE} --timeout=120s"
         }
       }
     }
@@ -235,8 +260,9 @@ pipeline {
             sh """
               helm upgrade --install ${c.release} infrastructure/helm/${c.chart} \
                 --namespace ${NAMESPACE} \
+                --create-namespace \
                 --set image.tag=${tag} \
-                --wait --timeout 120s
+                --wait --timeout 300s
             """
           }
         }
