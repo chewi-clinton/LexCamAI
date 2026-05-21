@@ -1,0 +1,6 @@
+[run]
+source = app
+
+[report]
+omit =
+    app/services/embedding.py

@@ -1,0 +1,7 @@
+[run]
+source = app
+
+[report]
+omit =
+    app/translator.py
+    app/events.py

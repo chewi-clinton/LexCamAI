@@ -10,3 +10,4 @@ slowapi==0.1.9
 onnxruntime==1.26.0
 httpx>=0.24.0
 pytest>=8.2.0
+pytest-cov>=4.1.0
