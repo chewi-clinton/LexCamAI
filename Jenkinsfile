@@ -134,7 +134,7 @@ pipeline {
 
     // ── Stage 4: Build Docker Images (main branch only) ────────────────────
     stage('Build') {
-      when { branch 'main' }
+      when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
         script {
           def tag = env.GIT_COMMIT[0..7]
@@ -160,7 +160,7 @@ pipeline {
 
     // ── Stage 5: Security Scan with Trivy (main branch only) ──────────────
     stage('Security Scan') {
-      when { branch 'main' }
+      when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
         script {
           def tag = env.GIT_COMMIT[0..7]
@@ -181,7 +181,7 @@ pipeline {
 
     // ── Stage 7: Push to DockerHub (main branch only) ──────────────────────
     stage('Push') {
-      when { branch 'main' }
+      when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
         withCredentials([usernamePassword(
           credentialsId: 'dockerhub-creds',
@@ -210,7 +210,7 @@ pipeline {
 
     // ── Stage 8: Deploy via Helm (main branch only) ────────────────────────
     stage('Deploy') {
-      when { branch 'main' }
+      when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
         script {
           def tag = env.GIT_COMMIT[0..7]
@@ -245,7 +245,7 @@ pipeline {
 
     // ── Stage 9: Health Check (main branch only) ───────────────────────────
     stage('Health Check') {
-      when { branch 'main' }
+      when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
         script {
           def deployments = [
