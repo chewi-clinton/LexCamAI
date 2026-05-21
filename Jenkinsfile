@@ -9,6 +9,7 @@ pipeline {
     DOCKERHUB_REGISTRY = "chewiclinton"
     KUBECONFIG         = "/var/lib/jenkins/.kube/config"
     NAMESPACE          = "lexcam"
+    PIP_CACHE_DIR      = "/var/jenkins_home/.pip-cache"
   }
 
   stages {
