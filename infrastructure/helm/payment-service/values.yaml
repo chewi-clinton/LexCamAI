@@ -28,6 +28,7 @@ config:
   CAMPAY_URL: https://demo.campay.net/api/
   CAMPAY_REDIRECT_URL: https://lexcam.cm/payment/callback
   DJANGO_SETTINGS_MODULE: config.settings.production
+  ALLOWED_HOSTS: "*"
 
 # Sensitive config — goes into Secret (set these in CI or via --set)
 secrets:

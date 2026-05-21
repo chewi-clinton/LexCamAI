@@ -29,7 +29,7 @@ spec:
                 name: {{ include "lawyer-service.name" . }}-config
             - secretRef:
                 name: {{ include "lawyer-service.name" . }}-secret
-          command: ["python", "manage.py", "runserver", "0.0.0.0:8002"]
+          command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8002"]
           readinessProbe:
             httpGet:
               path: /api/v1/lawyers

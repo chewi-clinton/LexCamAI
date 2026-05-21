@@ -32,11 +32,14 @@ config:
   EMAIL_HOST: smtp.gmail.com
   EMAIL_PORT: "587"
   EMAIL_USE_TLS: "True"
+  ALLOWED_HOSTS: "*"
+  SECURE_SSL_REDIRECT: "False"
 
 # Sensitive config — goes into Secret (set these in CI or via --set)
 secrets:
+  DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-users-svc:5432/lexcam_users"
   DB_PASSWORD: "lexcam_dev"
-  SECRET_KEY: "change-me-in-production"
+  JWT_SECRET_KEY: "lexcam-jwt-secret-key-change-in-production-must-be-long"
   INTERNAL_SERVICE_KEY: "dev-internal-key"
   EMAIL_HOST_USER: "your-smtp-email@gmail.com"
   EMAIL_HOST_PASSWORD: "your-app-password"

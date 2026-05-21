@@ -29,6 +29,7 @@ config:
   DOCUMENT_SERVICE_URL: http://document-service-svc:8006
   PAYMENT_SERVICE_URL: http://payment-service-svc:8007
   DJANGO_SETTINGS_MODULE: config.settings.production
+  ALLOWED_HOSTS: "*"
 
 # Sensitive config — goes into Secret
 secrets:

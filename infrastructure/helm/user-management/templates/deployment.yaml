@@ -29,7 +29,7 @@ spec:
                 name: {{ include "user-management.name" . }}-config
             - secretRef:
                 name: {{ include "user-management.name" . }}-secret
-          command: ["python", "manage.py", "runserver", "0.0.0.0:8001"]
+          command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8001"]
           readinessProbe:
             httpGet:
               path: /api/v1/schema/
