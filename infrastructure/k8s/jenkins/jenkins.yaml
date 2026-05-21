@@ -61,22 +61,9 @@ spec:
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
-      initContainers:
-        - name: fix-permissions
-          image: busybox
-          command: ["sh", "-c", "chown -R 1000:1000 /var/jenkins_home"]
-          volumeMounts:
-            - name: data
-              mountPath: /var/jenkins_home
-        - name: install-trivy
-          image: aquasec/trivy:latest
-          command: ["cp", "/usr/local/bin/trivy", "/trivy-bin/trivy"]
-          volumeMounts:
-            - name: trivy-bin
-              mountPath: /trivy-bin
       containers:
         - name: jenkins
-          image: jenkins/jenkins:lts-jdk17
+          image: chewiclinton/jenkins-trivy:latest
           ports:
             - containerPort: 8080
               name: web
@@ -85,13 +72,14 @@ spec:
           env:
             - name: JAVA_OPTS
               value: "-Djenkins.install.runSetupWizard=false"
-            - name: PATH
-              value: "/usr/local/bin:/usr/bin:/bin:/trivy-bin"
           volumeMounts:
             - name: data
               mountPath: /var/jenkins_home
-            - name: trivy-bin
-              mountPath: /trivy-bin
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+            - name: kubeconfig
+              mountPath: /var/lib/jenkins/.kube
+              readOnly: true
           resources:
             requests:
               memory: "512Mi"
@@ -109,8 +97,12 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: jenkins-pvc
-        - name: trivy-bin
-          emptyDir: {}
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+        - name: kubeconfig
+          secret:
+            secretName: jenkins-kubeconfig
 ---
 apiVersion: v1
 kind: Service
@@ -124,7 +116,8 @@ spec:
     - name: web
       port: 8080
       targetPort: 8080
+      nodePort: 30080
     - name: agent
       port: 50000
       targetPort: 50000
-  type: ClusterIP
+  type: NodePort

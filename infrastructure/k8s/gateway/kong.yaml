@@ -30,7 +30,7 @@ data:
             strip_path: false
 
       - name: notification-service
-        url: http://notification-service-svc:8003
+        url: http://notification-service-svc:8008
         routes:
           - name: notifications-routes
             paths:
@@ -38,7 +38,7 @@ data:
             strip_path: false
 
       - name: feedback-service
-        url: http://feedback-service-svc:8004
+        url: http://feedback-service-svc:8009
         routes:
           - name: feedback-routes
             paths:
@@ -46,7 +46,7 @@ data:
             strip_path: false
 
       - name: scraper-service
-        url: http://scraper-service-svc:8005
+        url: http://scraper-service-svc:8011
         routes:
           - name: scraper-routes
             paths:
@@ -70,7 +70,7 @@ data:
             strip_path: false
 
       - name: knowledge-base-service
-        url: http://knowledge-base-service-svc:8008
+        url: http://knowledge-base-service-svc:8003
         routes:
           - name: knowledge-routes
             paths:
@@ -78,7 +78,7 @@ data:
             strip_path: false
 
       - name: rag-service
-        url: http://rag-service-svc:8009
+        url: http://rag-service-svc:8004
         routes:
           - name: rag-routes
             paths:

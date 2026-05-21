@@ -1,10 +1,14 @@
 pipeline {
   agent any
 
+  triggers {
+    githubPush()
+  }
+
   environment {
-    GHCR_REGISTRY = "ghcr.io/chewi-clinton/lexcamai"
-    KUBECONFIG    = "/var/lib/jenkins/.kube/config"
-    NAMESPACE     = "lexcam"
+    DOCKERHUB_REGISTRY = "chewiclinton"
+    KUBECONFIG         = "/var/lib/jenkins/.kube/config"
+    NAMESPACE          = "lexcam"
   }
 
   stages {
@@ -23,7 +27,7 @@ pipeline {
         stage('user-management') {
           steps {
             dir('services/user-management') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -31,7 +35,7 @@ pipeline {
         stage('lawyer-service') {
           steps {
             dir('services/lawyer-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -39,7 +43,7 @@ pipeline {
         stage('document-service') {
           steps {
             dir('services/document-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -47,7 +51,7 @@ pipeline {
         stage('payment-service') {
           steps {
             dir('services/payment-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -55,7 +59,7 @@ pipeline {
         stage('rag-service') {
           steps {
             dir('services/rag-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -63,7 +67,7 @@ pipeline {
         stage('knowledge-base-service') {
           steps {
             dir('services/knowledge-base-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -71,7 +75,7 @@ pipeline {
         stage('notification-service') {
           steps {
             dir('services/notification-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -79,7 +83,7 @@ pipeline {
         stage('feedback-service') {
           steps {
             dir('services/feedback-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -87,7 +91,7 @@ pipeline {
         stage('admin-panel') {
           steps {
             dir('services/admin-panel') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -95,7 +99,7 @@ pipeline {
         stage('scraper-service') {
           steps {
             dir('services/scraper-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -103,7 +107,7 @@ pipeline {
         stage('embedding-service') {
           steps {
             dir('services/embedding-service') {
-              sh 'pip install -r requirements.txt -q'
+              sh 'pip install -r requirements.txt -q --break-system-packages'
               sh 'pytest --tb=short -q'
             }
           }
@@ -124,20 +128,21 @@ pipeline {
 
           services.each { svc ->
             dir("services/${svc}") {
-              sh "pytest --cov=apps --cov-report=term-missing --cov-fail-under=80 -q"
+              sh "pip install pytest pytest-cov -q --break-system-packages && pytest --cov=apps --cov-report=term-missing --cov-fail-under=80 -q"
             }
           }
           fastapi.each { svc ->
             dir("services/${svc}") {
-              sh "pytest --cov=app --cov-report=term-missing --cov-fail-under=80 -q"
+              sh "pip install pytest pytest-cov -q --break-system-packages && pytest --cov=app --cov-report=term-missing --cov-fail-under=80 -q"
             }
           }
         }
       }
     }
 
-    // ── Stage 4: Build Docker Images ───────────────────────────────────────
+    // ── Stage 4: Build Docker Images (main branch only) ────────────────────
     stage('Build') {
+      when { branch 'main' }
       steps {
         script {
           def tag = env.GIT_COMMIT[0..7]
@@ -148,18 +153,42 @@ pipeline {
             'knowledge-base-service', 'embedding-service'
           ]
           services.each { svc ->
-            sh "docker build -t ${GHCR_REGISTRY}/${svc}:${tag} -t ${GHCR_REGISTRY}/${svc}:latest services/${svc}/"
+            sh "docker build -t ${DOCKERHUB_REGISTRY}/${svc}:${tag} -t ${DOCKERHUB_REGISTRY}/${svc}:latest services/${svc}/"
           }
-          sh "docker build -t ${GHCR_REGISTRY}/frontend:${tag} -t ${GHCR_REGISTRY}/frontend:latest frontend/"
+          sh "docker build -t ${DOCKERHUB_REGISTRY}/frontend:${tag} -t ${DOCKERHUB_REGISTRY}/frontend:latest frontend/"
         }
       }
     }
 
-    // ── Stage 5: Push to GitHub Container Registry ─────────────────────────
-    stage('Push') {
+    // ── Stage 5: Security Scan with Trivy (main branch only) ──────────────
+    stage('Security Scan') {
+      when { branch 'main' }
       steps {
-        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-          sh "echo ${GHCR_TOKEN} | docker login ghcr.io -u chewi-clinton --password-stdin"
+        script {
+          def tag = env.GIT_COMMIT[0..7]
+          def images = [
+            'user-management', 'lawyer-service', 'document-service',
+            'payment-service', 'notification-service', 'feedback-service',
+            'admin-panel', 'scraper-service', 'rag-service',
+            'knowledge-base-service', 'embedding-service', 'frontend'
+          ]
+          images.each { img ->
+            sh "trivy image --exit-code 0 --severity HIGH,CRITICAL --no-progress ${DOCKERHUB_REGISTRY}/${img}:${tag}"
+          }
+        }
+      }
+    }
+
+    // ── Stage 7: Push to DockerHub (main branch only) ──────────────────────
+    stage('Push') {
+      when { branch 'main' }
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub-creds',
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
+        )]) {
+          sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
           script {
             def tag = env.GIT_COMMIT[0..7]
             def images = [
@@ -169,16 +198,17 @@ pipeline {
               'knowledge-base-service', 'embedding-service', 'frontend'
             ]
             images.each { img ->
-              sh "docker push ${GHCR_REGISTRY}/${img}:${tag}"
-              sh "docker push ${GHCR_REGISTRY}/${img}:latest"
+              sh "docker push ${DOCKERHUB_REGISTRY}/${img}:${tag}"
+              sh "docker push ${DOCKERHUB_REGISTRY}/${img}:latest"
             }
           }
         }
       }
     }
 
-    // ── Stage 6: Deploy via Helm ───────────────────────────────────────────
+    // ── Stage 8: Deploy via Helm (main branch only) ────────────────────────
     stage('Deploy') {
+      when { branch 'main' }
       steps {
         script {
           def tag = env.GIT_COMMIT[0..7]
@@ -207,8 +237,9 @@ pipeline {
       }
     }
 
-    // ── Stage 7: Health Check ──────────────────────────────────────────────
+    // ── Stage 9: Health Check (main branch only) ───────────────────────────
     stage('Health Check') {
+      when { branch 'main' }
       steps {
         script {
           def deployments = [

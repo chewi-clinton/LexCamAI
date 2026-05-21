@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/chewi-clinton/lexcamai/user-management
+  repository: chewiclinton/user-management
   tag: latest
   pullPolicy: IfNotPresent
 
