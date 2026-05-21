@@ -138,17 +138,18 @@ spec:
               mountPath: /kong/declarative
           resources:
             requests:
-              memory: "256Mi"
+              memory: "512Mi"
               cpu: "100m"
             limits:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
           readinessProbe:
             httpGet:
               path: /status
               port: 8001
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: kong-config
           configMap:
