@@ -59,28 +59,33 @@ def get_redis(request: Request) -> Redis:
 async def health(request: Request, db: Session = Depends(get_db)) -> Any:
     try:
         db.execute(select(1)).scalar_one()
-        qdrant_client = get_qdrant(request)
-        qdrant_client.get_collection(settings.qdrant_collection)
-        # check embedding service health
-        embedding_client = get_embedding_client(request)
-        try:
-            emb_health = await embedding_client.health()
-        except Exception:
-            emb_health = {"status": "unreachable"}
-        # check redis
-        redis_client = get_redis(request)
-        try:
-            await redis_client.ping()
-            redis_ok = True
-        except Exception:
-            redis_ok = False
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+        raise HTTPException(status_code=503, detail=f"database: {exc}")
+
+    qdrant_client = get_qdrant(request)
+    try:
+        qdrant_client.get_collection(settings.qdrant_collection)
+        qdrant_ok = "ok"
+    except Exception:
+        qdrant_ok = "collection not found (needs ingestion)"
+
+    embedding_client = get_embedding_client(request)
+    try:
+        emb_health = await embedding_client.health()
+    except Exception:
+        emb_health = {"status": "unreachable"}
+
+    redis_client = get_redis(request)
+    try:
+        await redis_client.ping()
+        redis_ok = True
+    except Exception:
+        redis_ok = False
 
     return {
         "status": "ok",
         "database": "ok",
-        "qdrant_collection": settings.qdrant_collection,
+        "qdrant_collection": qdrant_ok,
         "embedding_service": emb_health,
         "redis": "ok" if redis_ok else "unreachable",
     }
