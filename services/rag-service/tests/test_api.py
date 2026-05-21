@@ -96,3 +96,69 @@ def test_classify_domain_branches():
     assert classify_domain("family divorce") == "family"
     assert classify_domain("crime police") == "criminal"
     assert classify_domain("other question") == "general"
+
+
+def test_get_conversation_found():
+    with TestClient(app) as client:
+        conv_r = client.post("/api/v1/chat/conversations")
+        conv_id = conv_r.json()["id"]
+        r = client.get(f"/api/v1/chat/conversations/{conv_id}")
+    assert r.status_code == 200
+    assert r.json()["id"] == conv_id
+    assert "messages" in r.json()
+
+
+@respx.mock
+def test_query_stream_kb_error():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(500))
+    with TestClient(app) as client:
+        r = client.post("/api/v1/query/stream", json={"query": "test", "top_k": 3})
+    assert r.status_code == 502
+
+
+@respx.mock
+def test_query_stream_success():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(200, json={"results": []}))
+
+    async def _fake_stream(*_, **__):
+        yield "Hello"
+        yield " world"
+
+    with patch("app.main.stream_generate", new=_fake_stream):
+        with TestClient(app) as client:
+            r = client.post("/api/v1/query/stream", json={"query": "What is law?", "top_k": 3})
+    assert r.status_code == 200
+
+
+@respx.mock
+def test_send_chat_message_kb_fails():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(500))
+    with patch("app.main.generate", return_value="Fallback answer"):
+        with TestClient(app) as client:
+            conv_r = client.post("/api/v1/chat/conversations")
+            conv_id = conv_r.json()["id"]
+            r = client.post(
+                f"/api/v1/chat/conversations/{conv_id}/messages",
+                json={"content": "test"},
+            )
+    assert r.status_code == 200
+    assert r.json()["content"] == "Fallback answer"
+
+
+@respx.mock
+def test_send_chat_message_generate_fails():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(200, json={"results": []}))
+    with patch("app.main.generate", side_effect=Exception("LLM down")):
+        with TestClient(app) as client:
+            conv_r = client.post("/api/v1/chat/conversations")
+            conv_id = conv_r.json()["id"]
+            r = client.post(
+                f"/api/v1/chat/conversations/{conv_id}/messages",
+                json={"content": "test"},
+            )
+    assert r.status_code == 200
+    assert "couldn't generate" in r.json()["content"]

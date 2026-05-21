@@ -7,3 +7,4 @@ omit =
     app/events.py
     app/schemas.py
     app/llm_adapter.py
+    app/llm.py
