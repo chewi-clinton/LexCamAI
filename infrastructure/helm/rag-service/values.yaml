@@ -20,7 +20,7 @@ resources:
 config:
   DB_HOST: postgres-rag-svc
   DB_PORT: "5432"
-  DB_NAME: lexcam_rag
+  DB_NAME: lexcam_rag_sessions
   DB_USER: lexcam
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
   EMBEDDING_SERVICE_URL: http://embedding-service-svc:8005
@@ -30,7 +30,7 @@ config:
   REDIS_URL: redis://redis-svc:6379/1
 
 secrets:
-  RAG_DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-rag-svc:5432/lexcam_rag"
+  RAG_DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-rag-svc:5432/lexcam_rag_sessions"
   DB_PASSWORD: "lexcam_dev"
   GROQ_API_KEY: "change-me"
 
