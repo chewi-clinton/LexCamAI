@@ -61,6 +61,15 @@ spec:
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
+      initContainers:
+        - name: fix-docker-sock
+          image: busybox
+          command: ["sh", "-c", "chmod 666 /var/run/docker.sock"]
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+          securityContext:
+            runAsUser: 0
       containers:
         - name: jenkins
           image: chewiclinton/jenkins-trivy:latest
