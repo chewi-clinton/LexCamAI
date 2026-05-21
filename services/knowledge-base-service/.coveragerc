@@ -1,0 +1,8 @@
+[run]
+source = app
+
+[report]
+omit =
+    app/pdf_parser.py
+    app/services/qdrant.py
+    app/services/cache.py
