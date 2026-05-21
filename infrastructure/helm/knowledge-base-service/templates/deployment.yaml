@@ -32,13 +32,13 @@ spec:
           command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003", "--workers", "2"]
           readinessProbe:
             httpGet:
-              path: /health
+              path: /api/v1/health
               port: {{ .Values.service.port }}
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /health
+              path: /api/v1/health
               port: {{ .Values.service.port }}
             initialDelaySeconds: 30
             periodSeconds: 30

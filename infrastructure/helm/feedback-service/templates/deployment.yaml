@@ -29,16 +29,16 @@ spec:
                 name: {{ include "feedback-service.name" . }}-config
             - secretRef:
                 name: {{ include "feedback-service.name" . }}-secret
-          command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8009", "--workers", "2"]
+          command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8009"]
           readinessProbe:
             httpGet:
-              path: /api/v1/schema/
+              path: /v1/health
               port: {{ .Values.service.port }}
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/v1/schema/
+              path: /v1/health
               port: {{ .Values.service.port }}
             initialDelaySeconds: 20
             periodSeconds: 30
