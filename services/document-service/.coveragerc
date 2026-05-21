@@ -1,0 +1,9 @@
+[run]
+source = apps
+
+[report]
+omit =
+    apps/documents/generator.py
+    apps/documents/jinja2.py
+    apps/documents/admin.py
+    apps/documents/management/commands/consume_events.py
