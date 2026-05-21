@@ -384,7 +384,7 @@ const LAW_PORTALS = [
     name: 'Acte Uniforme OHADA — Arbitrage (2017)',
     domain: 'commercial',
     language: 'fr',
-    desc: 'PDF officiel OHADA — règles d'arbitrage',
+    desc: "PDF officiel OHADA — règles d'arbitrage",
   },
   {
     title: 'OHADA — Procédures Simplifiées',
@@ -393,7 +393,7 @@ const LAW_PORTALS = [
     name: 'Acte Uniforme OHADA — Procédures Simplifiées (2023)',
     domain: 'commercial',
     language: 'fr',
-    desc: 'PDF officiel OHADA — recouvrement et voies d'exécution',
+    desc: "PDF officiel OHADA — recouvrement et voies d'exécution",
   },
 ];
 
