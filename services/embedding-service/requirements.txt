@@ -8,3 +8,5 @@ numpy>=2.1.0,<3.0.0
 anyio==4.4.0
 slowapi==0.1.9
 onnxruntime==1.26.0
+httpx>=0.24.0
+pytest>=8.2.0

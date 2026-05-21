@@ -8,7 +8,7 @@ tenacity>=8.2.0
 # database
 SQLAlchemy>=1.4.0
 alembic>=1.13.0
-psycopg2-binary>=2.9.0
+psycopg2-binary>=2.9.10
 langdetect>=1.0.9
 aio-pika>=8.1.0
 
