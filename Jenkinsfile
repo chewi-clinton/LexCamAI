@@ -238,6 +238,12 @@ pipeline {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
         script {
+          // Remove any releases stuck in failed/pending state from previous runs
+          sh """
+            helm list --failed  --short -n ${NAMESPACE} 2>/dev/null | xargs -r helm uninstall -n ${NAMESPACE} || true
+            helm list --pending --short -n ${NAMESPACE} 2>/dev/null | xargs -r helm uninstall -n ${NAMESPACE} || true
+          """
+
           def tag = env.GIT_COMMIT[0..7]
           def charts = [
             [chart: 'user-management',        release: 'user-management'],
@@ -262,6 +268,7 @@ pipeline {
                 --namespace ${NAMESPACE} \
                 --create-namespace \
                 --set image.tag=${tag} \
+                --cleanup-on-fail \
                 --wait --timeout 300s
             """
           }
