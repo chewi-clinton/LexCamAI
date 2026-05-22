@@ -30,9 +30,6 @@ spec:
                 name: {{ include "embedding-service.fullname" . }}-config
             - secretRef:
                 name: {{ include "embedding-service.fullname" . }}-secrets
-          volumeMounts:
-            - name: model-cache
-              mountPath: /cache
           readinessProbe:
             httpGet:
               path: /api/v1/health
@@ -47,6 +44,3 @@ spec:
             periodSeconds: 20
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      volumes:
-        - name: model-cache
-          emptyDir: {}
