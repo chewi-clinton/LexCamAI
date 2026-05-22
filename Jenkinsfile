@@ -215,6 +215,7 @@ pipeline {
         script {
           sh "kubectl apply -f infrastructure/k8s/namespace.yaml"
           sh "kubectl apply -f infrastructure/k8s/databases/"
+          sh "kubectl apply -f infrastructure/k8s/gateway/"
 
           def dbStatefulSets = [
             'postgres-users', 'postgres-lawyers', 'postgres-documents',
@@ -229,6 +230,7 @@ pipeline {
           sh "kubectl rollout status statefulset/rabbitmq -n ${NAMESPACE} --timeout=120s"
           sh "kubectl rollout status statefulset/qdrant   -n ${NAMESPACE} --timeout=120s"
           sh "kubectl rollout status statefulset/minio    -n ${NAMESPACE} --timeout=120s"
+          sh "kubectl rollout status deployment/kong      -n ${NAMESPACE} --timeout=120s"
         }
       }
     }

@@ -92,6 +92,14 @@ data:
             paths:
               - /admin
             strip_path: false
+
+      - name: embedding-service
+        url: http://embedding-service:8000
+        routes:
+          - name: embedding-routes
+            paths:
+              - /api/v1/embed
+            strip_path: false
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -99,7 +107,7 @@ metadata:
   name: kong
   namespace: lexcam
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: kong
