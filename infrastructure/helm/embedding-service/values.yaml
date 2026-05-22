@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: lexcam/embedding-service
+  repository: chewiclinton/embedding-service
   tag: latest
   pullPolicy: IfNotPresent
 
