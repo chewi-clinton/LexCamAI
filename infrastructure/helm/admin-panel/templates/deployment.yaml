@@ -29,7 +29,7 @@ spec:
                 name: {{ include "admin-panel.name" . }}-config
             - secretRef:
                 name: {{ include "admin-panel.name" . }}-secret
-          command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8010"]
+          command: ["sh", "-c", "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8010 --workers 2"]
           readinessProbe:
             httpGet:
               path: /api/v1/schema/

@@ -10,4 +10,4 @@ pika==1.4.0
 pytest==8.4.2
 pytest-django==4.11.1
 pytest-cov==7.1.0
-responses==0.26.0
+responses==0.26.0gunicorn==21.2.0
