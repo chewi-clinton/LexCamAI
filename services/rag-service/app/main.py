@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from .monitoring import prometheus_middleware, prometheus_endpoint
 from pydantic import BaseModel
 import os
 import json
@@ -49,6 +50,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="rag-service", lifespan=lifespan)
+app.middleware("http")(prometheus_middleware)
+app.add_api_route("/metrics", prometheus_endpoint, methods=["GET"])
 
 KB_URL = os.getenv("KNOWLEDGE_BASE_URL", "http://knowledge-base-service:8000")
 EMBED_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://embedding-service:8000")

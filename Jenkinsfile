@@ -215,6 +215,7 @@ pipeline {
         script {
           sh "kubectl apply -f infrastructure/k8s/namespace.yaml"
           sh "kubectl apply -f infrastructure/k8s/databases/"
+          sh "kubectl apply -f infrastructure/k8s/monitoring/"
           sh "kubectl apply -f infrastructure/k8s/gateway/"
           // Install Metrics Server for HPA (K3s requires --kubelet-insecure-tls)
           sh """

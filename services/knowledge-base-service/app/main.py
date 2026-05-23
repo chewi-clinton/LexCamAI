@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.api.v1 import router as v1_router
 from app.config import settings
+from app.monitoring import prometheus_middleware, prometheus_endpoint
 from app.db import engine
 from app.models import Base
 from app.services.cache import create_redis_client
@@ -38,5 +39,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+app.middleware("http")(prometheus_middleware)
+app.add_api_route("/metrics", prometheus_endpoint, methods=["GET"])
 
 app.include_router(v1_router, prefix=settings.api_prefix)
