@@ -125,17 +125,17 @@ data:
               - /
             strip_path: false
 
-consumers:
-  - username: lexcam-ops
-    basicauth_credentials:
-      - username: admin
-        password: lexcam_dev
+    consumers:
+      - username: lexcam-ops
+        basicauth_credentials:
+          - username: admin
+            password: lexcam_dev
 
-plugins:
-  - name: basic-auth
-    service: prometheus-monitoring
-    config:
-      hide_credentials: true
+    plugins:
+      - name: basic-auth
+        service: prometheus-monitoring
+        config:
+          hide_credentials: true
 ---
 apiVersion: apps/v1
 kind: Deployment
