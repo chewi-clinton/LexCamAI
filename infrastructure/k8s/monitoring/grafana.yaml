@@ -64,6 +64,12 @@ spec:
           env:
             - name: GF_PATHS_PROVISIONING
               value: /etc/grafana/provisioning
+            - name: GF_SERVER_ROOT_URL
+              value: "http://62.169.23.197/grafana/"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_SERVER_DOMAIN
+              value: "62.169.23.197"
           volumeMounts:
             - name: data
               mountPath: /var/lib/grafana
@@ -78,7 +84,7 @@ spec:
               cpu: "200m"
           readinessProbe:
             httpGet:
-              path: /api/health
+              path: /grafana/api/health
               port: 3000
             initialDelaySeconds: 15
             periodSeconds: 10
@@ -101,5 +107,4 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
-      nodePort: 32300
-  type: NodePort
+  type: ClusterIP

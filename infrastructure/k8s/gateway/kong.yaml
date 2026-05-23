@@ -101,6 +101,22 @@ data:
               - /api/v1/embed
             strip_path: false
 
+      - name: grafana-monitoring
+        url: http://grafana-svc:3000
+        routes:
+          - name: grafana-route
+            paths:
+              - /grafana
+            strip_path: false
+
+      - name: prometheus-monitoring
+        url: http://prometheus-svc:9090
+        routes:
+          - name: prometheus-route
+            paths:
+              - /prometheus
+            strip_path: false
+
       - name: frontend
         url: http://frontend-svc:3000
         routes:
@@ -108,6 +124,18 @@ data:
             paths:
               - /
             strip_path: false
+
+consumers:
+  - username: lexcam-ops
+    basicauth_credentials:
+      - username: admin
+        password: lexcam_dev
+
+plugins:
+  - name: basic-auth
+    service: prometheus-monitoring
+    config:
+      hide_credentials: true
 ---
 apiVersion: apps/v1
 kind: Deployment

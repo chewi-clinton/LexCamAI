@@ -49,6 +49,8 @@ Kong API Gateway (2 replicas, DB-less, declarative config)
   ├── /admin                           → admin-panel-svc:8010
   ├── /api/v1/scraper                  → scraper-service-svc:8011
   ├── /api/v1/embed                    → embedding-service:8000  ← NO -svc suffix
+  ├── /grafana                         → grafana-svc:3000  (Grafana dashboard — own login)
+  ├── /prometheus                      → prometheus-svc:9090  (basic-auth: admin/lexcam_dev)
   └── /  (catch-all)                   → frontend-svc:3000
 ```
 
@@ -317,15 +319,61 @@ kubectl rollout restart deployment/kong -n lexcam
 
 ## 9. Observability — Prometheus & Grafana
 
-Deployed via `kubectl apply -f infrastructure/k8s/monitoring/`.
+Deployed via `kubectl apply -f infrastructure/k8s/monitoring/`.  
+Both services are **ClusterIP only** — accessed exclusively through Kong (single entry point, architecturally correct).
 
-| Service | NodePort | URL |
-|---------|----------|-----|
-| Grafana | 32300 | `http://<VPS-IP>:32300` |
-| Prometheus | 32090 | `http://<VPS-IP>:32090` |
+| Service | URL (through Kong) | Auth |
+|---------|-------------------|------|
+| Grafana | `http://62.169.23.197/grafana` | Grafana own login: admin / lexcam_dev |
+| Prometheus | `http://62.169.23.197/prometheus` | Kong basic-auth: admin / lexcam_dev |
 
-**Grafana login:** admin / lexcam_dev  
-**UFW ports opened manually on VPS:** `ufw allow 32300` and `ufw allow 32090`
+**Why through Kong?** Prometheus has no built-in authentication. Kong's basic-auth plugin protects it. Grafana protects itself with its own login page. Routing everything through Kong keeps a single entry point and a single security enforcement layer.
+
+**When you add a domain name:** Update the `GF_SERVER_ROOT_URL` env var in `grafana.yaml` and the `--web.external-url` arg in `prometheus.yaml` to use your domain instead of the raw IP.
+
+### Grafana subpath configuration (grafana.yaml)
+```yaml
+env:
+  GF_SERVER_ROOT_URL: "http://62.169.23.197/grafana/"
+  GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+  GF_SERVER_DOMAIN: "62.169.23.197"
+```
+
+### Prometheus subpath configuration (prometheus.yaml)
+```yaml
+args:
+  - --web.external-url=http://62.169.23.197/prometheus/
+  - --web.route-prefix=/prometheus
+```
+
+### Kong routes for monitoring (kong.yaml)
+```yaml
+- name: grafana-monitoring
+  url: http://grafana-svc:3000
+  routes:
+    - name: grafana-route
+      paths: [/grafana]
+      strip_path: false
+
+- name: prometheus-monitoring
+  url: http://prometheus-svc:9090
+  routes:
+    - name: prometheus-route
+      paths: [/prometheus]
+      strip_path: false
+
+consumers:
+  - username: lexcam-ops
+    basicauth_credentials:
+      - username: admin
+        password: lexcam_dev
+
+plugins:
+  - name: basic-auth
+    service: prometheus-monitoring   # protects /prometheus only
+    config:
+      hide_credentials: true
+```
 
 ### How metrics are exposed
 
@@ -409,11 +457,19 @@ rabbitmqctl eval 'rabbit_exchange:delete(rabbit_misc:r(<<"/">>, exchange, <<"lex
 kubectl rollout restart deployment/doc-worker deployment/indexing-worker deployment/notification-worker deployment/lawyer-ingest-worker -n lexcam
 ```
 
-### UFW firewall (Grafana + Prometheus NodePorts)
+### UFW firewall
+
+Only ports 80 (HTTP) and 443 (HTTPS when domain is added) need to be open.  
+Ports 32300 and 32090 are **no longer needed** — monitoring now goes through Kong on port 80.
 
 ```bash
-ufw allow 32300   # Grafana
-ufw allow 32090   # Prometheus
+ufw allow 80
+ufw allow 443
+ufw reload
+
+# If you previously opened 32300/32090, you can now close them:
+ufw delete allow 32300
+ufw delete allow 32090
 ufw reload
 ```
 
@@ -532,6 +588,27 @@ config:
 ufw allow 443
 ufw allow 80
 ufw reload
+```
+
+### Step 5 — Update monitoring URLs for domain
+
+In `infrastructure/k8s/monitoring/grafana.yaml`, update:
+```yaml
+- name: GF_SERVER_ROOT_URL
+  value: "https://yourdomain.com/grafana/"
+- name: GF_SERVER_DOMAIN
+  value: "yourdomain.com"
+```
+
+In `infrastructure/k8s/monitoring/prometheus.yaml`, update:
+```yaml
+- --web.external-url=https://yourdomain.com/prometheus/
+```
+
+Then re-apply:
+```bash
+kubectl apply -f infrastructure/k8s/monitoring/
+kubectl rollout restart statefulset/prometheus deployment/grafana -n lexcam
 ```
 
 ### Cloudflare option (simplest setup)

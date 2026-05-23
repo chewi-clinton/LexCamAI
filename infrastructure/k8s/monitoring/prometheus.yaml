@@ -115,6 +115,8 @@ spec:
             - --storage.tsdb.path=/prometheus
             - --storage.tsdb.retention.time=15d
             - --web.enable-lifecycle
+            - --web.external-url=http://62.169.23.197/prometheus/
+            - --web.route-prefix=/prometheus
           ports:
             - containerPort: 9090
           volumeMounts:
@@ -131,7 +133,7 @@ spec:
               cpu: "300m"
           readinessProbe:
             httpGet:
-              path: /-/ready
+              path: /prometheus/-/ready
               port: 9090
             initialDelaySeconds: 15
             periodSeconds: 10
@@ -154,5 +156,4 @@ spec:
   ports:
     - port: 9090
       targetPort: 9090
-      nodePort: 32090
-  type: NodePort
+  type: ClusterIP
