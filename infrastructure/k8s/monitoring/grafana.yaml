@@ -77,11 +77,11 @@ spec:
               mountPath: /etc/grafana/provisioning/datasources
           resources:
             requests:
-              memory: "128Mi"
+              memory: "256Mi"
               cpu: "50m"
             limits:
-              memory: "256Mi"
-              cpu: "200m"
+              memory: "512Mi"
+              cpu: "300m"
           readinessProbe:
             httpGet:
               path: /grafana/api/health
