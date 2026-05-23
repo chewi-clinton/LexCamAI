@@ -28,11 +28,15 @@ config:
   USER_MANAGEMENT_URL: http://user-management-svc:8001
   LAWYER_SERVICE_URL: http://lawyer-service-svc:8002
   REDIS_URL: redis://redis-svc:6379/1
+  GROQ_API_URL: "https://api.groq.com/openai/v1/chat/completions"
+  GROQ_MODEL: "llama-3.3-70b-versatile"
+  HF_MODEL: "google/flan-t5-small"
 
 secrets:
   RAG_DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-rag-svc:5432/lexcam_rag_sessions"
   DB_PASSWORD: "lexcam_dev"
-  GROQ_API_KEY: "change-me"
+  GROQ_API_KEY: "set-via-kubectl"
+  HF_API_KEY: "set-via-kubectl"
 
 hpa:
   enabled: true

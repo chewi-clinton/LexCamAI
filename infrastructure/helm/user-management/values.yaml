@@ -29,9 +29,8 @@ config:
   ACCESS_TOKEN_EXPIRE_MINUTES: "15"
   REFRESH_TOKEN_EXPIRE_DAYS: "30"
   OTP_EXPIRE_MINUTES: "10"
-  EMAIL_HOST: smtp.gmail.com
-  EMAIL_PORT: "587"
-  EMAIL_USE_TLS: "True"
+  SMTP_HOST: smtp.gmail.com
+  SMTP_PORT: "587"
   ALLOWED_HOSTS: "*"
   SECURE_SSL_REDIRECT: "False"
 
@@ -39,10 +38,10 @@ config:
 secrets:
   DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-users-svc:5432/lexcam_users"
   DB_PASSWORD: "lexcam_dev"
-  JWT_SECRET_KEY: "lexcam-jwt-secret-key-change-in-production-must-be-long"
+  JWT_SECRET_KEY: "set-via-kubectl"
   INTERNAL_SERVICE_KEY: "dev-internal-key"
-  EMAIL_HOST_USER: "your-smtp-email@gmail.com"
-  EMAIL_HOST_PASSWORD: "your-app-password"
+  SMTP_USER: "set-via-kubectl"
+  SMTP_PASSWORD: "set-via-kubectl"
 
 hpa:
   enabled: true
