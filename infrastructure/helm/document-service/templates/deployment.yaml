@@ -37,13 +37,13 @@ spec:
           command: ["sh", "-c", "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8006 --workers 2"]
           readinessProbe:
             httpGet:
-              path: /api/v1/templates/
+              path: /api/v1/templates
               port: {{ .Values.service.port }}
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/v1/templates/
+              path: /api/v1/templates
               port: {{ .Values.service.port }}
             initialDelaySeconds: 20
             periodSeconds: 30
