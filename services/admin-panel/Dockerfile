@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8010
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8010"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8010", "--workers", "3", "--timeout", "60"]
