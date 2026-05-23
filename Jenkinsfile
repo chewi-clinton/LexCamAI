@@ -273,6 +273,7 @@ pipeline {
             [chart: 'notification-worker',     release: 'notification-worker'],
             [chart: 'indexing-worker',         release: 'indexing-worker'],
             [chart: 'lawyer-ingest-worker',    release: 'lawyer-ingest-worker'],
+            [chart: 'frontend',                release: 'frontend'],
           ]
           charts.each { c ->
             sh """
@@ -298,7 +299,8 @@ pipeline {
             'payment-service', 'notification-service', 'feedback-service',
             'admin-panel', 'scraper-service', 'rag-service',
             'knowledge-base-service', 'embedding-service',
-            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker'
+            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker',
+            'frontend'
           ]
           deployments.each { d ->
             sh "kubectl rollout status deployment/${d} -n ${NAMESPACE} --timeout=90s"
