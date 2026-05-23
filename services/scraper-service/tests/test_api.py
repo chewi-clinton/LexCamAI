@@ -29,7 +29,7 @@ def _law_job(**kwargs):
 
 
 def test_health():
-    r = _client.get("/v1/health")
+    r = _client.get("/api/v1/health")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
 
@@ -38,7 +38,7 @@ def test_list_jobs_empty():
     s = _mock_session()
     s.exec.return_value.all.return_value = []
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape")
+    r = _client.get("/api/v1/scrape")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json() == []
@@ -48,7 +48,7 @@ def test_list_jobs():
     s = _mock_session()
     s.exec.return_value.all.return_value = [_job()]
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape")
+    r = _client.get("/api/v1/scrape")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json()[0]["url"] == "https://example.com"
@@ -58,7 +58,7 @@ def test_get_job():
     s = _mock_session()
     s.get.return_value = _job()
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape/1")
+    r = _client.get("/api/v1/scrape/1")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json()["status"] == "pending"
@@ -68,7 +68,7 @@ def test_get_job_not_found():
     s = _mock_session()
     s.get.return_value = None
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape/999")
+    r = _client.get("/api/v1/scrape/999")
     app.dependency_overrides.clear()
     assert r.status_code == 404
 
@@ -78,7 +78,7 @@ def test_create_job():
     s.refresh.side_effect = lambda obj: setattr(obj, "id", 1)
     app.dependency_overrides[get_session] = lambda: (yield s)
     with patch("app.tasks.run_scrape_async.delay"):
-        r = _client.post("/v1/scrape", json={"url": "https://example.com"})
+        r = _client.post("/api/v1/scrape", json={"url": "https://example.com"})
     app.dependency_overrides.clear()
     assert r.status_code == 201
     assert r.json()["status"] == "pending"
@@ -88,7 +88,7 @@ def test_list_law_jobs_empty():
     s = _mock_session()
     s.exec.return_value.all.return_value = []
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape-laws")
+    r = _client.get("/api/v1/scrape-laws")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json() == []
@@ -98,7 +98,7 @@ def test_list_law_jobs():
     s = _mock_session()
     s.exec.return_value.all.return_value = [_law_job()]
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape-laws")
+    r = _client.get("/api/v1/scrape-laws")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json()[0]["code"] == "CC"
@@ -108,7 +108,7 @@ def test_get_law_job():
     s = _mock_session()
     s.get.return_value = _law_job()
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape-laws/1")
+    r = _client.get("/api/v1/scrape-laws/1")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json()["name"] == "Civil Code"
@@ -118,7 +118,7 @@ def test_get_law_job_not_found():
     s = _mock_session()
     s.get.return_value = None
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/scrape-laws/999")
+    r = _client.get("/api/v1/scrape-laws/999")
     app.dependency_overrides.clear()
     assert r.status_code == 404
 
@@ -128,7 +128,7 @@ def test_create_law_job():
     s.refresh.side_effect = lambda obj: setattr(obj, "id", 1)
     app.dependency_overrides[get_session] = lambda: (yield s)
     with patch("app.tasks.run_law_scrape.delay"):
-        r = _client.post("/v1/scrape-laws", json={
+        r = _client.post("/api/v1/scrape-laws", json={
             "url": "https://example.com/law",
             "code": "CC",
             "name": "Civil Code",

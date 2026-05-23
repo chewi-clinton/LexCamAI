@@ -96,10 +96,14 @@ data:
       - name: admin-panel
         url: http://admin-panel-svc:8010
         routes:
-          - name: admin-routes
+          - name: admin-api-routes
             paths:
-              - /admin
+              - /api/v1/admin
             strip_path: false
+          - name: django-admin-routes
+            paths:
+              - /django-admin
+            strip_path: true
 
       - name: embedding-service
         url: http://embedding-service:8000

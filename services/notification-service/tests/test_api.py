@@ -22,7 +22,7 @@ def _notif(**kwargs):
 
 
 def test_health():
-    r = _client.get("/v1/health")
+    r = _client.get("/api/v1/health")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
 
@@ -31,7 +31,7 @@ def test_list_notifications_empty():
     s = _mock_session()
     s.exec.return_value.all.return_value = []
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/notifications")
+    r = _client.get("/api/v1/notifications")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json() == []
@@ -41,7 +41,7 @@ def test_list_notifications():
     s = _mock_session()
     s.exec.return_value.all.return_value = [_notif()]
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/v1/notifications")
+    r = _client.get("/api/v1/notifications")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json()[0]["message"] == "Hello"
@@ -52,7 +52,7 @@ def test_create_notification():
     s.refresh.side_effect = lambda obj: setattr(obj, "id", 1)
     app.dependency_overrides[get_session] = lambda: (yield s)
     with patch("app.tasks.send_notification_async.delay"):
-        r = _client.post("/v1/notify", json={"user_id": "u1", "message": "Hello"})
+        r = _client.post("/api/v1/notify", json={"user_id": "u1", "message": "Hello"})
     app.dependency_overrides.clear()
     assert r.status_code == 201
     assert r.json()["message"] == "Hello"
