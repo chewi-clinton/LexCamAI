@@ -23,7 +23,7 @@ config:
   DB_NAME: lexcam_knowledge
   DB_USER: lexcam
   QDRANT_URL: http://qdrant-svc:6333
-  EMBEDDING_SERVICE_URL: http://embedding-service-svc:8005
+  EMBEDDING_SERVICE_URL: http://embedding-service:8000
   REDIS_URL: redis://redis-svc:6379/2
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
 
