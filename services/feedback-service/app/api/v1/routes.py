@@ -8,7 +8,7 @@ from ...schemas import FeedbackCreate, FeedbackRead, FeedbackReviewAction
 from ...tasks import process_feedback_async
 from ...events import publish_event
 
-router = APIRouter(prefix="/v1")
+router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/health", status_code=200)

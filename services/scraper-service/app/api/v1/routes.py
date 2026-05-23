@@ -7,7 +7,7 @@ from ...models import ScrapeJob, LawScrapeJob
 from ...schemas import ScrapeCreate, ScrapeRead, LawScrapeCreate, LawScrapeRead
 from ...tasks import run_scrape_async, run_law_scrape
 
-router = APIRouter(prefix="/v1")
+router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/health", status_code=200)

@@ -7,7 +7,7 @@ from ...auth import verify_password, get_password_hash, create_access_token
 from datetime import timedelta
 from ...config import settings
 
-router = APIRouter(prefix="/v1/auth")
+router = APIRouter(prefix="/api/v1/auth")
 
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED)

@@ -7,7 +7,7 @@ from ...models import Notification
 from ...schemas import NotificationCreate, NotificationRead
 from ...tasks import send_notification_async
 
-router = APIRouter(prefix="/v1")
+router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/health", status_code=200)

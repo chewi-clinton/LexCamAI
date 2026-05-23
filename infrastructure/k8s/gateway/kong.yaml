@@ -84,6 +84,14 @@ data:
             paths:
               - /api/v1/rag
             strip_path: false
+          - name: chat-routes
+            paths:
+              - /api/v1/chat
+            strip_path: false
+          - name: query-routes
+            paths:
+              - /api/v1/query
+            strip_path: false
 
       - name: admin-panel
         url: http://admin-panel-svc:8010
