@@ -18,14 +18,14 @@ resources:
     cpu: "500m"
 
 config:
-  USER_MANAGEMENT_URL: "http://kong-proxy-svc:80"
-  LAWYER_SERVICE_URL: "http://kong-proxy-svc:80"
-  KNOWLEDGE_BASE_URL: "http://kong-proxy-svc:80"
-  RAG_SERVICE_URL: "http://kong-proxy-svc:80"
-  DOCUMENT_SERVICE_URL: "http://kong-proxy-svc:80"
-  PAYMENT_SERVICE_URL: "http://kong-proxy-svc:80"
-  FEEDBACK_SERVICE_URL: "http://kong-proxy-svc:80"
-  SCRAPER_SERVICE_URL: "http://kong-proxy-svc:80"
+  USER_MANAGEMENT_URL: "http://user-management-svc:8001"
+  LAWYER_SERVICE_URL: "http://lawyer-service-svc:8002"
+  KNOWLEDGE_BASE_URL: "http://knowledge-base-service-svc:8003"
+  RAG_SERVICE_URL: "http://rag-service-svc:8004"
+  DOCUMENT_SERVICE_URL: "http://document-service-svc:8006"
+  PAYMENT_SERVICE_URL: "http://payment-service-svc:8007"
+  FEEDBACK_SERVICE_URL: "http://feedback-service-svc:8009"
+  SCRAPER_SERVICE_URL: "http://scraper-service-svc:8011"
 
 hpa:
   enabled: true
