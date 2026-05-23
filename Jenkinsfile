@@ -217,6 +217,7 @@ pipeline {
           sh "kubectl apply -f infrastructure/k8s/databases/"
           sh "kubectl apply -f infrastructure/k8s/monitoring/"
           sh "kubectl apply -f infrastructure/k8s/gateway/"
+          sh "kubectl apply -f infrastructure/k8s/ingress.yaml"
           // Install Metrics Server for HPA (K3s requires --kubelet-insecure-tls)
           sh """
             if ! kubectl get deployment metrics-server -n kube-system &>/dev/null; then
