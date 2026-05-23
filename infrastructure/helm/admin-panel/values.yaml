@@ -34,7 +34,7 @@ config:
 # Sensitive config — goes into Secret
 secrets:
   DB_PASSWORD: "lexcam_dev"
-  SECRET_KEY: "change-me-in-production"
+  SECRET_KEY: "set-via-kubectl"
   INTERNAL_SERVICE_KEY: "dev-internal-key"
 
 hpa:

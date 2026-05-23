@@ -26,18 +26,18 @@ config:
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
   USER_MANAGEMENT_URL: http://user-management-svc:8001
   CAMPAY_URL: https://demo.campay.net/api/
-  CAMPAY_REDIRECT_URL: https://lexcam.cm/payment/callback
+  CAMPAY_REDIRECT_URL: http://62.169.23.197/documents/my
   DJANGO_SETTINGS_MODULE: config.settings.production
   ALLOWED_HOSTS: "*"
 
 # Sensitive config — goes into Secret (set these in CI or via --set)
 secrets:
   DB_PASSWORD: "lexcam_dev"
-  SECRET_KEY: "change-me-in-production"
+  SECRET_KEY: "set-via-kubectl"
   INTERNAL_SERVICE_KEY: "dev-internal-key"
-  CAMPAY_USERNAME: "your-campay-username"
-  CAMPAY_PASSWORD: "your-campay-password"
-  CAMPAY_WEBHOOK_SECRET: "change-me"
+  CAMPAY_USERNAME: "set-via-kubectl"
+  CAMPAY_PASSWORD: "set-via-kubectl"
+  CAMPAY_WEBHOOK_SECRET: "set-via-kubectl"
 
 hpa:
   enabled: true
