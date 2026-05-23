@@ -6,6 +6,11 @@ metadata:
     {{- include "user-management.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       {{- include "user-management.selectorLabels" . | nindent 6 }}

@@ -1,3 +1,5 @@
+replicaCount: 1
+
 image:
   repository: chewiclinton/notification-worker
   tag: latest
@@ -22,3 +24,9 @@ secrets:
   INTERNAL_SERVICE_KEY: "dev-internal-key"
   SMTP_USER: "your-smtp-email@gmail.com"
   SMTP_PASSWORD: "change-me-in-production"
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 70
