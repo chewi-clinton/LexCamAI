@@ -55,30 +55,30 @@ def document(db, template, user_id):
 @pytest.mark.django_db
 class TestTemplateListView:
     def test_returns_active_templates(self, client, template, inactive_template):
-        resp = client.get("/api/v1/templates/")
+        resp = client.get("/api/v1/templates")
         assert resp.status_code == 200
         slugs = [t["slug"] for t in resp.data]
         assert "mise-en-demeure-salaire" in slugs
         assert "inactive-template" not in slugs
 
     def test_no_auth_required(self, client, template):
-        resp = client.get("/api/v1/templates/")
+        resp = client.get("/api/v1/templates")
         assert resp.status_code == 200
 
 
 @pytest.mark.django_db
 class TestTemplateDetailView:
     def test_returns_template_with_fields(self, client, template):
-        resp = client.get(f"/api/v1/templates/{template.id}/")
+        resp = client.get(f"/api/v1/templates/{template.id}")
         assert resp.status_code == 200
         assert resp.data["slug"] == template.slug
 
     def test_404_for_inactive(self, client, inactive_template):
-        resp = client.get(f"/api/v1/templates/{inactive_template.id}/")
+        resp = client.get(f"/api/v1/templates/{inactive_template.id}")
         assert resp.status_code == 404
 
     def test_404_for_unknown(self, client, db):
-        resp = client.get(f"/api/v1/templates/{uuid.uuid4()}/")
+        resp = client.get(f"/api/v1/templates/{uuid.uuid4()}")
         assert resp.status_code == 404
 
 
@@ -89,7 +89,7 @@ class TestUserDocumentListCreateView:
         resp_mock.add(resp_mock.POST, USER_MGMT_URL,
                       json={"user_id": user_id, "role": "user"}, status=200)
         resp = client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             data={"template_id": str(template.id), "form_data": {"employee_name": "Paul"}},
             HTTP_AUTHORIZATION="Bearer token",
             format="json",
@@ -101,7 +101,7 @@ class TestUserDocumentListCreateView:
     def test_list_returns_own_documents(self, client, document, user_id):
         resp_mock.add(resp_mock.POST, USER_MGMT_URL,
                       json={"user_id": user_id, "role": "user"}, status=200)
-        resp = client.get("/api/v1/documents/", HTTP_AUTHORIZATION="Bearer token")
+        resp = client.get("/api/v1/documents", HTTP_AUTHORIZATION="Bearer token")
         assert resp.status_code == 200
         assert len(resp.data) == 1
 
@@ -110,13 +110,13 @@ class TestUserDocumentListCreateView:
         other_id = str(uuid.uuid4())
         resp_mock.add(resp_mock.POST, USER_MGMT_URL,
                       json={"user_id": other_id, "role": "user"}, status=200)
-        resp = client.get("/api/v1/documents/", HTTP_AUTHORIZATION="Bearer token")
+        resp = client.get("/api/v1/documents", HTTP_AUTHORIZATION="Bearer token")
         assert resp.status_code == 200
         assert len(resp.data) == 0
 
     def test_unauthenticated_returns_403(self, client, template):
         resp = client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             data={"template_id": str(template.id), "form_data": {}},
             format="json",
         )
@@ -129,7 +129,7 @@ class TestUserDocumentDetailView:
     def test_owner_can_view(self, client, document, user_id):
         resp_mock.add(resp_mock.POST, USER_MGMT_URL,
                       json={"user_id": user_id, "role": "user"}, status=200)
-        resp = client.get(f"/api/v1/documents/{document.id}/",
+        resp = client.get(f"/api/v1/documents/{document.id}",
                           HTTP_AUTHORIZATION="Bearer token")
         assert resp.status_code == 200
 
@@ -137,7 +137,7 @@ class TestUserDocumentDetailView:
     def test_other_user_gets_403(self, client, document):
         resp_mock.add(resp_mock.POST, USER_MGMT_URL,
                       json={"user_id": str(uuid.uuid4()), "role": "user"}, status=200)
-        resp = client.get(f"/api/v1/documents/{document.id}/",
+        resp = client.get(f"/api/v1/documents/{document.id}",
                           HTTP_AUTHORIZATION="Bearer token")
         assert resp.status_code == 403
 
@@ -148,7 +148,7 @@ class TestUserDocumentDownloadView:
     def test_returns_403_when_not_ready(self, client, document, user_id):
         resp_mock.add(resp_mock.POST, USER_MGMT_URL,
                       json={"user_id": user_id, "role": "user"}, status=200)
-        resp = client.get(f"/api/v1/documents/{document.id}/download/",
+        resp = client.get(f"/api/v1/documents/{document.id}/download",
                           HTTP_AUTHORIZATION="Bearer token")
         assert resp.status_code == 403
 
@@ -159,7 +159,7 @@ class TestUserDocumentDownloadView:
         document.save()
         resp_mock.add(resp_mock.POST, USER_MGMT_URL,
                       json={"user_id": user_id, "role": "user"}, status=200)
-        resp = client.get(f"/api/v1/documents/{document.id}/download/",
+        resp = client.get(f"/api/v1/documents/{document.id}/download",
                           HTTP_AUTHORIZATION="Bearer token")
         assert resp.status_code == 200
         assert "file_url" in resp.data
@@ -169,7 +169,7 @@ class TestUserDocumentDownloadView:
 class TestInternalMarkReadyView:
     def test_marks_document_ready(self, client, document):
         resp = client.post(
-            f"/internal/documents/{document.id}/mark-ready/",
+            f"/internal/documents/{document.id}/mark-ready",
             data={"file_url": "http://minio/doc.pdf"},
             HTTP_X_INTERNAL_KEY=INTERNAL_KEY,
             format="json",
@@ -181,7 +181,7 @@ class TestInternalMarkReadyView:
 
     def test_wrong_key_returns_403(self, client, document):
         resp = client.post(
-            f"/internal/documents/{document.id}/mark-ready/",
+            f"/internal/documents/{document.id}/mark-ready",
             data={"file_url": "http://minio/doc.pdf"},
             HTTP_X_INTERNAL_KEY="wrong-key",
             format="json",
@@ -190,7 +190,7 @@ class TestInternalMarkReadyView:
 
     def test_missing_key_returns_403(self, client, document):
         resp = client.post(
-            f"/internal/documents/{document.id}/mark-ready/",
+            f"/internal/documents/{document.id}/mark-ready",
             data={"file_url": "http://minio/doc.pdf"},
             format="json",
         )
