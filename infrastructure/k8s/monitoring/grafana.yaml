@@ -65,11 +65,11 @@ spec:
             - name: GF_PATHS_PROVISIONING
               value: /etc/grafana/provisioning
             - name: GF_SERVER_ROOT_URL
-              value: "http://62.169.23.197/grafana/"
+              value: "https://lexcam.flakyfantasy.com/grafana/"
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
             - name: GF_SERVER_DOMAIN
-              value: "62.169.23.197"
+              value: "lexcam.flakyfantasy.com"
           volumeMounts:
             - name: data
               mountPath: /var/lib/grafana

@@ -10,6 +10,13 @@ spec:
     - host: lexcam.flakyfantasy.com
       http:
         paths:
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-svc
+                port:
+                  number: 3000
           - path: /
             pathType: Prefix
             backend:
