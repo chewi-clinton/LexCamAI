@@ -24,8 +24,8 @@ config:
 
 secrets:
   INTERNAL_SERVICE_KEY: "dev-internal-key"
-  MINIO_ACCESS_KEY: "minioadmin"
-  MINIO_SECRET_KEY: "minioadmin"
+  MINIO_ACCESS_KEY: "lexcam"
+  MINIO_SECRET_KEY: "lexcam_dev_minio"
 
 hpa:
   enabled: true
