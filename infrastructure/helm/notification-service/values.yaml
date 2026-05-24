@@ -26,6 +26,8 @@ config:
   EMAIL_HOST: smtp.gmail.com
   EMAIL_PORT: "587"
   EMAIL_USE_TLS: "True"
+  USER_MGMT_URL: http://user-management-svc:8001
+  APP_URL: https://lexcam.flakyfantasy.com
 
 secrets:
   DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-notif-svc:5432/lexcam_notif"

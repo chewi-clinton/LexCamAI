@@ -117,6 +117,14 @@ data:
               - /prometheus
             strip_path: false
 
+      - name: minio-storage
+        url: http://minio-svc:9000
+        routes:
+          - name: minio-storage-route
+            paths:
+              - /storage
+            strip_path: true
+
       - name: frontend
         url: http://frontend-svc:3000
         routes:

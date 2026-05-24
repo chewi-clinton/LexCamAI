@@ -25,6 +25,7 @@ config:
   DB_USER: lexcam
   USER_MANAGEMENT_URL: http://user-management-svc:8001
   MINIO_ENDPOINT: minio-svc:9000
+  MINIO_PUBLIC_ENDPOINT: lexcam.flakyfantasy.com/storage
   MINIO_DOCUMENTS_BUCKET: lexcam-documents
   MINIO_USE_SSL: "False"
   DJANGO_SETTINGS_MODULE: config.settings.production

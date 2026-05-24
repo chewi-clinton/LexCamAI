@@ -111,7 +111,7 @@ def on_message(ch, method, properties, body):
               <p style="color:#555;margin-bottom:24px">
                 Your document is now being generated. You will receive another email once it is ready.
               </p>
-              <a href="http://localhost:3000/documents/my"
+              <a href="{settings.APP_URL}/documents/my"
                  style="display:inline-block;background:#1a3c5e;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">
                 View My Documents
               </a>
@@ -131,7 +131,7 @@ def on_message(ch, method, properties, body):
                 Your payment of <strong>{amount} XAF</strong> via <strong>{operator}</strong> could not be processed.
                 Please try again from your documents page.
               </p>
-              <a href="http://localhost:3000/documents/my"
+              <a href="{settings.APP_URL}/documents/my"
                  style="display:inline-block;background:#1a3c5e;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">
                 Try Again
               </a>
