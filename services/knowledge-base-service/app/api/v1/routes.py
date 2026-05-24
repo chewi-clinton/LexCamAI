@@ -121,6 +121,8 @@ async def search(
             ]
         )
 
+    VECTOR_SCORE_THRESHOLD = 0.84
+
     embedding = await embedding_client.embed(payload.query)
     qdrant_hits = qdrant_client.search(
         collection_name=settings.qdrant_collection,
@@ -128,6 +130,7 @@ async def search(
         limit=limit,
         with_payload=True,
         query_filter=qdrant_filter,
+        score_threshold=VECTOR_SCORE_THRESHOLD,
     )
 
     for rank, hit in enumerate(qdrant_hits, start=1):
@@ -144,7 +147,7 @@ async def search(
             "domain": payload_data.get("domain", ""),
             "language": payload_data.get("language", ""),
             "text_preview": payload_data.get("text_preview", ""),
-            "score": 1.0 / (60 + rank),
+            "score": hit.score,
         }
 
     query_expression = func.plainto_tsquery("simple", payload.query)
@@ -161,7 +164,7 @@ async def search(
 
     keyword_rows = db.execute(statement).all()
     keyword_results: dict[UUID, dict[str, Any]] = {}
-    for index, (article, rank) in enumerate(keyword_rows, start=1):
+    for article, rank_score in keyword_rows:
         if article.id in keyword_results:
             continue
 
@@ -173,7 +176,7 @@ async def search(
             "domain": article.domain,
             "language": article.language,
             "text_preview": article.full_text[:200],
-            "score": 1.0 / (60 + index),
+            "score": float(rank_score) if rank_score else 0.01,
         }
 
     merged: dict[UUID, dict[str, Any]] = {}

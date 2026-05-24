@@ -20,7 +20,7 @@ async function fetchArticles({ domain, query } = {}) {
     const res = await fetch('/api/kb/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: query.trim(), limit: 20, ...(domain ? { domain } : {}) }),
+      body: JSON.stringify({ query: query.trim(), limit: 9, ...(domain ? { domain } : {}) }),
     });
     if (!res.ok) throw new Error('Search failed');
     const hits = await res.json();
