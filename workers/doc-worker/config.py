@@ -9,3 +9,4 @@ MINIO_ACCESS_KEY = os.environ["MINIO_ACCESS_KEY"]
 MINIO_SECRET_KEY = os.environ["MINIO_SECRET_KEY"]
 MINIO_DOCUMENTS_BUCKET = os.environ.get("MINIO_DOCUMENTS_BUCKET", "lexcam-documents")
 MINIO_SECURE = os.environ.get("MINIO_SECURE", "false").lower() == "true"
+MINIO_PUBLIC_ENDPOINT = os.environ.get("MINIO_PUBLIC_ENDPOINT", "lexcam.flakyfantasy.com/storage")

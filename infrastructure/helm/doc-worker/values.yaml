@@ -20,6 +20,7 @@ config:
   MINIO_ENDPOINT: minio-svc:9000
   MINIO_DOCUMENTS_BUCKET: lexcam-documents
   MINIO_SECURE: "false"
+  MINIO_PUBLIC_ENDPOINT: lexcam.flakyfantasy.com/storage
 
 secrets:
   INTERNAL_SERVICE_KEY: "dev-internal-key"

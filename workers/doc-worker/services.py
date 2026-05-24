@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import logging
 import os
 
@@ -54,19 +55,35 @@ def render_pdf(template_slug: str, form_data: dict) -> bytes:
 
 def upload_to_minio(user_id: str, document_id: str, pdf_bytes: bytes) -> str:
     object_name = f"{user_id}/{document_id}.pdf"
+    bucket = config.MINIO_DOCUMENTS_BUCKET
+    if not _minio.bucket_exists(bucket):
+        _minio.make_bucket(bucket)
     _minio.put_object(
-        config.MINIO_DOCUMENTS_BUCKET,
+        bucket,
         object_name,
         io.BytesIO(pdf_bytes),
         length=len(pdf_bytes),
         content_type="application/pdf",
     )
-    return f"minio://{config.MINIO_DOCUMENTS_BUCKET}/{object_name}"
+    policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Principal": {"AWS": ["*"]},
+            "Action": ["s3:GetObject"],
+            "Resource": [f"arn:aws:s3:::{bucket}/*"],
+        }],
+    })
+    try:
+        _minio.set_bucket_policy(bucket, policy)
+    except Exception:
+        pass
+    return f"https://{config.MINIO_PUBLIC_ENDPOINT}/{bucket}/{object_name}"
 
 
 def mark_document_ready(document_id: str, file_url: str) -> None:
     resp = requests.post(
-        f"{config.DOCUMENT_SERVICE_URL}/internal/documents/{document_id}/mark-ready/",
+        f"{config.DOCUMENT_SERVICE_URL}/internal/documents/{document_id}/mark-ready",
         json={"file_url": file_url},
         headers=_INTERNAL_HEADERS,
         timeout=10,

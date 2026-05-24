@@ -145,9 +145,12 @@ class TestGetDocument(unittest.TestCase):
 class TestUploadToMinio(unittest.TestCase):
 
     @patch("services._minio")
-    def test_upload_returns_minio_url(self, mock_minio):
+    def test_upload_returns_public_https_url(self, mock_minio):
+        mock_minio.bucket_exists.return_value = True
         mock_minio.put_object.return_value = None
+        mock_minio.set_bucket_policy.return_value = None
         url = services.upload_to_minio("user-1", "doc-2", b"fake-pdf")
+        self.assertTrue(url.startswith("https://"))
         self.assertIn("lexcam-documents", url)
         self.assertIn("user-1/doc-2.pdf", url)
 
