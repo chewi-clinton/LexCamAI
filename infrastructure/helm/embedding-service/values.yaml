@@ -26,7 +26,7 @@ env:
   MAX_SEQ_LENGTH: "512"
   NORMALIZE_EMBEDDINGS: "true"
   LOG_LEVEL: INFO
-  REQUIRE_API_KEY: "true"
+  REQUIRE_API_KEY: "false"
   RATE_LIMIT_ENABLED: "true"
   RATE_LIMIT: 120/minute
 
