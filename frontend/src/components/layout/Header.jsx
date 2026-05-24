@@ -123,6 +123,11 @@ export default function Header({ activePage = '' }) {
               {label}
             </a>
           ))}
+          <div className="flex items-center gap-3 py-2 border-t border-gray-200/60 mt-1 pt-3">
+            <button onClick={() => setLang('fr')} className={lang === 'fr' ? 'text-sm font-bold text-accent' : 'text-sm text-muted hover:text-primary transition-colors'}>FR</button>
+            <span className="text-accent">|</span>
+            <button onClick={() => setLang('en')} className={lang === 'en' ? 'text-sm font-bold text-accent' : 'text-sm text-muted hover:text-primary transition-colors'}>EN</button>
+          </div>
           {authChecked && (
             currentUser ? (
               <>

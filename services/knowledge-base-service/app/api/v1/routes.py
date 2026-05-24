@@ -121,7 +121,7 @@ async def search(
             ]
         )
 
-    VECTOR_SCORE_THRESHOLD = 0.84
+    VECTOR_SCORE_THRESHOLD = 0.78
 
     embedding = await embedding_client.embed(payload.query)
     qdrant_hits = qdrant_client.search(
@@ -150,7 +150,7 @@ async def search(
             "score": hit.score,
         }
 
-    query_expression = func.plainto_tsquery("simple", payload.query)
+    query_expression = func.plainto_tsquery("english", payload.query)
     statement = (
         select(LawArticle, func.ts_rank_cd(LawArticle.search_vector, query_expression).label("rank"))
         .options(joinedload(LawArticle.document))

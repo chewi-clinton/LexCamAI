@@ -3,7 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import t from '@/translations';
 
 export default function Footer() {
-  const { lang } = useLanguage();
+  const { lang, setLang } = useLanguage();
   const T = t[lang].footer;
 
   return (
@@ -16,7 +16,11 @@ export default function Footer() {
 
         <div>
           <h4 className="font-bold mb-4 text-[#F3A754]">{T.language}</h4>
-          <p className="text-sm text-gray-300">FR | EN</p>
+          <div className="flex items-center gap-2 text-sm">
+            <button onClick={() => setLang('fr')} className={lang === 'fr' ? 'font-bold text-white' : 'text-gray-400 hover:text-white transition-colors'}>FR</button>
+            <span className="text-gray-500">|</span>
+            <button onClick={() => setLang('en')} className={lang === 'en' ? 'font-bold text-white' : 'text-gray-400 hover:text-white transition-colors'}>EN</button>
+          </div>
         </div>
 
         <div>
