@@ -12,6 +12,9 @@ export default function Header({ activePage = '' }) {
   const T = t[lang].header;
   const [currentUser, setCurrentUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [hasToken] = useState(() =>
+    typeof window !== 'undefined' && !!localStorage.getItem('lexcam_access')
+  );
 
   useEffect(() => {
     const token = localStorage.getItem('lexcam_access');
@@ -42,7 +45,7 @@ export default function Header({ activePage = '' }) {
     { label: T.aiAssistant,  href: '/chat',                      key: 'chat' },
     { label: T.lawExplorer,  href: '/law-explorer',              key: 'law-explorer' },
   ] : [
-    ...(currentUser ? [{ label: T.dashboard, href: '/dashboard', key: 'dashboard' }] : []),
+    ...((currentUser || hasToken) ? [{ label: T.dashboard, href: '/dashboard', key: 'dashboard' }] : []),
     { label: T.aiAssistant,    href: '/chat',        key: 'chat' },
     { label: T.lawExplorer,    href: '/law-explorer', key: 'law-explorer' },
     { label: T.lawyerDirectory, href: '/lawyer',     key: 'lawyer' },
