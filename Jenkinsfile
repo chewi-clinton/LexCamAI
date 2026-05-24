@@ -102,6 +102,34 @@ pipeline {
             }
           }
         }
+        stage('doc-worker') {
+          steps {
+            dir('workers/doc-worker') {
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
+            }
+          }
+        }
+        stage('notification-worker') {
+          steps {
+            dir('workers/notification-worker') {
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
+            }
+          }
+        }
+        stage('indexing-worker') {
+          steps {
+            dir('workers/indexing-worker') {
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
+            }
+          }
+        }
+        stage('lawyer-ingest-worker') {
+          steps {
+            dir('workers/lawyer-ingest-worker') {
+              sh 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -q && .venv/bin/pytest --tb=short -q'
+            }
+          }
+        }
       }
     }
 
@@ -126,6 +154,14 @@ pipeline {
           fastapi.each { svc ->
             dir("services/${svc}") {
               sh ".venv/bin/pytest --cov=app --cov-report=term-missing --cov-fail-under=80 -q"
+            }
+          }
+          def workers = [
+            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker'
+          ]
+          workers.each { w ->
+            dir("workers/${w}") {
+              sh ".venv/bin/pytest --cov=services --cov-report=term-missing --cov-fail-under=80 -q"
             }
           }
         }
