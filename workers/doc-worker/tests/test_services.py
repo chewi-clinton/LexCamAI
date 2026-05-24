@@ -14,23 +14,23 @@ os.environ.setdefault("MINIO_ENDPOINT", "localhost:9000")
 os.environ.setdefault("MINIO_ACCESS_KEY", "minioadmin")
 os.environ.setdefault("MINIO_SECRET_KEY", "minioadmin")
 
+# WeasyPrint requires native GTK/GLib libs (libpango, libcairo2, etc.) that the
+# Docker image installs but the bare Jenkins environment does not have.
+# Stub the whole module before importing services so the native libs are never
+# loaded in CI. In production the real weasyprint runs inside the Docker container.
+_FAKE_PDF = b"%PDF-1.4 fake content " + b"x" * 200
+_fake_weasyprint = MagicMock()
+_fake_weasyprint.HTML.return_value.write_pdf.return_value = _FAKE_PDF
+sys.modules.setdefault("weasyprint", _fake_weasyprint)
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import services
 
-_FAKE_PDF = b"%PDF-1.4 fake content " + b"x" * 200
-
-
-def _mock_html_cls(string=""):
-    m = MagicMock()
-    m.write_pdf.return_value = _FAKE_PDF
-    return m
-
 
 class TestRenderPdf(unittest.TestCase):
 
-    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
-    def test_render_pdf_returns_bytes(self, _mock):
+    def test_render_pdf_returns_bytes(self):
         form_data = {
             "sender_name": "Jean Dupont",
             "sender_address": "123 Rue de la Paix",
@@ -49,11 +49,9 @@ class TestRenderPdf(unittest.TestCase):
         pdf = services.render_pdf("mise-en-demeure-salaire", form_data)
         self.assertIsInstance(pdf, bytes)
         self.assertGreater(len(pdf), 100)
-        # PDF files start with %PDF
         self.assertTrue(pdf.startswith(b"%PDF"))
 
-    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
-    def test_render_pdf_logement(self, _mock):
+    def test_render_pdf_logement(self):
         form_data = {
             "sender_name": "Marie Mballa",
             "sender_address": "12 Quartier Bastos",
@@ -73,8 +71,7 @@ class TestRenderPdf(unittest.TestCase):
         self.assertIsInstance(pdf, bytes)
         self.assertTrue(pdf.startswith(b"%PDF"))
 
-    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
-    def test_render_pdf_lettre_reclamation(self, _mock):
+    def test_render_pdf_lettre_reclamation(self):
         form_data = {
             "sender_name": "Paul Atangana",
             "sender_address": "5 Avenue Kennedy",
@@ -97,8 +94,7 @@ class TestRenderPdf(unittest.TestCase):
         self.assertIsInstance(pdf, bytes)
         self.assertTrue(pdf.startswith(b"%PDF"))
 
-    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
-    def test_render_pdf_optional_amount_omitted(self, _mock):
+    def test_render_pdf_optional_amount_omitted(self):
         form_data = {
             "sender_name": "Paul Atangana",
             "sender_address": "5 Avenue Kennedy",
