@@ -52,7 +52,7 @@ def flag_feedback(feedback_id: int, session: Session = Depends(get_session)):
     return {"flagged": fb.flagged, "flag_count": fb.flag_count}
 
 
-@router.get("/admin/feedback", response_model=List[FeedbackRead])
+@router.get("/feedback/admin/feedback", response_model=List[FeedbackRead])
 def admin_list_flagged(
     review_status: str = "",
     limit: int = 100,
@@ -65,7 +65,7 @@ def admin_list_flagged(
     return session.exec(stmt).all()
 
 
-@router.get("/admin/feedback/stats")
+@router.get("/feedback/admin/feedback/stats")
 def admin_feedback_stats(session: Session = Depends(get_session)):
     from sqlmodel import func
     total = session.exec(select(func.count()).where(Feedback.flagged == True)).one()
@@ -75,7 +75,7 @@ def admin_feedback_stats(session: Session = Depends(get_session)):
     return {"total_flagged": total, "pending": pending, "dismissed": dismissed, "escalated": escalated}
 
 
-@router.patch("/admin/feedback/{feedback_id}/review", response_model=FeedbackRead)
+@router.patch("/feedback/admin/feedback/{feedback_id}/review", response_model=FeedbackRead)
 def admin_review_feedback(
     feedback_id: int,
     payload: FeedbackReviewAction,

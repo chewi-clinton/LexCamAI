@@ -15,7 +15,7 @@ def health():
     return {"status": "ok"}
 
 
-@router.post("/scrape", response_model=ScrapeRead, status_code=status.HTTP_201_CREATED)
+@router.post("/scraper/scrape", response_model=ScrapeRead, status_code=status.HTTP_201_CREATED)
 def create_job(payload: ScrapeCreate, session: Session = Depends(get_session)):
     job = ScrapeJob(url=str(payload.url))
     session.add(job)
@@ -25,7 +25,7 @@ def create_job(payload: ScrapeCreate, session: Session = Depends(get_session)):
     return job
 
 
-@router.get("/scrape/{job_id}", response_model=ScrapeRead)
+@router.get("/scraper/scrape/{job_id}", response_model=ScrapeRead)
 def get_job(job_id: int, session: Session = Depends(get_session)):
     job = session.get(ScrapeJob, job_id)
     if not job:
@@ -33,13 +33,13 @@ def get_job(job_id: int, session: Session = Depends(get_session)):
     return job
 
 
-@router.get("/scrape", response_model=List[ScrapeRead])
+@router.get("/scraper/scrape", response_model=List[ScrapeRead])
 def list_jobs(limit: int = 50, session: Session = Depends(get_session)):
     statement = select(ScrapeJob).limit(limit)
     return session.exec(statement).all()
 
 
-@router.post("/scrape-laws", response_model=LawScrapeRead, status_code=status.HTTP_201_CREATED)
+@router.post("/scraper/scrape-laws", response_model=LawScrapeRead, status_code=status.HTTP_201_CREATED)
 def create_law_job(payload: LawScrapeCreate, session: Session = Depends(get_session)):
     job = LawScrapeJob(
         url=str(payload.url),
@@ -55,7 +55,7 @@ def create_law_job(payload: LawScrapeCreate, session: Session = Depends(get_sess
     return job
 
 
-@router.get("/scrape-laws/{job_id}", response_model=LawScrapeRead)
+@router.get("/scraper/scrape-laws/{job_id}", response_model=LawScrapeRead)
 def get_law_job(job_id: int, session: Session = Depends(get_session)):
     job = session.get(LawScrapeJob, job_id)
     if not job:
@@ -63,7 +63,7 @@ def get_law_job(job_id: int, session: Session = Depends(get_session)):
     return job
 
 
-@router.get("/scrape-laws", response_model=List[LawScrapeRead])
+@router.get("/scraper/scrape-laws", response_model=List[LawScrapeRead])
 def list_law_jobs(limit: int = 50, session: Session = Depends(get_session)):
     statement = select(LawScrapeJob).order_by(LawScrapeJob.id.desc()).limit(limit)
     return session.exec(statement).all()
