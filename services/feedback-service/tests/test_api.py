@@ -111,7 +111,7 @@ def test_admin_list_flagged_empty():
     s = _mock_session()
     s.exec.return_value.all.return_value = []
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/api/v1/admin/feedback")
+    r = _client.get("/api/v1/feedback/admin/feedback")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json() == []
@@ -121,7 +121,7 @@ def test_admin_feedback_stats():
     s = _mock_session()
     s.exec.return_value.one.return_value = 0
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.get("/api/v1/admin/feedback/stats")
+    r = _client.get("/api/v1/feedback/admin/feedback/stats")
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert "total_flagged" in r.json()
@@ -131,7 +131,7 @@ def test_admin_review_feedback_not_found():
     s = _mock_session()
     s.get.return_value = None
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.patch("/api/v1/admin/feedback/999/review", json={"action": "dismiss"})
+    r = _client.patch("/api/v1/feedback/admin/feedback/999/review", json={"action": "dismiss"})
     app.dependency_overrides.clear()
     assert r.status_code == 404
 
@@ -140,7 +140,7 @@ def test_admin_review_feedback_invalid_action():
     s = _mock_session()
     s.get.return_value = _fb()
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.patch("/api/v1/admin/feedback/1/review", json={"action": "unknown"})
+    r = _client.patch("/api/v1/feedback/admin/feedback/1/review", json={"action": "unknown"})
     app.dependency_overrides.clear()
     assert r.status_code == 400
 
@@ -151,7 +151,7 @@ def test_admin_review_feedback_dismiss():
     s.get.return_value = fb
     s.refresh.side_effect = lambda obj: None
     app.dependency_overrides[get_session] = lambda: (yield s)
-    r = _client.patch("/api/v1/admin/feedback/1/review", json={"action": "dismiss"})
+    r = _client.patch("/api/v1/feedback/admin/feedback/1/review", json={"action": "dismiss"})
     app.dependency_overrides.clear()
     assert r.status_code == 200
     assert r.json()["review_status"] == "dismissed"

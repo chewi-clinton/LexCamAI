@@ -76,14 +76,6 @@ export default function LexCamLanding() {
         </div>
       </main>
 
-      {/* Social Proof Banner */}
-      <div className="bg-[#F2EFEB] py-6 flex items-center justify-center gap-3 border-y border-gray-200/50">
-        <Shield className="text-accent-dark" size={20} />
-        <p className="font-serif font-bold text-lg text-neutral-dark text-balance text-center">
-          {T.socialProof}
-        </p>
-      </div>
-
       {/* Features Section */}
       <section className="px-6 md:px-16 py-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
