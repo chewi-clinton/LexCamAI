@@ -48,8 +48,10 @@ def get_user_email(user_id: str) -> str:
 
 def render_pdf(template_slug: str, form_data: dict) -> bytes:
     from weasyprint import HTML
+    from datetime import date as _date
     template = _jinja_env.get_template(f"{template_slug}.html")
-    html = template.render(**form_data)
+    ctx = {"date": _date.today().strftime("%-d %B %Y"), **form_data}
+    html = template.render(**ctx)
     return HTML(string=html).write_pdf()
 
 

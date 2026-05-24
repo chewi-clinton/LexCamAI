@@ -4,34 +4,32 @@
   <meta charset="UTF-8">
   <title>Formal Demand Notice — Unpaid Wages</title>
   <style>
-    body { font-family: Georgia, serif; font-size: 12pt; margin: 3cm 2.5cm; color: #1a1a1a; line-height: 1.7; }
-    .sender-block { margin-bottom: 2cm; }
-    .recipient-block { margin-bottom: 1cm; }
-    .date-block { text-align: right; margin-bottom: 1.5cm; }
-    .subject { font-weight: bold; text-decoration: underline; margin: 1.5cm 0 1cm; }
-    .body p { margin-bottom: 0.8em; text-align: justify; }
-    .signature { margin-top: 2.5cm; }
-    .footer { margin-top: 3cm; font-size: 9pt; color: #555; border-top: 1px solid #ccc; padding-top: 0.5cm; text-align: center; }
+    @page { size: A4; margin: 2cm 2cm 1.8cm 2cm; }
+    body { font-family: Georgia, serif; font-size: 11.5pt; color: #1a1a1a; line-height: 1.5; margin: 0; padding: 0; }
+    .sender-block { margin-bottom: 0.6cm; }
+    .date-block { text-align: right; margin-bottom: 0.6cm; }
+    .recipient-block { margin-bottom: 0.6cm; }
+    .subject { font-weight: bold; text-decoration: underline; margin: 0.6cm 0 0.5cm; }
+    .body p { margin-bottom: 0.5em; text-align: justify; }
+    .signature { margin-top: 1.2cm; }
+    .footer { margin-top: 1.2cm; font-size: 8.5pt; color: #555; border-top: 1px solid #ccc; padding-top: 0.35cm; text-align: center; }
   </style>
 </head>
 <body>
 
   <div class="sender-block">
-    <strong>{{ sender_name }}</strong><br>
-    {{ sender_address }}<br>
-    {{ sender_city }}<br>
-    {{ sender_phone }}<br>
-    {{ sender_email }}
+    <strong>{{ yourFullName }}</strong><br>
+    {{ yourAddress }}
   </div>
 
   <div class="date-block">
-    {{ city }}, {{ date }}
+    {{ yourAddress }}, {{ date }}
   </div>
 
   <div class="recipient-block">
     <strong>To:</strong><br>
-    {{ employer_name }}<br>
-    {{ employer_address }}
+    {{ employerName }}<br>
+    {{ employerAddress }}
   </div>
 
   <p class="subject">
@@ -43,20 +41,25 @@
     <p>Dear Sir/Madam,</p>
 
     <p>
-      I, the undersigned <strong>{{ sender_name }}</strong>, employed at your company since
-      <strong>{{ start_date }}</strong>, hereby formally notify you of the following.
+      I, the undersigned <strong>{{ yourFullName }}</strong>, employed at
+      <strong>{{ employerName }}</strong>{% if contractType %} under a <strong>{{ contractType }}</strong> contract{% endif %},
+      hereby formally notify you of the following.
     </p>
 
     <p>
       Despite repeated requests, I have not received the amount of
-      <strong>{{ amount_owed }} XAF</strong> corresponding to my wages for the period of
-      <strong>{{ period }}</strong>.
+      <strong>{{ amountOwed }} XAF</strong> corresponding to my unpaid wages.
+      My last day worked was <strong>{{ lastDayWorked }}</strong>.
     </p>
+
+    {% if additionalContext %}
+    <p>{{ additionalContext }}</p>
+    {% endif %}
 
     <p>
       Pursuant to Articles 68 and following of the Labour Code of Cameroon (Law No. 92/007 of
       14 August 1992), you are hereby formally requested to pay the said amount within
-      <strong>{{ deadline_days }} days</strong> of receipt of this notice.
+      <strong>eight (8) days</strong> of receipt of this notice.
     </p>
 
     <p>
@@ -65,17 +68,13 @@
       necessary to recover my rights, including damages and interest.
     </p>
 
-    <p>
-      I trust you will give this matter your immediate attention.
-    </p>
+    <p>I trust you will give this matter your immediate attention.</p>
 
     <p>Yours faithfully,</p>
   </div>
 
   <div class="signature">
-    <strong>{{ sender_name }}</strong><br>
-    {{ sender_phone }}<br>
-    {{ sender_email }}
+    <strong>{{ yourFullName }}</strong>
   </div>
 
   <div class="footer">

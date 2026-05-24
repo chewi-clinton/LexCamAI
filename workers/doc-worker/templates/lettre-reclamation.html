@@ -4,38 +4,36 @@
   <meta charset="UTF-8">
   <title>Letter of Claim</title>
   <style>
-    body { font-family: Georgia, serif; font-size: 12pt; margin: 3cm 2.5cm; color: #1a1a1a; line-height: 1.7; }
-    .sender-block { margin-bottom: 2cm; }
-    .recipient-block { margin-bottom: 1cm; }
-    .date-block { text-align: right; margin-bottom: 1.5cm; }
-    .subject { font-weight: bold; text-decoration: underline; margin: 1.5cm 0 1cm; }
-    .body p { margin-bottom: 0.8em; text-align: justify; }
-    .signature { margin-top: 2.5cm; }
-    .footer { margin-top: 3cm; font-size: 9pt; color: #555; border-top: 1px solid #ccc; padding-top: 0.5cm; text-align: center; }
+    @page { size: A4; margin: 2cm 2cm 1.8cm 2cm; }
+    body { font-family: Georgia, serif; font-size: 11.5pt; color: #1a1a1a; line-height: 1.5; margin: 0; padding: 0; }
+    .sender-block { margin-bottom: 0.6cm; }
+    .date-block { text-align: right; margin-bottom: 0.6cm; }
+    .recipient-block { margin-bottom: 0.6cm; }
+    .subject { font-weight: bold; text-decoration: underline; margin: 0.6cm 0 0.5cm; }
+    .body p { margin-bottom: 0.5em; text-align: justify; }
+    .signature { margin-top: 1.2cm; }
+    .footer { margin-top: 1.2cm; font-size: 8.5pt; color: #555; border-top: 1px solid #ccc; padding-top: 0.35cm; text-align: center; }
   </style>
 </head>
 <body>
 
   <div class="sender-block">
-    <strong>{{ sender_name }}</strong><br>
-    {{ sender_address }}<br>
-    {{ sender_city }}<br>
-    {{ sender_phone }}<br>
-    {{ sender_email }}
+    <strong>{{ yourFullName }}</strong><br>
+    {{ yourAddress }}
   </div>
 
   <div class="date-block">
-    {{ city }}, {{ date }}
+    {{ yourAddress }}, {{ date }}
   </div>
 
   <div class="recipient-block">
     <strong>To:</strong><br>
-    {{ recipient_name }}<br>
-    {{ recipient_address }}
+    {{ recipientName }}<br>
+    {{ recipientAddress }}
   </div>
 
   <p class="subject">
-    RE: {{ subject }}<br>
+    RE: FORMAL COMPLAINT{% if subject %} — {{ subject }}{% endif %}<br>
     <em>(Objet : Lettre de réclamation)</em>
   </p>
 
@@ -43,41 +41,43 @@
     <p>Dear Sir/Madam,</p>
 
     <p>
-      I, <strong>{{ sender_name }}</strong>, am writing to formally bring to your attention
-      the following matter and to request appropriate redress.
+      I, <strong>{{ yourFullName }}</strong>, am writing to formally bring to your attention
+      the following matter and to request appropriate redress{% if subject %}: <strong>{{ subject }}</strong>{% endif %}.
     </p>
 
-    <p>{{ claim_description }}</p>
+    {% if incidentDate %}
+    <p>The incident occurred on <strong>{{ incidentDate }}</strong>.</p>
+    {% endif %}
 
-    {% if amount_claimed %}
+    {% if description %}
+    <p>{{ description }}</p>
+    {% endif %}
+
+    {% if requestedResolution %}
     <p>
-      The total amount claimed in connection with the above is
-      <strong>{{ amount_claimed }} XAF</strong>.
+      I hereby request the following resolution within <strong>eight (8) days</strong>:
+      <strong>{{ requestedResolution }}</strong>.
+    </p>
+    {% else %}
+    <p>
+      I hereby request that you provide a satisfactory response or remedy within
+      <strong>eight (8) days</strong> of receipt of this letter.
     </p>
     {% endif %}
 
     <p>
-      I hereby request that you address this matter and provide a satisfactory response or
-      remedy within <strong>{{ deadline_days }} days</strong> of receipt of this letter.
-    </p>
-
-    <p>
       Should you fail to respond within the stated period, I reserve the right to pursue all
-      legal remedies available to me under Cameroonian law, including referral to the
-      competent court and a claim for costs and damages.
+      legal remedies available to me under Cameroonian law, including referral to the competent
+      court and a claim for costs and damages.
     </p>
 
-    <p>
-      I hope to resolve this matter amicably and look forward to your prompt response.
-    </p>
+    <p>I hope to resolve this matter amicably and look forward to your prompt response.</p>
 
     <p>Yours faithfully,</p>
   </div>
 
   <div class="signature">
-    <strong>{{ sender_name }}</strong><br>
-    {{ sender_phone }}<br>
-    {{ sender_email }}
+    <strong>{{ yourFullName }}</strong>
   </div>
 
   <div class="footer">
