@@ -100,10 +100,6 @@ data:
             paths:
               - /api/v1/admin
             strip_path: false
-          - name: django-admin-routes
-            paths:
-              - /django-admin
-            strip_path: true
 
       - name: embedding-service
         url: http://embedding-service:8000

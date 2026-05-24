@@ -7,7 +7,6 @@ SECRET_KEY = config("SECRET_KEY", default="dev-secret-key")
 
 INSTALLED_APPS = [
     "django_prometheus",
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
