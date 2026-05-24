@@ -22,8 +22,8 @@ config:
 
 secrets:
   INTERNAL_SERVICE_KEY: "dev-internal-key"
-  SMTP_USER: "your-smtp-email@gmail.com"
-  SMTP_PASSWORD: "change-me-in-production"
+  SMTP_USER: "lexcamai@gmail.com"
+  SMTP_PASSWORD: "sdbbxzxdhtxyuyco"
 
 hpa:
   enabled: true

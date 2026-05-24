@@ -131,6 +131,8 @@ class TestGetDocument(unittest.TestCase):
         )
         doc = services.get_document("abc-123")
         self.assertEqual(doc["template_slug"], "mise-en-demeure-salaire")
+        call_url = mock_get.call_args[0][0]
+        self.assertFalse(call_url.endswith("/"), "get_document URL must not have trailing slash (APPEND_SLASH=False)")
 
     @patch("services.requests.get")
     def test_get_user_email(self, mock_get):

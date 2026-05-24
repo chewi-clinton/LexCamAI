@@ -28,7 +28,7 @@ _INTERNAL_HEADERS = {"X-Internal-Key": config.INTERNAL_SERVICE_KEY}
 
 def get_document(document_id: str) -> dict:
     resp = requests.get(
-        f"{config.DOCUMENT_SERVICE_URL}/internal/documents/{document_id}/",
+        f"{config.DOCUMENT_SERVICE_URL}/internal/documents/{document_id}",
         headers=_INTERNAL_HEADERS,
         timeout=10,
     )
