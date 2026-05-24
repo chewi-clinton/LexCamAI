@@ -49,3 +49,19 @@ spec:
             periodSeconds: 30
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+        - name: notification-consumer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "notification-service.name" . }}-config
+            - secretRef:
+                name: {{ include "notification-service.name" . }}-secret
+          command: ["python", "-m", "app.events_consumer"]
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
