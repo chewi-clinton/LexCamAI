@@ -16,6 +16,38 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import services
 
 
+class TestGetUserEmail(unittest.TestCase):
+
+    @patch("services.requests.get")
+    def test_returns_email(self, mock_get):
+        mock_get.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"user_id": "u1", "email": "user@example.com"},
+        )
+        email = services.get_user_email("u1")
+        self.assertEqual(email, "user@example.com")
+        mock_get.assert_called_once()
+
+
+class TestSendEmail(unittest.TestCase):
+
+    @patch("services.smtplib.SMTP")
+    def test_send_email_uses_smtp(self, mock_smtp_cls):
+        mock_smtp = MagicMock()
+        mock_smtp_cls.return_value.__enter__ = lambda s: mock_smtp
+        mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
+        services.send_email("to@example.com", "Test Subject", "<p>Hello</p>")
+        mock_smtp_cls.assert_called_once()
+
+    @patch("services.smtplib.SMTP")
+    def test_send_email_sends_message(self, mock_smtp_cls):
+        mock_smtp = MagicMock()
+        mock_smtp_cls.return_value.__enter__ = lambda s: mock_smtp
+        mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
+        services.send_email("to@example.com", "Subject", "<p>body</p>")
+        mock_smtp.send_message.assert_called_once()
+
+
 class TestRenderTemplate(unittest.TestCase):
 
     def test_welcome_renders(self):
