@@ -154,6 +154,52 @@ class TestUploadToMinio(unittest.TestCase):
         self.assertIn("lexcam-documents", url)
         self.assertIn("user-1/doc-2.pdf", url)
 
+    @patch("services._minio")
+    def test_upload_creates_bucket_when_missing(self, mock_minio):
+        mock_minio.bucket_exists.return_value = False
+        mock_minio.make_bucket.return_value = None
+        mock_minio.put_object.return_value = None
+        mock_minio.set_bucket_policy.return_value = None
+        services.upload_to_minio("user-1", "doc-3", b"fake-pdf")
+        mock_minio.make_bucket.assert_called_once()
+
+    @patch("services._minio")
+    def test_upload_swallows_policy_error(self, mock_minio):
+        mock_minio.bucket_exists.return_value = True
+        mock_minio.put_object.return_value = None
+        mock_minio.set_bucket_policy.side_effect = Exception("policy error")
+        url = services.upload_to_minio("user-1", "doc-4", b"fake-pdf")
+        self.assertIn("user-1/doc-4.pdf", url)
+
+
+class TestMarkDocumentReady(unittest.TestCase):
+
+    @patch("services.requests.post")
+    def test_mark_ready_calls_correct_url(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        services.mark_document_ready("doc-abc", "https://example.com/doc.pdf")
+        call_url = mock_post.call_args[0][0]
+        self.assertIn("doc-abc/mark-ready", call_url)
+        self.assertFalse(call_url.endswith("/"))
+
+
+class TestProcessPaymentConfirmed(unittest.TestCase):
+
+    @patch("services.get_user_email", return_value="user@example.com")
+    @patch("services.mark_document_ready")
+    @patch("services.upload_to_minio", return_value="https://example.com/doc.pdf")
+    @patch("services.render_pdf", return_value=b"%PDF-1.4 fake")
+    @patch("services.get_document", return_value={
+        "document_id": "d1", "user_id": "u1",
+        "template_slug": "mise-en-demeure-salaire",
+        "form_data": {"sender_name": "Test"},
+    })
+    def test_process_returns_url_and_email(self, mock_doc, mock_pdf, mock_upload, mock_ready, mock_email):
+        file_url, email = services.process_payment_confirmed("u1", "d1")
+        self.assertEqual(file_url, "https://example.com/doc.pdf")
+        self.assertEqual(email, "user@example.com")
+        mock_ready.assert_called_once_with("d1", "https://example.com/doc.pdf")
+
 
 if __name__ == "__main__":
     unittest.main()
