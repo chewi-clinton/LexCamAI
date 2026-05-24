@@ -93,14 +93,6 @@ data:
               - /api/v1/query
             strip_path: false
 
-      - name: admin-panel
-        url: http://admin-panel-svc:8010
-        routes:
-          - name: admin-api-routes
-            paths:
-              - /api/v1/admin
-            strip_path: false
-
       - name: embedding-service
         url: http://embedding-service:8000
         routes:
