@@ -69,6 +69,8 @@ def main():
 
     channel.exchange_declare(exchange=EXCHANGE, exchange_type="topic", durable=True)
     channel.exchange_declare(exchange=DLX_EXCHANGE, exchange_type="topic", durable=True)
+    channel.queue_declare(queue="lexcam.dead-letters", durable=True)
+    channel.queue_bind(queue="lexcam.dead-letters", exchange=DLX_EXCHANGE, routing_key="#")
     channel.basic_qos(prefetch_count=1)
 
     for queue_name, routing_key in QUEUE_BINDINGS.items():
