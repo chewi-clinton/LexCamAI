@@ -42,6 +42,7 @@ export default function Header({ activePage = '' }) {
     { label: T.aiAssistant,  href: '/chat',                      key: 'chat' },
     { label: T.lawExplorer,  href: '/law-explorer',              key: 'law-explorer' },
   ] : [
+    ...(currentUser ? [{ label: T.dashboard, href: '/dashboard', key: 'dashboard' }] : []),
     { label: T.aiAssistant,    href: '/chat',        key: 'chat' },
     { label: T.lawExplorer,    href: '/law-explorer', key: 'law-explorer' },
     { label: T.lawyerDirectory, href: '/lawyer',     key: 'lawyer' },

@@ -5,6 +5,7 @@ const t = {
       lawExplorer: 'Law Explorer',
       lawyerDirectory: 'Lawyer Directory',
       documents: 'Documents',
+      dashboard: 'Dashboard',
       login: 'Log In',
     },
     footer: {
@@ -606,6 +607,7 @@ const t = {
       lawExplorer: 'Explorateur Légal',
       lawyerDirectory: "Annuaire d'Avocats",
       documents: 'Documents',
+      dashboard: 'Tableau de Bord',
       login: 'Connexion',
     },
     footer: {
