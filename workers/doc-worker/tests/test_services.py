@@ -18,10 +18,19 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import services
 
+_FAKE_PDF = b"%PDF-1.4 fake content " + b"x" * 200
+
+
+def _mock_html_cls(string=""):
+    m = MagicMock()
+    m.write_pdf.return_value = _FAKE_PDF
+    return m
+
 
 class TestRenderPdf(unittest.TestCase):
 
-    def test_render_pdf_returns_bytes(self):
+    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
+    def test_render_pdf_returns_bytes(self, _mock):
         form_data = {
             "sender_name": "Jean Dupont",
             "sender_address": "123 Rue de la Paix",
@@ -43,7 +52,8 @@ class TestRenderPdf(unittest.TestCase):
         # PDF files start with %PDF
         self.assertTrue(pdf.startswith(b"%PDF"))
 
-    def test_render_pdf_logement(self):
+    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
+    def test_render_pdf_logement(self, _mock):
         form_data = {
             "sender_name": "Marie Mballa",
             "sender_address": "12 Quartier Bastos",
@@ -63,7 +73,8 @@ class TestRenderPdf(unittest.TestCase):
         self.assertIsInstance(pdf, bytes)
         self.assertTrue(pdf.startswith(b"%PDF"))
 
-    def test_render_pdf_lettre_reclamation(self):
+    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
+    def test_render_pdf_lettre_reclamation(self, _mock):
         form_data = {
             "sender_name": "Paul Atangana",
             "sender_address": "5 Avenue Kennedy",
@@ -86,7 +97,8 @@ class TestRenderPdf(unittest.TestCase):
         self.assertIsInstance(pdf, bytes)
         self.assertTrue(pdf.startswith(b"%PDF"))
 
-    def test_render_pdf_optional_amount_omitted(self):
+    @patch("weasyprint.HTML", side_effect=_mock_html_cls)
+    def test_render_pdf_optional_amount_omitted(self, _mock):
         form_data = {
             "sender_name": "Paul Atangana",
             "sender_address": "5 Avenue Kennedy",

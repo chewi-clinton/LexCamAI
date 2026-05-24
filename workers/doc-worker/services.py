@@ -7,7 +7,6 @@ import os
 import requests
 from jinja2 import Environment, FileSystemLoader
 from minio import Minio
-from weasyprint import HTML
 
 import config
 
@@ -47,6 +46,7 @@ def get_user_email(user_id: str) -> str:
 
 
 def render_pdf(template_slug: str, form_data: dict) -> bytes:
+    from weasyprint import HTML
     template = _jinja_env.get_template(f"{template_slug}.html")
     html = template.render(**form_data)
     return HTML(string=html).write_pdf()
