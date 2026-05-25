@@ -83,15 +83,18 @@ export default function VerifyCode() {
           try {
             await auth.verifyEmail(emailRef.current, code);
             const password = sessionStorage.getItem('pending_verify_password');
+            const intendedRole = sessionStorage.getItem('pending_verify_role');
             const lawyerProfileRaw = sessionStorage.getItem('lawyer_profile');
             const step1Raw = sessionStorage.getItem('lawyer_step1');
             sessionStorage.removeItem('pending_verify_email');
             sessionStorage.removeItem('pending_verify_password');
+            sessionStorage.removeItem('pending_verify_role');
             sessionStorage.removeItem('lawyer_profile');
             sessionStorage.removeItem('lawyer_step1');
             if (password) {
               const user = await login(emailRef.current, password);
-              if (user.role === 'lawyer' && lawyerProfileRaw) {
+              const effectiveRole = user.role ?? intendedRole;
+              if (effectiveRole === 'lawyer' && lawyerProfileRaw) {
                 const profile = JSON.parse(lawyerProfileRaw);
                 const step1 = step1Raw ? JSON.parse(step1Raw) : {};
                 await lawyers.register({
@@ -114,8 +117,12 @@ export default function VerifyCode() {
                   } catch { /* non-fatal */ }
                 }
                 router.push('/register-lawyer/documents');
+              } else if (effectiveRole === 'lawyer') {
+                router.push('/lawyer-dashboard');
+              } else if (effectiveRole === 'admin') {
+                router.push('/admin');
               } else {
-                router.push(user.role === 'lawyer' ? '/lawyer-dashboard' : user.role === 'admin' ? '/admin' : '/dashboard');
+                router.push('/dashboard');
               }
             } else {
               router.push('/login');

@@ -1,7 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, MapPin, Lock, ChevronDown, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import {
+  User, Mail, Phone, MapPin, Lock, ChevronDown,
+  ArrowRight, Loader2, Eye, EyeOff, Scale, Briefcase,
+} from 'lucide-react';
 import GavelIcon from '@/components/ui/GavelIcon';
 import { auth } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -12,14 +15,16 @@ export default function SignUp() {
   const { lang, setLang } = useLanguage();
   const T = t[lang].register;
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail]       = useState('');
-  const [city, setCity]         = useState('');
-  const [password, setPassword] = useState('');
+  const [role, setRole]           = useState('citizen');
+  const [fullName, setFullName]   = useState('');
+  const [email, setEmail]         = useState('');
+  const [phone, setPhone]         = useState('');
+  const [city, setCity]           = useState('');
+  const [password, setPassword]   = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [consent, setConsent]   = useState(false);
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [consent, setConsent]     = useState(false);
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -30,13 +35,19 @@ export default function SignUp() {
       await auth.register({
         full_name: fullName,
         email,
+        ...(role === 'lawyer' && phone ? { phone } : {}),
         city,
         password,
         preferred_language: lang,
         consent_given: true,
+        role,
       });
       sessionStorage.setItem('pending_verify_email', email);
       sessionStorage.setItem('pending_verify_password', password);
+      sessionStorage.setItem('pending_verify_role', role);
+      if (role === 'lawyer') {
+        sessionStorage.setItem('lawyer_step1', JSON.stringify({ full_name: fullName, email, phone }));
+      }
       router.push('/verify-email');
     } catch (err) {
       setError(err.data?.email?.[0] ?? err.message ?? 'Registration failed.');
@@ -57,7 +68,59 @@ export default function SignUp() {
       </div>
 
       <div className="bg-surface w-full max-w-md rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10">
-        <h2 className="font-serif text-2xl font-bold text-primary mb-8">{T.createAccount}</h2>
+        <h2 className="font-serif text-2xl font-bold text-primary mb-6">{T.createAccount}</h2>
+
+        {/* Role selection */}
+        <div className="mb-6">
+          <p className="text-xs font-medium text-gray-700 mb-3">{T.accountType}</p>
+          <div className="grid grid-cols-2 gap-3">
+
+            <button
+              type="button"
+              onClick={() => setRole('citizen')}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-left ${
+                role === 'citizen'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                role === 'citizen' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+              }`}>
+                <Scale size={18} />
+              </div>
+              <span className={`text-sm font-bold ${role === 'citizen' ? 'text-primary' : 'text-gray-700'}`}>
+                {T.citizenRole}
+              </span>
+              <span className="text-[11px] text-gray-500 leading-tight text-center">
+                {T.citizenRoleDesc}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRole('lawyer')}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-left ${
+                role === 'lawyer'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                role === 'lawyer' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+              }`}>
+                <Briefcase size={18} />
+              </div>
+              <span className={`text-sm font-bold ${role === 'lawyer' ? 'text-primary' : 'text-gray-700'}`}>
+                {T.lawyerRole}
+              </span>
+              <span className="text-[11px] text-gray-500 leading-tight text-center">
+                {T.lawyerRoleDesc}
+              </span>
+            </button>
+
+          </div>
+        </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
 
@@ -94,6 +157,25 @@ export default function SignUp() {
               />
             </div>
           </div>
+
+          {role === 'lawyer' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">{T.phoneNumber}</label>
+              <div className="relative rounded-lg border border-gray-300 shadow-sm focus-within:ring-1 focus-within:ring-primary focus-within:border-primary bg-white transition-shadow">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <Phone size={18} />
+                </div>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+237 6XX XXX XXX"
+                  required
+                  className="block w-full pl-11 pr-4 py-3 bg-transparent rounded-lg text-sm text-gray-800 placeholder:text-gray-400 outline-none"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">{T.city}</label>
