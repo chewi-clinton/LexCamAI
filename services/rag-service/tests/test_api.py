@@ -118,6 +118,69 @@ def test_send_chat_message_with_documents():
     assert "entitled" in r.json()["content"]
 
 
+@respx.mock
+def test_stream_chat_message_endpoint_success():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(200, json={"results": []}))
+
+    async def _fake_stream(*_, **__):
+        yield "Streaming legal answer"
+
+    with patch("app.main.stream_generate", new=_fake_stream):
+        with TestClient(app) as client:
+            conv_r = client.post("/api/v1/chat/conversations")
+            conv_id = conv_r.json()["id"]
+            r = client.post(
+                f"/api/v1/chat/conversations/{conv_id}/messages/stream",
+                json={"content": "What are my rights?"},
+            )
+    assert r.status_code == 200
+    assert "Streaming legal answer" in r.text
+
+
+@respx.mock
+def test_stream_chat_message_endpoint_kb_fails():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(500))
+
+    async def _fake_stream(*_, **__):
+        yield "Fallback streaming answer"
+
+    with patch("app.main.stream_generate", new=_fake_stream):
+        with TestClient(app) as client:
+            conv_r = client.post("/api/v1/chat/conversations")
+            conv_id = conv_r.json()["id"]
+            r = client.post(
+                f"/api/v1/chat/conversations/{conv_id}/messages/stream",
+                json={"content": "test"},
+            )
+    assert r.status_code == 200
+    assert "Fallback streaming answer" in r.text
+
+
+@respx.mock
+def test_stream_chat_message_endpoint_with_sources():
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(200, json={"results": [{
+            "id": "doc-1", "score": 0.95, "snippet": "Workers are entitled to leave.",
+            "language": "en", "article_number": "Art. 34", "law_name": "Cameroon Labour Code"
+        }]}))
+
+    async def _fake_stream(*_, **__):
+        yield "Workers are entitled to leave under Art. 34."
+
+    with patch("app.main.stream_generate", new=_fake_stream):
+        with TestClient(app) as client:
+            conv_r = client.post("/api/v1/chat/conversations")
+            conv_id = conv_r.json()["id"]
+            r = client.post(
+                f"/api/v1/chat/conversations/{conv_id}/messages/stream",
+                json={"content": "What are my leave rights?"},
+            )
+    assert r.status_code == 200
+    assert "entitled" in r.text
+
+
 def test_classify_domain_branches():
     assert classify_domain("my salary is unpaid") == "labor"
     assert classify_domain("rent house eviction") == "housing"
