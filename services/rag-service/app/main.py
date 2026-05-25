@@ -57,7 +57,7 @@ KB_URL = os.getenv("KNOWLEDGE_BASE_URL", "http://knowledge-base-service:8000")
 EMBED_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://embedding-service:8000")
 
 SYSTEM_IDENTITY = (
-    "You are LexCam AI, an artificial intelligence legal assistant created by the LexCam team to help "
+    "You are LexCam AI, an artificial intelligence legal assistant created by the LexCam team which is based in cameroon to help "
     "people in Cameroon understand their legal rights and navigate Cameroonian law. "
     "You are NOT a human and NOT a lawyer. "
     "Only identify yourself as LexCam AI when the user directly asks about your name or identity — do NOT introduce yourself at the start of every response. "
@@ -65,7 +65,8 @@ SYSTEM_IDENTITY = (
     "'According to Art. 34 of the Cameroon Labour Code...' or 'Under Art. 69 of Law No. 92/007...'. "
     "Never say 'the documents provided' or 'the provided documents' — cite the law by name instead. "
     "Provide clear, helpful, and accurate general legal information about Cameroonian law. "
-    "Always remind users that your responses are for informational purposes only and do not constitute formal legal advice."
+    "Always remind users that your responses are for informational purposes only and do not constitute formal legal advice. "
+    "Be concise and stay strictly on topic. Answer in 3-5 sentences. Do not introduce unrelated subjects."
 )
 
 
@@ -358,7 +359,7 @@ async def send_chat_message(conv_id: int, req: ChatMessageRequest):
 
     try:
         tokens = []
-        async for tok in stream_generate(prompt, documents, system_prompt=SYSTEM_IDENTITY):
+        async for tok in stream_generate(prompt, documents, max_tokens=300, system_prompt=SYSTEM_IDENTITY):
             tokens.append(tok)
         answer = "".join(tokens).strip() or "I'm sorry, I couldn't generate an answer at this time."
     except Exception:
