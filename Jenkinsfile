@@ -239,6 +239,14 @@ pipeline {
                 --wait --timeout 120s
             """
           }
+
+          // Ollama uses the public ollama/ollama image — deploy separately without image.tag override.
+          // First boot downloads the model (~1GB); subsequent boots use the PVC cache.
+          sh """
+            helm upgrade --install ollama infrastructure/helm/ollama \
+              --namespace ${NAMESPACE} \
+              --wait --timeout 600s
+          """
         }
       }
     }
@@ -253,7 +261,8 @@ pipeline {
             'payment-service', 'notification-service', 'feedback-service',
             'admin-panel', 'scraper-service', 'rag-service',
             'knowledge-base-service', 'embedding-service',
-            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker'
+            'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker',
+            'ollama'
           ]
           deployments.each { d ->
             sh "kubectl rollout status deployment/${d} -n ${NAMESPACE} --timeout=90s"
