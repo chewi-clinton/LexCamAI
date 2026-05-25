@@ -1,0 +1,27 @@
+image:
+  repository: ollama/ollama
+  tag: latest
+  pullPolicy: IfNotPresent
+
+model: qwen2.5:1.5b
+
+service:
+  type: ClusterIP
+  port: 11434
+
+resources:
+  requests:
+    memory: "1.5Gi"
+    cpu: "1000m"
+  limits:
+    memory: "3Gi"
+    cpu: "4000m"
+
+storage:
+  size: 5Gi
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 60

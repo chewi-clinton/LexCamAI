@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-svc
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: ollama
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 11434
+  type: {{ .Values.service.type }}

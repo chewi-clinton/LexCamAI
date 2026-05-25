@@ -83,6 +83,9 @@ data:
 
       - name: rag-service
         url: http://rag-service-svc:8004
+        read_timeout: 180000
+        write_timeout: 180000
+        connect_timeout: 60000
         routes:
           - name: rag-routes
             paths:

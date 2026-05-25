@@ -322,6 +322,12 @@ pipeline {
                 --wait --timeout 300s
             """
           }
+          // Deploy Ollama (uses public image, no image.tag needed)
+          sh """
+            helm upgrade --install ollama infrastructure/helm/ollama \
+              --namespace ${NAMESPACE} \
+              --wait --timeout 600s
+          """
         }
       }
     }
@@ -337,7 +343,7 @@ pipeline {
             'admin-panel', 'scraper-service', 'rag-service',
             'knowledge-base-service', 'embedding-service',
             'doc-worker', 'notification-worker', 'indexing-worker', 'lawyer-ingest-worker',
-            'frontend'
+            'frontend', 'ollama'
           ]
           deployments.each { d ->
             sh "kubectl rollout status deployment/${d} -n ${NAMESPACE} --timeout=90s"
