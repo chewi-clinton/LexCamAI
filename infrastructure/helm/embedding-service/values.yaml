@@ -11,11 +11,11 @@ service:
 
 resources:
   requests:
-    cpu: 500m
-    memory: 1Gi
+    cpu: "150m"
+    memory: "384Mi"
   limits:
     cpu: "1"
-    memory: 2Gi
+    memory: "1Gi"
 
 env:
   SERVICE_NAME: embedding-service
