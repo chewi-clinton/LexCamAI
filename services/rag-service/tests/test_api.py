@@ -94,6 +94,30 @@ def test_send_chat_message_success():
     assert r.json()["content"] == "Legal answer"
 
 
+@respx.mock
+def test_send_chat_message_with_documents():
+    """Covers the if-documents prompt-building branch in send_chat_message."""
+    respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
+        return_value=HttpxResponse(200, json={"results": [{
+            "id": "doc-1", "score": 0.95, "snippet": "Employees are entitled to paid leave.",
+            "language": "en", "article_number": "Art. 34", "law_name": "Cameroon Labour Code"
+        }]}))
+
+    async def _fake_stream(*_, **__):
+        yield "Employees are entitled to paid leave under Art. 34."
+
+    with patch("app.main.stream_generate", new=_fake_stream):
+        with TestClient(app) as client:
+            conv_r = client.post("/api/v1/chat/conversations")
+            conv_id = conv_r.json()["id"]
+            r = client.post(
+                f"/api/v1/chat/conversations/{conv_id}/messages",
+                json={"content": "What are my leave rights?"},
+            )
+    assert r.status_code == 200
+    assert "entitled" in r.json()["content"]
+
+
 def test_classify_domain_branches():
     assert classify_domain("my salary is unpaid") == "labor"
     assert classify_domain("rent house eviction") == "housing"
