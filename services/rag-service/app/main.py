@@ -446,13 +446,39 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
         ]
         if display_sources:
             yield f"data: {json.dumps({'sources': display_sources})}\n\n"
+
+        # Producer task feeds chunks into a queue so we can send SSE heartbeats
+        # every 15 s while Ollama is still queuing the request.  This prevents
+        # Cloudflare from closing the idle SSE connection before inference starts.
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def _produce():
+            try:
+                async for chunk in stream_generate(prompt, documents, system_prompt=SYSTEM_IDENTITY):
+                    await queue.put(chunk)
+            finally:
+                await queue.put(None)  # sentinel
+
+        task = asyncio.create_task(_produce())
         try:
-            async for chunk in stream_generate(prompt, documents, system_prompt=SYSTEM_IDENTITY):
-                if not chunk:
+            while True:
+                try:
+                    chunk = await asyncio.wait_for(queue.get(), timeout=15.0)
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"  # SSE comment — keeps Cloudflare alive, ignored by browser
                     continue
-                collected.append(chunk)
-                yield f"data: {json.dumps({'content': chunk})}\n\n"
+                if chunk is None:
+                    break
+                if chunk:
+                    collected.append(chunk)
+                    yield f"data: {json.dumps({'content': chunk})}\n\n"
         finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):
+                    pass
             full_answer = "".join(collected)
             domain = classify_domain(req.content)
             _db = SessionLocal()
@@ -473,6 +499,6 @@ async def stream_chat_message(conv_id: int, req: ChatMessageRequest, request: Re
                 _db.commit()
             finally:
                 _db.close()
-            yield "event: done\n\n"
+        yield "event: done\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
