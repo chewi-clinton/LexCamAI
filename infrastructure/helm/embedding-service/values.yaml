@@ -15,7 +15,7 @@ resources:
     memory: "384Mi"
   limits:
     cpu: "1"
-    memory: "1Gi"
+    memory: "2Gi"
 
 env:
   SERVICE_NAME: embedding-service
