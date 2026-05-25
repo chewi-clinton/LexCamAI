@@ -253,6 +253,7 @@ pipeline {
           sh "kubectl apply -f infrastructure/k8s/databases/"
           sh "kubectl apply -f infrastructure/k8s/monitoring/"
           sh "kubectl apply -f infrastructure/k8s/gateway/"
+          sh "kubectl rollout restart deployment/kong -n ${NAMESPACE}"
           sh "kubectl apply -f infrastructure/k8s/ingress.yaml"
           // Install Metrics Server for HPA (K3s requires --kubelet-insecure-tls)
           sh """
