@@ -338,7 +338,10 @@ async def send_chat_message(conv_id: int, req: ChatMessageRequest):
     sources, documents = _normalize_kb_response(data)
 
     try:
-        answer = generate(req.content, documents)
+        tokens = []
+        async for tok in stream_generate(req.content, documents):
+            tokens.append(tok)
+        answer = "".join(tokens).strip() or "I'm sorry, I couldn't generate an answer at this time."
     except Exception:
         answer = "I'm sorry, I couldn't generate an answer at this time."
 
