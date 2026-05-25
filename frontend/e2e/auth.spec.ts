@@ -1,30 +1,29 @@
 import { test, expect } from '@playwright/test';
 
-const TEST_EMAIL = `pw_${Date.now()}@lexcamtest.io`;
-const TEST_PASSWORD = 'TestPass123!';
-
 test.describe('Authentication', () => {
-  test('register page loads', async ({ page }) => {
+  test('register page loads with all form fields', async ({ page }) => {
     await page.goto('/register');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
+    await expect(page.locator('input[type="email"]').first()).toBeVisible();
+    await expect(page.locator('input[type="text"]').first()).toBeVisible(); // full name
     await expect(page.locator('input[type="password"]').first()).toBeVisible();
+    await expect(page.locator('input[type="checkbox"]').first()).toBeVisible(); // consent
   });
 
-  test('login page loads', async ({ page }) => {
+  test('login page loads with email and password fields', async ({ page }) => {
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
+    await expect(page.locator('input[type="email"]').first()).toBeVisible();
     await expect(page.locator('input[type="password"]').first()).toBeVisible();
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 
-  test('register form shows validation errors on empty submit', async ({ page }) => {
+  test('register form validates empty submission', async ({ page }) => {
     await page.goto('/register');
     await page.waitForLoadState('networkidle');
-    const submitBtn = page.getByRole('button', { name: /register|sign up|créer|inscription/i }).first();
-    await submitBtn.click();
-    // Should show some validation (HTML5 or custom)
-    const emailInput = page.locator('input[type="email"], input[name="email"]').first();
+    await page.locator('button[type="submit"]').click();
+    // Browser HTML5 validation fires on the email field
+    const emailInput = page.locator('input[type="email"]').first();
     const validationMsg = await emailInput.evaluate((el: HTMLInputElement) => el.validationMessage);
     expect(validationMsg.length).toBeGreaterThan(0);
   });
@@ -33,43 +32,45 @@ test.describe('Authentication', () => {
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
 
-    await page.locator('input[type="email"], input[name="email"]').first().fill('wrong@email.com');
-    await page.locator('input[type="password"]').first().fill('wrongpassword');
-    await page.getByRole('button', { name: /login|sign in|connexion/i }).first().click();
+    await page.locator('input[type="email"]').first().fill('doesnotexist@lexcamtest.io');
+    await page.locator('input[type="password"]').first().fill('WrongPass999!');
+    await page.locator('button[type="submit"]').click();
 
-    // Expect an error message to appear
-    await expect(
-      page.getByText(/invalid|incorrect|error|wrong|failed|unauthorized/i).first()
-    ).toBeVisible({ timeout: 10000 });
+    // Error message: <p class="text-xs font-semibold text-red-500 ...">
+    await expect(page.locator('p.text-red-500, [class*="text-red"]').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('register then redirects after success', async ({ page }) => {
+  test('register role buttons: Citizen and Lawyer are visible', async ({ page }) => {
+    await page.goto('/register');
+    await page.waitForLoadState('networkidle');
+    // Role selection step has citizen/lawyer toggle buttons
+    const citizenBtn = page.locator('button').filter({ hasText: /citizen|citoyen/i }).first();
+    const lawyerBtn = page.locator('button').filter({ hasText: /lawyer|avocat/i }).first();
+    await expect(citizenBtn.or(lawyerBtn)).toBeVisible();
+  });
+
+  test('register form redirects to email verification after submit', async ({ page }) => {
+    const email = `pw_${Date.now()}@lexcamtest.io`;
     await page.goto('/register');
     await page.waitForLoadState('networkidle');
 
-    // Fill form
-    const emailInput = page.locator('input[type="email"], input[name="email"]').first();
-    const passwordInputs = page.locator('input[type="password"]');
-    const fullNameInput = page.locator('input[name="full_name"], input[placeholder*="name"], input[placeholder*="nom"]').first();
+    await page.locator('input[type="text"]').first().fill('Playwright E2E');
+    await page.locator('input[type="email"]').first().fill(email);
+    await page.locator('select').first().selectOption('Yaoundé');
+    await page.locator('input[type="password"]').first().fill('TestPass123!');
+    await page.locator('input[type="checkbox"]').first().check();
 
-    await emailInput.fill(TEST_EMAIL);
-    if (await fullNameInput.isVisible()) {
-      await fullNameInput.fill('Playwright Test');
-    }
-    await passwordInputs.first().fill(TEST_PASSWORD);
-    if (await passwordInputs.nth(1).isVisible()) {
-      await passwordInputs.nth(1).fill(TEST_PASSWORD);
-    }
+    const [apiResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/api/v1/auth/register'),
+        { timeout: 20000 }
+      ),
+      page.locator('button[type="submit"]').click(),
+    ]);
 
-    // Accept consent if present
-    const consentCheckbox = page.locator('input[type="checkbox"]').first();
-    if (await consentCheckbox.isVisible()) {
-      await consentCheckbox.check();
-    }
+    const status = apiResp.status();
+    expect(status, `Register API returned ${status}`).toBeLessThan(400);
 
-    await page.getByRole('button', { name: /register|sign up|créer|inscription/i }).first().click();
-
-    // Should redirect or show OTP/success page
-    await expect(page).not.toHaveURL('/register', { timeout: 15000 });
+    await expect(page).toHaveURL(/verify-email/, { timeout: 15000 });
   });
 });

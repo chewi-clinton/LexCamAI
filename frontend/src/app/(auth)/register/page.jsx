@@ -40,7 +40,7 @@ export default function SignUp() {
         password,
         preferred_language: lang,
         consent_given: true,
-        role,
+        role: role === 'citizen' ? 'user' : role,
       });
       sessionStorage.setItem('pending_verify_email', email);
       sessionStorage.setItem('pending_verify_password', password);
