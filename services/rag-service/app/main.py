@@ -337,9 +337,25 @@ async def send_chat_message(conv_id: int, req: ChatMessageRequest):
 
     sources, documents = _normalize_kb_response(data)
 
+    if documents:
+        prompt_parts = [
+            "Answer the user's question using the legal articles below. When citing them, use the law name and article number shown — do NOT say 'document [N]'.",
+            f"Question: {req.content}",
+            "Legal Articles:",
+        ]
+        for d in documents:
+            law_ref = f"{d.get('article_number', '')} of {d.get('law_name', 'Cameroonian Law')}".strip(" of")
+            prompt_parts.append(f"• {law_ref}: {d.get('snippet', '')}")
+    else:
+        prompt_parts = [
+            "Answer the user's question based on your knowledge of Cameroonian law and general legal principles.",
+            f"Question: {req.content}",
+        ]
+    prompt = "\n\n".join(prompt_parts)
+
     try:
         tokens = []
-        async for tok in stream_generate(req.content, documents):
+        async for tok in stream_generate(prompt, documents, system_prompt=SYSTEM_IDENTITY):
             tokens.append(tok)
         answer = "".join(tokens).strip() or "I'm sorry, I couldn't generate an answer at this time."
     except Exception:
