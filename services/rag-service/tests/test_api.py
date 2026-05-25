@@ -78,7 +78,11 @@ def test_query_kb_error():
 def test_send_chat_message_success():
     respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
         return_value=HttpxResponse(200, json={"results": []}))
-    with patch("app.main.generate", return_value="Legal answer"):
+
+    async def _fake_stream(*_, **__):
+        yield "Legal answer"
+
+    with patch("app.main.stream_generate", new=_fake_stream):
         with TestClient(app) as client:
             conv_r = client.post("/api/v1/chat/conversations")
             conv_id = conv_r.json()["id"]
@@ -136,7 +140,11 @@ def test_query_stream_success():
 def test_send_chat_message_kb_fails():
     respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
         return_value=HttpxResponse(500))
-    with patch("app.main.generate", return_value="Fallback answer"):
+
+    async def _fake_stream(*_, **__):
+        yield "Fallback answer"
+
+    with patch("app.main.stream_generate", new=_fake_stream):
         with TestClient(app) as client:
             conv_r = client.post("/api/v1/chat/conversations")
             conv_id = conv_r.json()["id"]
@@ -152,7 +160,12 @@ def test_send_chat_message_kb_fails():
 def test_send_chat_message_generate_fails():
     respx.post("http://knowledge-base-service:8000/api/v1/search").mock(
         return_value=HttpxResponse(200, json={"results": []}))
-    with patch("app.main.generate", side_effect=Exception("LLM down")):
+
+    async def _failing_stream(*_, **__):
+        raise Exception("LLM down")
+        yield  # make it an async generator
+
+    with patch("app.main.stream_generate", new=_failing_stream):
         with TestClient(app) as client:
             conv_r = client.post("/api/v1/chat/conversations")
             conv_id = conv_r.json()["id"]
