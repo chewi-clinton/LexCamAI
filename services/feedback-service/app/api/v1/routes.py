@@ -31,7 +31,10 @@ def create_feedback(payload: FeedbackCreate, session: Session = Depends(get_sess
     session.add(fb)
     session.commit()
     session.refresh(fb)
-    process_feedback_async.delay(fb.id)
+    try:
+        process_feedback_async.delay(fb.id)
+    except Exception:
+        pass
     return fb
 
 

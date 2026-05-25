@@ -24,6 +24,8 @@ config:
   DB_USER: lexcam
   RABBITMQ_URL: amqp://lexcam:lexcam_dev@rabbitmq-svc:5672/
   USER_MANAGEMENT_URL: http://user-management-svc:8001
+  CELERY_BROKER_URL: redis://redis-svc:6379/1
+  CELERY_RESULT_BACKEND: redis://redis-svc:6379/2
 
 secrets:
   DATABASE_URL: "postgresql://lexcam:lexcam_dev@postgres-feedback-svc:5432/lexcam_feedback"

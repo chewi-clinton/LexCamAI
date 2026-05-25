@@ -28,6 +28,10 @@ data:
             paths:
               - /api/v1/lawyers
             strip_path: false
+          - name: specializations-route
+            paths:
+              - /api/v1/specializations
+            strip_path: false
 
       - name: notification-service
         url: http://notification-service-svc:8008
