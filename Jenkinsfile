@@ -148,12 +148,12 @@ pipeline {
 
           services.each { svc ->
             dir("services/${svc}") {
-              sh ".venv/bin/pytest --cov=apps --cov-report=term-missing --cov-fail-under=80 -q"
+              sh ".venv/bin/pytest --cov=apps --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80 -q"
             }
           }
           fastapi.each { svc ->
             dir("services/${svc}") {
-              sh ".venv/bin/pytest --cov=app --cov-report=term-missing --cov-fail-under=80 -q"
+              sh ".venv/bin/pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80 -q"
             }
           }
           def workers = [
@@ -161,14 +161,38 @@ pipeline {
           ]
           workers.each { w ->
             dir("workers/${w}") {
-              sh ".venv/bin/pytest --cov=services --cov-report=term-missing --cov-fail-under=80 -q"
+              sh ".venv/bin/pytest --cov=services --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80 -q"
             }
           }
         }
       }
     }
 
-    // ── Stage 4: Build Docker Images (main branch only) ────────────────────
+    // ── Stage 4: SonarCloud Analysis ───────────────────────────────────────
+    stage('SonarCloud') {
+      steps {
+        withSonarQubeEnv('SonarCloud') {
+          withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'SONAR_TOKEN')]) {
+            sh """
+              sonar-scanner \
+                -Dsonar.token=${SONAR_TOKEN} \
+                -Dsonar.branch.name=${env.GIT_BRANCH.replaceAll('origin/', '')}
+            """
+          }
+        }
+      }
+    }
+
+    // ── Stage 5: SonarCloud Quality Gate ──────────────────────────────────
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
+    // ── Stage 6: Build Docker Images (main branch only) ────────────────────
     stage('Build') {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
@@ -194,7 +218,7 @@ pipeline {
       }
     }
 
-    // ── Stage 5: Security Scan with Trivy (main branch only) ──────────────
+    // ── Stage 7: Security Scan with Trivy (main branch only) ──────────────
     stage('Security Scan') {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
@@ -215,7 +239,7 @@ pipeline {
       }
     }
 
-    // ── Stage 6: Push to DockerHub (main branch only) ──────────────────────
+    // ── Stage 8: Push to DockerHub (main branch only) ──────────────────────
     stage('Push') {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
@@ -244,7 +268,7 @@ pipeline {
       }
     }
 
-    // ── Stage 7: Deploy Infrastructure (main branch only) ─────────────────
+    // ── Stage 9: Deploy Infrastructure (main branch only) ─────────────────
     stage('Deploy Infrastructure') {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
@@ -283,7 +307,7 @@ pipeline {
       }
     }
 
-    // ── Stage 8: Deploy via Helm (main branch only) ────────────────────────
+    // ── Stage 10: Deploy via Helm (main branch only) ──────────────────────
     stage('Deploy') {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
@@ -333,7 +357,7 @@ pipeline {
       }
     }
 
-    // ── Stage 9: Health Check (main branch only) ───────────────────────────
+    // ── Stage 11: Health Check (main branch only) ─────────────────────────
     stage('Health Check') {
       when { expression { env.GIT_BRANCH == 'origin/main' } }
       steps {
