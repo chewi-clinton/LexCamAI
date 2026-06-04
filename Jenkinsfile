@@ -173,11 +173,11 @@ pipeline {
       steps {
         withSonarQubeEnv('SonarCloud') {
           withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'SONAR_TOKEN')]) {
-            sh """
-              sonar-scanner \
-                -Dsonar.token=${SONAR_TOKEN} \
-                -Dsonar.branch.name=${env.GIT_BRANCH.replaceAll('origin/', '')}
-            """
+            script {
+              def scannerHome = tool 'SonarScanner'
+              def branch = env.GIT_BRANCH.replaceAll('origin/', '')
+              sh "${scannerHome}/bin/sonar-scanner -Dsonar.token=${SONAR_TOKEN} -Dsonar.branch.name=${branch}"
+            }
           }
         }
       }
