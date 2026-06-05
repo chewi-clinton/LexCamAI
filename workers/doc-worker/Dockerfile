@@ -18,3 +18,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 CMD ["python", "worker.py"]
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser

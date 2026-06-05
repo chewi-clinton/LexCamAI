@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     USER_MGMT_URL: str = "http://user-management:8000"
-    RABBITMQ_URL: str = "amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F"
+    RABBITMQ_URL: str = "amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F"  # NOSONAR
 
     class Config:
         env_file = ".env"

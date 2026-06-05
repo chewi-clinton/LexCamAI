@@ -10,3 +10,6 @@ COPY . .
 EXPOSE 8007
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8007"]
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser

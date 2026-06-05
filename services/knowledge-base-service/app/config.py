@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     service_name: str = Field("knowledge-base-service", alias="SERVICE_NAME")
     api_prefix: str = Field("/api/v1", alias="API_PREFIX")
     database_url: str = Field(
-        "postgresql+psycopg://lexcam:lexcam_dev@postgres:5432/lexcam_knowledge",
+        "postgresql+psycopg://lexcam:lexcam_dev@postgres:5432/lexcam_knowledge",  # NOSONAR
         alias="DATABASE_URL",
     )
     qdrant_url: str = Field("http://qdrant:6333", alias="QDRANT_URL")

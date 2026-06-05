@@ -11,3 +11,6 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 
 CMD ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000 --workers 2"]
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser

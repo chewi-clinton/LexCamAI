@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "please-change-me"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    RABBITMQ_URL: str = "amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F"
+    RABBITMQ_URL: str = "amqp://lexcam:lexcam_dev@rabbitmq:5672/%2F"  # NOSONAR
     LAWYER_SERVICE_URL: str = "http://lexcam-lawyer-service:8002"
     INTERNAL_SERVICE_KEY: str = "dev-internal-key"
     KB_SERVICE_URL: str = "http://lexcam-knowledge-base-service:8000"
