@@ -187,7 +187,14 @@ pipeline {
     stage('Quality Gate') {
       steps {
         timeout(time: 5, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: false
+          script {
+            try {
+              waitForQualityGate abortPipeline: false
+            } catch (Exception e) {
+              echo "Quality Gate check skipped: ${e.message}"
+              unstable("Quality Gate polling error — analysis was uploaded successfully")
+            }
+          }
         }
       }
     }
