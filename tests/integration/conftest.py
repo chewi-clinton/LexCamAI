@@ -49,8 +49,8 @@ def auth_token(session):
         timeout=15,
     )
     assert resp.status_code == 200, f"Login failed ({resp.status_code}): {resp.text}"
-    token = resp.json().get("access")
-    assert token, "Login response missing 'access' token"
+    token = resp.json().get("access_token")
+    assert token, "Login response missing 'access_token' token"
     return token
 
 

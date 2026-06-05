@@ -39,8 +39,8 @@ class TestLogin:
             timeout=TIMEOUT,
         )
         data = resp.json()
-        assert "access" in data
-        assert "refresh" in data
+        assert "access_token" in data
+        assert "refresh_token" in data
 
 
 class TestTokenRefresh:
@@ -56,11 +56,11 @@ class TestTokenRefresh:
             json={"email": TEST_EMAIL, "password": TEST_PASSWORD},
             timeout=TIMEOUT,
         )
-        refresh_token = login.json()["refresh"]
+        refresh_token = login.json()["refresh_token"]
 
-        resp = session.post(self.URL, json={"refresh": refresh_token}, timeout=TIMEOUT)
+        resp = session.post(self.URL, json={"refresh_token": refresh_token}, timeout=TIMEOUT)
         assert resp.status_code == 200
-        assert "access" in resp.json()
+        assert "access_token" in resp.json()
 
     def test_refresh_with_invalid_token(self, session):
         resp = session.post(self.URL, json={"refresh": "not.a.real.token"}, timeout=TIMEOUT)

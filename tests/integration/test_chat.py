@@ -9,7 +9,7 @@ import requests
 import time
 from conftest import BASE_URL
 
-TIMEOUT = 30  # LLM calls can take up to 20s
+TIMEOUT = 120  # Ollama/LLM calls can take up to 90s on constrained VPS
 
 
 class TestConversations:
