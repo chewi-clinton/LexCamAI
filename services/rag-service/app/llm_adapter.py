@@ -54,6 +54,8 @@ async def stream_generate(
     max_tokens: int = 512,
     system_prompt: str = None,
 ) -> AsyncGenerator[str, None]:
+    import re
+
     ollama_url = os.getenv("OLLAMA_URL")
     groq_key = os.getenv("GROQ_API_KEY")
     groq_url = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
@@ -66,25 +68,7 @@ async def stream_generate(
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
 
-    # ── Primary: self-hosted Ollama ──────────────────────────────────────────
-    if ollama_url:
-        model = os.getenv("LLM_MODEL", "qwen2.5:1.5b")
-        payload = {
-            "model": model,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "stream": True,
-        }
-        async for tok in _stream_openai_compat(
-            url=f"{ollama_url.rstrip('/')}/chat/completions",
-            headers={"Content-Type": "application/json"},
-            payload=payload,
-            fallback_fn=_local_fallback,
-        ):
-            yield tok
-        return
-
-    # ── Secondary: Groq (remote, rate-limited) ───────────────────────────────
+    # ── Primary: Groq llama-3.3-70b-versatile (most intelligent) ───────────
     if groq_key:
         model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         payload = {
@@ -105,9 +89,25 @@ async def stream_generate(
             yield tok
         return
 
-    # ── Last resort: local HF model (sync, chunked) ──────────────────────────
-    import re
+    # ── Secondary: self-hosted Ollama/Qwen (no rate limits) ─────────────────
+    if ollama_url:
+        model = os.getenv("LLM_MODEL", "qwen2.5:1.5b")
+        payload = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        async for tok in _stream_openai_compat(
+            url=f"{ollama_url.rstrip('/')}/chat/completions",
+            headers={"Content-Type": "application/json"},
+            payload=payload,
+            fallback_fn=_local_fallback,
+        ):
+            yield tok
+        return
 
+    # ── Last resort: HF Inference API (sync, chunked) ────────────────────────
     answer = generate(prompt, documents, max_tokens=max_tokens)
     parts = re.split(r'(?<=[\.\!\?])\s+', answer)
     if len(parts) == 1:
