@@ -44,12 +44,14 @@ export default function Header({ activePage = '' }) {
     { label: 'Get Verified', href: '/register-lawyer/documents', key: 'verify' },
     { label: T.aiAssistant,  href: '/chat',                      key: 'chat' },
     { label: T.lawExplorer,  href: '/law-explorer',              key: 'law-explorer' },
+    { label: T.aboutUs,      href: '/about',                     key: 'about' },
   ] : [
     ...((currentUser || hasToken) ? [{ label: T.dashboard, href: '/dashboard', key: 'dashboard' }] : []),
     { label: T.aiAssistant,    href: '/chat',        key: 'chat' },
     { label: T.lawExplorer,    href: '/law-explorer', key: 'law-explorer' },
     { label: T.lawyerDirectory, href: '/lawyer',     key: 'lawyer' },
     { label: T.documents,      href: '/documents',   key: 'documents' },
+    { label: T.aboutUs,        href: '/about',       key: 'about' },
   ];
 
   return (

@@ -68,7 +68,7 @@ services-desccription.md
 _safe_backups/
 
 # Local screenshots (not part of codebase)
-screenshots/
+
 
 # Temporarily ignore CI/workflow files (untracked intentionally)
 .github/workflows/ci.yml

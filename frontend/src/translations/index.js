@@ -6,6 +6,7 @@ const t = {
       lawyerDirectory: 'Lawyer Directory',
       documents: 'Documents',
       dashboard: 'Dashboard',
+      aboutUs: 'About Us',
       login: 'Log In',
     },
     footer: {
@@ -614,6 +615,7 @@ const t = {
       lawyerDirectory: "Annuaire d'Avocats",
       documents: 'Documents',
       dashboard: 'Tableau de Bord',
+      aboutUs: 'À Propos',
       login: 'Connexion',
     },
     footer: {
